@@ -88,6 +88,7 @@ export async function kompresGambar(
   const namaDasar = berkasAsli.name.replace(/\.[^.]+$/, "");
 
   let kualitas = batas.kualitasAwal;
+  let batasSisi = batas.maxSisi;
   let hasil: File | Blob = berkasAsli;
   let putaran = 0;
 
@@ -95,7 +96,7 @@ export async function kompresGambar(
     putaran++;
     lapor?.(`Mengompres… (putaran ${putaran})`);
     const opsi = {
-      maxWidthOrHeight: batas.maxSisi,
+      maxWidthOrHeight: batasSisi,
       initialQuality: kualitas,
       fileType: tipeTarget,
       useWebWorker: true,
@@ -106,7 +107,15 @@ export async function kompresGambar(
     hasil = await imageCompression(berkasAsli, opsi);
 
     if (hasil.size <= batas.maxByte) break;
-    if (kualitas <= batas.kualitasMin) break;
+
+    // Bila sudah di batas kualitas terendah tetapi masih terlalu besar,
+    // perkecil dimensinya bertahap sampai ukuran target tercapai.
+    if (kualitas <= batas.kualitasMin) {
+      if (batasSisi <= 640) break; // sudah sekecil mungkin
+      batasSisi = Math.max(640, Math.round(batasSisi * 0.78));
+      continue;
+    }
+
     kualitas = Math.max(batas.kualitasMin, Number((kualitas - 0.08).toFixed(2)));
   }
 
