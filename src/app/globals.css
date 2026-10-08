@@ -1,0 +1,141 @@
+@import "tailwindcss";
+
+/* ============================================================
+   DESIGN TOKENS — SATU-SATUNYA SUMBER WARNA
+   Nilai di bawah adalah BAWAAN. Saat Super Admin mengganti warna
+   lewat Pengaturan → Tampilan, hanya nilai token yang diubah
+   (diisi dari pengaturan di sisi server), sehingga tidak ada warna
+   yang ditulis mati di dalam komponen.
+   ============================================================ */
+
+:root {
+  /* Warna utama — bawaan teal tua */
+  --brand-50: #f0fdfa;
+  --brand-100: #ccfbf1;
+  --brand-200: #99f6e4;
+  --brand-300: #5eead4;
+  --brand-400: #2dd4bf;
+  --brand-500: #14b8a6;
+  --brand-600: #0d9488;
+  --brand-700: #0f766e;
+  --brand-800: #115e59;
+  --brand-900: #134e4a;
+
+  /* Warna teks di atas warna utama (dihitung otomatis dari kontras) */
+  --brand-contrast: #ffffff;
+  --brand-soft: #ffffff; /* teks di atas latar brand-50/100 */
+
+  /* Netral */
+  --n-0: #ffffff;
+  --n-50: #f8fafc;
+  --n-100: #f1f5f9;
+  --n-200: #e2e8f0;
+  --n-300: #cbd5e1;
+  --n-400: #94a3b8;
+  --n-500: #64748b;
+  --n-600: #475569;
+  --n-700: #334155;
+  --n-800: #1e293b;
+  --n-900: #0f172a;
+
+  /* Warna status — TETAP, tidak dapat diubah Super Admin */
+  --ok-bg: #ecfdf5;
+  --ok-fg: #047857;
+  --ok-line: #a7f3d0;
+  --warn-bg: #fffbeb;
+  --warn-fg: #b45309;
+  --warn-line: #fde68a;
+  --bad-bg: #fef2f2;
+  --bad-fg: #b91c1c;
+  --bad-line: #fecaca;
+
+  /* Bentuk & bayangan */
+  --radius: 10px;
+  --radius-lg: 14px;
+  --shadow-1: 0 1px 2px rgb(15 23 42 / 0.06);
+  --shadow-2: 0 4px 12px rgb(15 23 42 / 0.08);
+}
+
+/* Pemetaan token ke utilitas Tailwind v4 */
+@theme inline {
+  --color-brand-50: var(--brand-50);
+  --color-brand-100: var(--brand-100);
+  --color-brand-200: var(--brand-200);
+  --color-brand-300: var(--brand-300);
+  --color-brand-400: var(--brand-400);
+  --color-brand-500: var(--brand-500);
+  --color-brand-600: var(--brand-600);
+  --color-brand-700: var(--brand-700);
+  --color-brand-800: var(--brand-800);
+  --color-brand-900: var(--brand-900);
+  --color-brand: var(--brand-600);
+  --color-brand-contrast: var(--brand-contrast);
+  --color-brand-soft: var(--brand-soft);
+
+  --color-n-0: var(--n-0);
+  --color-n-50: var(--n-50);
+  --color-n-100: var(--n-100);
+  --color-n-200: var(--n-200);
+  --color-n-300: var(--n-300);
+  --color-n-400: var(--n-400);
+  --color-n-500: var(--n-500);
+  --color-n-600: var(--n-600);
+  --color-n-700: var(--n-700);
+  --color-n-800: var(--n-800);
+  --color-n-900: var(--n-900);
+
+  --color-ok-bg: var(--ok-bg);
+  --color-ok-fg: var(--ok-fg);
+  --color-ok-line: var(--ok-line);
+  --color-warn-bg: var(--warn-bg);
+  --color-warn-fg: var(--warn-fg);
+  --color-warn-line: var(--warn-line);
+  --color-bad-bg: var(--bad-bg);
+  --color-bad-fg: var(--bad-fg);
+  --color-bad-line: var(--bad-line);
+
+  --font-sans: var(--font-utama), system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  background: var(--n-50);
+  color: var(--n-800);
+  font-family: var(--font-sans);
+  font-size: 15px;
+  line-height: 1.55;
+}
+
+/* Judul: maksimal 3 ukuran teks utama agar tidak berisik */
+.judul-1 {
+  font-size: 22px;
+  line-height: 1.3;
+  font-weight: 650;
+  letter-spacing: -0.01em;
+}
+.judul-2 {
+  font-size: 17px;
+  line-height: 1.35;
+  font-weight: 600;
+}
+.teks-3 {
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+/* Fokus yang terlihat jelas (aksesibilitas) */
+:where(a, button, input, select, textarea, [tabindex]):focus-visible {
+  outline: 2px solid var(--brand-600);
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.001ms !important;
+    transition-duration: 0.001ms !important;
+  }
+}
