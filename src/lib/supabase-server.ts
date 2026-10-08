@@ -1,6 +1,7 @@
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
 import type { SesiPengguna } from "./sesi";
+import { cache } from "react";
 
 /**
  * Klien server: membaca sesi pengguna dari kue dan memakai kunci publik.
@@ -35,21 +36,27 @@ type BarisProfil = {
 };
 
 /** Mengambil pengguna yang sedang masuk beserta perannya dari database. */
-export async function penggunaSaatIni(): Promise<SesiPengguna | null> {
+async function bacaPenggunaSaatIni(): Promise<SesiPengguna | null> {
   const sb = await klienServer();
   const {
     data: { user },
   } = await sb.auth.getUser();
   if (!user) return null;
 
-  const { data: profil } = await sb
-    .from("profiles")
-    .select("id, nama, email, jabatan")
-    .eq("id", user.id)
-    .maybeSingle<BarisProfil>();
+  // Dua permintaan dijalankan BERSAMAAN, bukan berurutan.
+  const [profilHasil, peranHasil] = await Promise.all([
+    sb
+      .from("profiles")
+      .select("id, nama, email, jabatan")
+      .eq("id", user.id)
+      .maybeSingle<BarisProfil>(),
+    sb.from("user_roles").select("peran").eq("user_id", user.id),
+  ]);
 
-  const { data: peranBaris } = await sb.from("user_roles").select("peran").eq("user_id", user.id);
-  const peran = (peranBaris ?? []).map((p: { peran: string }) => p.peran as SesiPengguna["peran"][number]);
+  const profil = profilHasil.data;
+  const peran = ((peranHasil.data ?? []) as { peran: string }[]).map(
+    (p) => p.peran as SesiPengguna["peran"][number],
+  );
 
   return {
     id: user.id,
@@ -59,3 +66,10 @@ export async function penggunaSaatIni(): Promise<SesiPengguna | null> {
     peran,
   };
 }
+
+/**
+ * Identitas pengguna untuk satu permintaan halaman.
+ * Hasilnya disimpan di memori selama satu permintaan saja (bawaan Next.js),
+ * jadi satu kali buka halaman tidak menanyai database berkali-kali.
+ */
+export const penggunaSaatIni = cache(bacaPenggunaSaatIni);
