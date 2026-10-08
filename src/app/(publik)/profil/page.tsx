@@ -96,7 +96,7 @@ export default async function HalamanProfil() {
 
                     return (
                       <div
-                        key={orang.id}
+                        key={`${orang.bidang}-${orang.nama}`}
                         className="p-4 sm:px-5 flex flex-col sm:flex-row sm:items-center justify-between gap-3"
                       >
                         <div className="flex items-center gap-3 min-w-0">
