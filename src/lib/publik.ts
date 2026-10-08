@@ -28,7 +28,7 @@ export type GaleriPublik = {
   activity_id: string;
   path: string;
   keterangan: string | null;
-  urut: number;
+  urutan: number;
 };
 
 export type GaleriKelompok = {
@@ -147,8 +147,8 @@ export async function daftarGaleri(): Promise<GaleriKelompok[]> {
     const sb = await klienServer();
     const { data, error } = await sb
       .from("public_gallery")
-      .select("id, activity_id, path, keterangan, urut")
-      .order("urut", { ascending: true });
+      .select("id, activity_id, path, keterangan, urutan")
+      .order("urutan", { ascending: true });
 
     if (error || !data) return [];
     const baris = data as GaleriPublik[];
