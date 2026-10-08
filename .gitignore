@@ -40,3 +40,6 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 .antigravity-tasks/
+
+# daftar kata sandi pengurus — RAHASIA, jangan diunggah
+docs/kata-sandi-pengurus.md
