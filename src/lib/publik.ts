@@ -214,3 +214,30 @@ export async function daftarPengurus(): Promise<PengurusPublik[]> {
     return [];
   }
 }
+
+export type DokumenPublik = {
+  id: string;
+  judul: string;
+  keterangan: string | null;
+  path: string;
+  ukuran_byte: number | null;
+  jenis: "pdf" | "gambar" | "lain";
+  dibuat_pada: string;
+};
+
+/** Mengambil seluruh daftar dokumen yang dipublikasikan untuk publik */
+export async function daftarDokumenPublik(): Promise<DokumenPublik[]> {
+  try {
+    const sb = await klienServer();
+    const { data, error } = await sb
+      .from("public_documents")
+      .select("id, judul, keterangan, path, ukuran_byte, jenis, dibuat_pada")
+      .order("dibuat_pada", { ascending: false });
+
+    if (error || !data) return [];
+    return data as DokumenPublik[];
+  } catch {
+    return [];
+  }
+}
+

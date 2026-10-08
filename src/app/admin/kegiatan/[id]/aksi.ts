@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { klienServer, penggunaSaatIni } from "@/lib/supabase-server";
+import { klienAdmin } from "@/lib/supabase-admin";
 import type { Peran } from "@/lib/kegiatan";
 import { racikBeritaOtomatis } from "@/lib/publikasi";
 
@@ -239,3 +240,262 @@ export async function simpanLaporan(
   revalidatePath(`/admin/kegiatan/${activityId}`);
   return { ok: true };
 }
+
+const PERAN_INTI: Peran[] = [
+  "super_admin",
+  "ketua",
+  "wakil_ketua",
+  "sekretaris",
+  "bendahara",
+  "ketua_seksi",
+];
+
+/** Mengajukan usulan perubahan (tanggal, tempat, anggaran, lain) setelah kegiatan disetujui. */
+export async function ajukanPerubahan(
+  activityId: string,
+  jenis: "tanggal" | "tempat" | "anggaran" | "lain",
+  usulan: string,
+  alasan: string,
+) {
+  const pengguna = await penggunaSaatIni();
+  if (!pengguna) return { galat: "Sesi Anda sudah berakhir." };
+
+  const bolehMengajukan = pengguna.peran.some((p) => PERAN_INTI.includes(p as Peran));
+  if (!bolehMengajukan) {
+    return { galat: "Hanya pengurus inti yang berwenang mengajukan perubahan kegiatan." };
+  }
+
+  if (!usulan.trim()) return { galat: "Usulan perubahan wajib diisi." };
+  if (!alasan.trim()) return { galat: "Alasan perubahan wajib diisi." };
+
+  const sb = await klienServer();
+  const { data: keg } = await sb
+    .from("activities")
+    .select("id, judul, status")
+    .eq("id", activityId)
+    .maybeSingle<{ id: string; judul: string; status: string }>();
+
+  if (!keg) return { galat: "Kegiatan tidak ditemukan." };
+  if (!["disetujui", "berjalan", "selesai"].includes(keg.status)) {
+    return {
+      galat: "Pengajuan perubahan hanya dapat dilakukan setelah tahap perencanaan kegiatan disetujui.",
+    };
+  }
+
+  // Masukkan pengajuan perubahan ke basis data
+  const { error: gagalCr } = await sb.from("change_requests").insert({
+    activity_id: activityId,
+    jenis,
+    usulan: usulan.trim(),
+    alasan: alasan.trim(),
+    status: "diajukan",
+    diajukan_oleh: pengguna.id,
+  });
+
+  if (gagalCr) return { galat: "Gagal menyimpan pengajuan perubahan: " + gagalCr.message };
+
+  // Catat ke log kegiatan
+  await sb.from("activity_logs").insert({
+    activity_id: activityId,
+    aksi: "ajukan_perubahan",
+    keterangan: `Pengajuan perubahan ${jenis}: "${usulan.trim().slice(0, 100)}" (alasan: ${alasan.trim().slice(0, 100)})`,
+    pelaku_id: pengguna.id,
+    pelaku_nama: pengguna.nama,
+  });
+
+  // Kirim notifikasi ke seluruh pengurus inti yang aktif (kecuali pengaju)
+  try {
+    const sbAdmin = klienAdmin();
+    const hariIni = new Date().toISOString().slice(0, 10);
+    const { data: semuaPeran } = await sbAdmin
+      .from("user_roles")
+      .select("user_id, peran, mulai, selesai");
+
+    const targetUserIds = new Set<string>();
+    for (const r of semuaPeran ?? []) {
+      if (
+        PERAN_INTI.includes(r.peran as Peran) &&
+        (!r.mulai || r.mulai <= hariIni) &&
+        (!r.selesai || r.selesai >= hariIni) &&
+        r.user_id !== pengguna.id
+      ) {
+        targetUserIds.add(r.user_id);
+      }
+    }
+
+    for (const uid of targetUserIds) {
+      await sbAdmin.from("notifications").insert({
+        user_id: uid,
+        jenis: "perubahan_kegiatan",
+        judul: `Pengajuan Perubahan: ${keg.judul}`,
+        pesan: `${pengguna.nama} mengajukan perubahan ${jenis} untuk kegiatan "${keg.judul}".`,
+        tautan: `/admin/kegiatan/${activityId}?tab=ringkasan`,
+        activity_id: activityId,
+        dibaca: false,
+      });
+    }
+  } catch {
+    // Abaikan galat notifikasi agar tidak menggagalkan pengajuan
+  }
+
+  revalidatePath(`/admin/kegiatan/${activityId}`);
+  return { ok: true };
+}
+
+/** Memutuskan (menyetujui / menolak) usulan perubahan kegiatan. */
+export async function putuskanPerubahan(
+  activityId: string,
+  changeRequestId: string,
+  keputusan: "disetujui" | "ditolak",
+  catatan?: string,
+) {
+  const pengguna = await penggunaSaatIni();
+  if (!pengguna) return { galat: "Sesi Anda sudah berakhir." };
+
+  const bolehMemutuskan = pengguna.peran.some((p) => PERAN_INTI.includes(p as Peran));
+  if (!bolehMemutuskan) {
+    return { galat: "Hanya pengurus inti yang berwenang memutuskan perubahan kegiatan." };
+  }
+
+  if (keputusan === "ditolak" && !catatan?.trim()) {
+    return { galat: "Catatan wajib diisi bila menolak usulan perubahan." };
+  }
+
+  const sb = await klienServer();
+  const { data: cr } = await sb
+    .from("change_requests")
+    .select("id, activity_id, jenis, usulan, alasan, status, diajukan_oleh")
+    .eq("id", changeRequestId)
+    .eq("activity_id", activityId)
+    .maybeSingle<{
+      id: string;
+      activity_id: string;
+      jenis: "tanggal" | "tempat" | "anggaran" | "lain";
+      usulan: string;
+      alasan: string;
+      status: string;
+      diajukan_oleh: string | null;
+    }>();
+
+  if (!cr) return { galat: "Data pengajuan perubahan tidak ditemukan." };
+  if (cr.status !== "diajukan" && cr.status !== "dalam_review") {
+    return { galat: `Pengajuan ini sudah pernah diputuskan sebelumnya (${cr.status}).` };
+  }
+
+  const { data: keg } = await sb
+    .from("activities")
+    .select("id, judul")
+    .eq("id", activityId)
+    .maybeSingle<{ id: string; judul: string }>();
+
+  // Perbarui status pengajuan perubahan
+  const { error: gagalPutus } = await sb
+    .from("change_requests")
+    .update({
+      status: keputusan,
+      diputuskan_pada: new Date().toISOString(),
+    })
+    .eq("id", changeRequestId);
+
+  if (gagalPutus) return { galat: "Gagal memperbarui status pengajuan: " + gagalPutus.message };
+
+  // Bila disetujui, terapkan perubahan pada tabel target
+  if (keputusan === "disetujui") {
+    if (cr.jenis === "tanggal") {
+      const bagian = cr.usulan.split(";").map((s) => s.trim());
+      const mulai = bagian[0];
+      const selesai = bagian[1] || mulai;
+      if (mulai) {
+        await sb
+          .from("activities")
+          .update({
+            tanggal_mulai: mulai,
+            tanggal_selesai: selesai,
+          })
+          .eq("id", activityId);
+      }
+    } else if (cr.jenis === "tempat") {
+      await sb.from("activities").update({ tempat: cr.usulan.trim() }).eq("id", activityId);
+    } else if (cr.jenis === "anggaran") {
+      // Usulan anggaran: format uraian|jumlah|harga per baris
+      const baris = cr.usulan.split("\n").map((b) => b.trim()).filter(Boolean);
+      const { data: rabAda } = await sb
+        .from("budget_items")
+        .select("id, uraian, urutan")
+        .eq("activity_id", activityId);
+
+      let urutanMax = (rabAda ?? []).reduce((max, item) => Math.max(max, item.urutan || 0), 0);
+
+      for (const line of baris) {
+        const parts = line.split("|").map((p) => p.trim());
+        if (parts.length >= 3) {
+          const uraian = parts[0];
+          const jumlah = parseFloat(parts[1]) || 1;
+          const hargaSatuan = parseFloat(parts[2]) || 0;
+          const satuan = parts[3] || null;
+
+          const cocok = (rabAda ?? []).find(
+            (r) => r.uraian.trim().toLowerCase() === uraian.toLowerCase(),
+          );
+          if (cocok) {
+            await sb
+              .from("budget_items")
+              .update({
+                jumlah,
+                harga_satuan: hargaSatuan,
+                ...(satuan ? { satuan } : {}),
+              })
+              .eq("id", cocok.id);
+          } else {
+            urutanMax += 1;
+            await sb.from("budget_items").insert({
+              activity_id: activityId,
+              uraian,
+              jumlah,
+              harga_satuan: hargaSatuan,
+              satuan,
+              urutan: urutanMax,
+            });
+          }
+        }
+      }
+    }
+    // jenis='lain': dicatat tanpa mengubah data otomatis
+  }
+
+  // Catat ke riwayat kegiatan
+  const teksCatatan = catatan?.trim() ? ` — catatan: ${catatan.trim()}` : "";
+  await sb.from("activity_logs").insert({
+    activity_id: activityId,
+    aksi: `putusan_perubahan_${keputusan}`,
+    keterangan: `${pengguna.nama} ${
+      keputusan === "disetujui" ? "menyetujui" : "menolak"
+    } pengajuan perubahan ${cr.jenis}${teksCatatan}`,
+    pelaku_id: pengguna.id,
+    pelaku_nama: pengguna.nama,
+  });
+
+  // Beritahu pemohon bila ada
+  if (cr.diajukan_oleh) {
+    try {
+      const sbAdmin = klienAdmin();
+      await sbAdmin.from("notifications").insert({
+        user_id: cr.diajukan_oleh,
+        jenis: "perubahan_kegiatan",
+        judul: `Perubahan ${cr.jenis} ${keputusan === "disetujui" ? "Disetujui" : "Ditolak"}`,
+        pesan: `Pengajuan perubahan ${cr.jenis} untuk kegiatan "${keg?.judul ?? ""}" telah ${
+          keputusan === "disetujui" ? "disetujui" : "ditolak"
+        }${teksCatatan}.`,
+        tautan: `/admin/kegiatan/${activityId}?tab=ringkasan`,
+        activity_id: activityId,
+        dibaca: false,
+      });
+    } catch {
+      // Abaikan
+    }
+  }
+
+  revalidatePath(`/admin/kegiatan/${activityId}`);
+  return { ok: true };
+}
+

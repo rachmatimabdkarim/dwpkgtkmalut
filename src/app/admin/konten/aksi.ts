@@ -424,3 +424,116 @@ export async function aksiCabutPublikGaleri(attachmentId: string) {
     return { galat: err instanceof Error ? err.message : "Terjadi kesalahan sistem." };
   }
 }
+
+/** Menyimpan dokumen baru yang siap diunduh publik */
+export async function aksiSimpanDokumen(data: {
+  judul: string;
+  keterangan?: string;
+  path: string;
+  ukuranByte?: number;
+  jenis?: "pdf" | "gambar" | "lain";
+}) {
+  try {
+    const pengguna = await pastikanEditor();
+    const judul = data.judul.trim();
+    if (!judul) return { galat: "Judul dokumen wajib diisi." };
+    if (!data.path.trim()) return { galat: "Berkas dokumen belum diunggah." };
+
+    const sb = await klienServer();
+    const { data: baris, error } = await sb
+      .from("documents")
+      .insert({
+        judul,
+        keterangan: data.keterangan?.trim() || null,
+        path: data.path.trim(),
+        ukuran_byte: data.ukuranByte || 0,
+        jenis: data.jenis || "pdf",
+        published: true,
+        diunggah_oleh: pengguna.id,
+      })
+      .select("id")
+      .single();
+
+    if (error) return { galat: "Gagal menyimpan dokumen: " + error.message };
+
+    revalidatePath("/admin/konten");
+    revalidatePath("/unduhan");
+    return { ok: true, id: baris.id };
+  } catch (err: unknown) {
+    return { galat: err instanceof Error ? err.message : "Terjadi kesalahan sistem." };
+  }
+}
+
+/** Memperbarui keterangan dokumen */
+export async function aksiUbahKeteranganDokumen(id: string, keterangan: string) {
+  try {
+    await pastikanEditor();
+    const sb = await klienServer();
+
+    const { error } = await sb
+      .from("documents")
+      .update({ keterangan: keterangan.trim() || null })
+      .eq("id", id);
+
+    if (error) return { galat: "Gagal memperbarui keterangan: " + error.message };
+
+    revalidatePath("/admin/konten");
+    revalidatePath("/unduhan");
+    return { ok: true };
+  } catch (err: unknown) {
+    return { galat: err instanceof Error ? err.message : "Terjadi kesalahan sistem." };
+  }
+}
+
+/** Mengubah visibilitas dokumen (sembunyikan / tampilkan di publik) */
+export async function aksiUbahStatusDokumen(id: string, published: boolean) {
+  try {
+    await pastikanEditor();
+    const sb = await klienServer();
+
+    const { error } = await sb
+      .from("documents")
+      .update({ published })
+      .eq("id", id);
+
+    if (error) return { galat: "Gagal mengubah status: " + error.message };
+
+    revalidatePath("/admin/konten");
+    revalidatePath("/unduhan");
+    return { ok: true };
+  } catch (err: unknown) {
+    return { galat: err instanceof Error ? err.message : "Terjadi kesalahan sistem." };
+  }
+}
+
+/** Menghapus dokumen publik beserta berkas fisiknya di storage */
+export async function aksiHapusDokumen(id: string) {
+  try {
+    await pastikanEditor();
+    const sb = await klienServer();
+
+    const { data: doc } = await sb
+      .from("documents")
+      .select("id, path")
+      .eq("id", id)
+      .maybeSingle();
+
+    if (!doc) return { galat: "Dokumen tidak ditemukan." };
+
+    // Hapus baris dari tabel documents
+    const { error: gagalHapusDb } = await sb.from("documents").delete().eq("id", id);
+    if (gagalHapusDb) return { galat: "Gagal menghapus data dokumen: " + gagalHapusDb.message };
+
+    // Hapus berkas dari storage publik jika ada
+    if (doc.path) {
+      await sb.storage.from("publik").remove([doc.path]);
+    }
+
+    revalidatePath("/admin/konten");
+    revalidatePath("/unduhan");
+    return { ok: true };
+  } catch (err: unknown) {
+    return { galat: err instanceof Error ? err.message : "Terjadi kesalahan sistem." };
+  }
+}
+

@@ -10,6 +10,7 @@ import { SembunyikanToggle } from "./sembunyikan";
 import { PanelPanitia, type PanitiaItem, type PengurusOpsi } from "./panitia";
 import { PanelPresensi, type PesertaItem } from "./presensi";
 import { PanelDokumentasi, type FotoItem } from "./dokumentasi";
+import { PanelPerubahan, type ItemPengajuan } from "./perubahan";
 
 export const instant = false;
 
@@ -112,6 +113,45 @@ export default async function DetailKegiatan({
     .eq("entitas_id", id)
     .eq("status", "resmi")
     .order("diunggah_pada", { ascending: true });
+
+  const tampilkanPerubahan = ["disetujui", "berjalan", "selesai"].includes(keg.status);
+  const { data: dataPerubahan } = tampilkanPerubahan
+    ? await sb
+        .from("change_requests")
+        .select(
+          "id, activity_id, jenis, usulan, alasan, status, diajukan_oleh, dibuat_pada, diputuskan_pada, profiles:diajukan_oleh(nama)",
+        )
+        .eq("activity_id", id)
+        .order("dibuat_pada", { ascending: false })
+    : { data: null };
+
+  const daftarPengajuan: ItemPengajuan[] = ((dataPerubahan ?? []) as unknown as {
+    id: string;
+    activity_id: string;
+    jenis: "tanggal" | "tempat" | "anggaran" | "lain";
+    usulan: string;
+    alasan: string | null;
+    status: "diajukan" | "dalam_review" | "disetujui" | "ditolak";
+    diajukan_oleh: string | null;
+    dibuat_pada: string;
+    diputuskan_pada: string | null;
+    profiles?: { nama: string } | null;
+  }[]).map((cr) => ({
+    id: cr.id,
+    activity_id: cr.activity_id,
+    jenis: cr.jenis,
+    usulan: cr.usulan,
+    alasan: cr.alasan,
+    status: cr.status,
+    diajukan_oleh: cr.diajukan_oleh,
+    nama_pengaju: cr.profiles?.nama,
+    dibuat_pada: cr.dibuat_pada,
+    diputuskan_pada: cr.diputuskan_pada,
+  }));
+
+  const apakahPengurusInti = pengguna.peran.some((p) =>
+    ["super_admin", "ketua", "wakil_ketua", "sekretaris", "bendahara", "ketua_seksi"].includes(p),
+  );
 
   const bolehUbahPublik =
     pengguna.id === keg.penanggung_jawab ||
@@ -239,36 +279,47 @@ export default async function DetailKegiatan({
           </div>
 
           {tabAktif === "ringkasan" && (
-            <Kartu className="p-4 sm:p-5">
-              <JudulSeksi>Ringkasan</JudulSeksi>
-              <dl className="grid sm:grid-cols-2 gap-4">
-                <div>
-                  <dt className="teks-3 text-n-500">Tujuan</dt>
-                  <dd className="text-n-800 text-[14px]">{keg.tujuan || "—"}</dd>
-                </div>
-                <div>
-                  <dt className="teks-3 text-n-500">Sasaran</dt>
-                  <dd className="text-n-800 text-[14px]">{keg.sasaran || "—"}</dd>
-                </div>
-                <div>
-                  <dt className="teks-3 text-n-500">Tanggal pelaksanaan</dt>
-                  <dd className="text-n-800 text-[14px]">
-                    {formatTanggal(keg.tanggal_mulai)}
-                    {keg.tanggal_selesai && keg.tanggal_selesai !== keg.tanggal_mulai
-                      ? ` s.d. ${formatTanggal(keg.tanggal_selesai)}`
-                      : ""}
-                  </dd>
-                </div>
-                <div>
-                  <dt className="teks-3 text-n-500">Tempat</dt>
-                  <dd className="text-n-800 text-[14px]">{keg.tempat || "—"}</dd>
-                </div>
-                <div className="sm:col-span-2">
-                  <dt className="teks-3 text-n-500">Ringkasan untuk publik</dt>
-                  <dd className="text-n-800 text-[14px]">{keg.ringkasan || "—"}</dd>
-                </div>
-              </dl>
-            </Kartu>
+            <div className="space-y-6">
+              <Kartu className="p-4 sm:p-5">
+                <JudulSeksi>Ringkasan</JudulSeksi>
+                <dl className="grid sm:grid-cols-2 gap-4">
+                  <div>
+                    <dt className="teks-3 text-n-500">Tujuan</dt>
+                    <dd className="text-n-800 text-[14px]">{keg.tujuan || "—"}</dd>
+                  </div>
+                  <div>
+                    <dt className="teks-3 text-n-500">Sasaran</dt>
+                    <dd className="text-n-800 text-[14px]">{keg.sasaran || "—"}</dd>
+                  </div>
+                  <div>
+                    <dt className="teks-3 text-n-500">Tanggal pelaksanaan</dt>
+                    <dd className="text-n-800 text-[14px]">
+                      {formatTanggal(keg.tanggal_mulai)}
+                      {keg.tanggal_selesai && keg.tanggal_selesai !== keg.tanggal_mulai
+                        ? ` s.d. ${formatTanggal(keg.tanggal_selesai)}`
+                        : ""}
+                    </dd>
+                  </div>
+                  <div>
+                    <dt className="teks-3 text-n-500">Tempat</dt>
+                    <dd className="text-n-800 text-[14px]">{keg.tempat || "—"}</dd>
+                  </div>
+                  <div className="sm:col-span-2">
+                    <dt className="teks-3 text-n-500">Ringkasan untuk publik</dt>
+                    <dd className="text-n-800 text-[14px]">{keg.ringkasan || "—"}</dd>
+                  </div>
+                </dl>
+              </Kartu>
+
+              {tampilkanPerubahan && (
+                <PanelPerubahan
+                  activityId={keg.id}
+                  daftarPengajuan={daftarPengajuan}
+                  bisaMengajukan={apakahPengurusInti}
+                  bisaMemutuskan={apakahPengurusInti}
+                />
+              )}
+            </div>
           )}
 
           {tabAktif === "anggaran" && (
@@ -350,6 +401,19 @@ export default async function DetailKegiatan({
 
           {tabAktif === "laporan" && (
             <div className="flex flex-col gap-5">
+              <div className="flex items-center justify-between gap-3">
+                <span className="teks-3 text-n-500">
+                  Laporan pertanggungjawaban kegiatan resmi DWP.
+                </span>
+                <a
+                  href={`/api/laporan/${keg.id}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex h-9 items-center gap-1.5 rounded-token border border-n-300 bg-n-0 px-3.5 text-[13px] font-medium text-n-700 hover:bg-n-50 transition-colors shadow-xs shrink-0"
+                >
+                  Unduh PDF
+                </a>
+              </div>
               <PanelLaporan
                 activityId={keg.id}
                 isi={{

@@ -165,12 +165,12 @@ export function KerangkaPublik({
               <h3 className="text-n-0 font-medium">Informasi & Layanan</h3>
               <ul className="space-y-1.5 text-[14px]">
                 <li>
-                  <a
-                    href="#unduhan"
+                  <Link
+                    href="/unduhan"
                     className="text-n-300 hover:text-n-0 min-h-[44px] inline-flex items-center transition-colors"
                   >
                     Unduhan Dokumen
-                  </a>
+                  </Link>
                 </li>
                 <li>
                   <a

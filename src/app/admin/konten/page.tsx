@@ -11,6 +11,7 @@ import {
   type KelompokGaleri,
   type ItemFotoGaleri,
 } from "./antrean";
+import { PanelUnduhan, type ItemDokumen } from "./dokumen";
 
 export const metadata = { title: "Konten" };
 
@@ -21,6 +22,7 @@ const TAB_KONTEN = [
   { key: "berita", label: "Berita" },
   { key: "antrean", label: "Antrean Tinjauan" },
   { key: "galeri", label: "Galeri Publik" },
+  { key: "unduhan", label: "Unduhan" },
   { key: "halaman", label: "Halaman" },
 ] as const;
 
@@ -173,6 +175,29 @@ export default async function HalamanKonten({
     }),
   );
 
+  // 4. Ambil data dokumen unduhan publik
+  let daftarDokumen: ItemDokumen[] = [];
+  try {
+    const { data: dataDokumen } = await sb
+      .from("documents")
+      .select("id, judul, keterangan, path, ukuran_byte, jenis, published, diunggah_oleh, dibuat_pada")
+      .order("dibuat_pada", { ascending: false });
+
+    daftarDokumen = (dataDokumen ?? []).map((d) => ({
+      id: d.id,
+      judul: d.judul,
+      keterangan: d.keterangan,
+      path: d.path,
+      ukuran_byte: d.ukuran_byte,
+      jenis: (d.jenis ?? "pdf") as "pdf" | "gambar" | "lain",
+      published: Boolean(d.published),
+      diunggah_oleh: d.diunggah_oleh,
+      dibuat_pada: d.dibuat_pada,
+    }));
+  } catch {
+    daftarDokumen = [];
+  }
+
   return (
     <KerangkaAdmin pengguna={pengguna} judul="Konten">
       {/* Tab navigasi */}
@@ -212,6 +237,8 @@ export default async function HalamanKonten({
       {tabAktif === "antrean" && <AntreanBerita daftar={daftarAntrean} />}
 
       {tabAktif === "galeri" && <PanelGaleri kelompok={kelompokGaleri} />}
+
+      {tabAktif === "unduhan" && <PanelUnduhan daftar={daftarDokumen} />}
 
       {tabAktif === "halaman" && (
         <div className="flex flex-col gap-4">

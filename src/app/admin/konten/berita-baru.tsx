@@ -568,6 +568,18 @@ export function DaftarBerita({
                   </div>
                 ) : (
                   <div className="mt-4 pt-3 border-t border-n-200 flex flex-wrap items-center justify-end gap-2">
+                    {post.activity_id && (
+                      <a
+                        href={`/api/laporan/${post.activity_id}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex h-9 items-center gap-1 rounded-token border border-n-300 bg-n-0 px-3 text-[13px] font-medium text-n-700 hover:bg-n-50 transition-colors"
+                        title="Unduh Laporan PDF kegiatan terkait"
+                      >
+                        Unduh PDF
+                      </a>
+                    )}
+
                     <TombolHalus
                       ukuran="kecil"
                       type="button"

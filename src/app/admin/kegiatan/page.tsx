@@ -69,14 +69,22 @@ export default async function HalamanKegiatan({
       pengguna={pengguna}
       judul="Kegiatan"
       aksi={
-        bolehBuat ? (
+        <div className="flex items-center gap-2">
           <Link
-            href="/admin/kegiatan/baru"
-            className="inline-flex h-11 items-center rounded-token bg-brand-600 px-4 text-[15px] font-medium text-brand-contrast hover:bg-brand-700"
+            href="/admin/kalender"
+            className="inline-flex h-11 items-center rounded-token border border-n-300 bg-n-0 px-3.5 text-[14px] font-medium text-n-700 hover:bg-n-50 transition-colors"
           >
-            + Kegiatan Baru
+            Kalender
           </Link>
-        ) : null
+          {bolehBuat ? (
+            <Link
+              href="/admin/kegiatan/baru"
+              className="inline-flex h-11 items-center rounded-token bg-brand-600 px-4 text-[15px] font-medium text-brand-contrast hover:bg-brand-700"
+            >
+              + Kegiatan Baru
+            </Link>
+          ) : null}
+        </div>
       }
     >
       {/* Filter tahap */}
