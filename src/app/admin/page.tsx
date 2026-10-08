@@ -4,7 +4,8 @@ import { sesiWajib } from "@/lib/sesi-server";
 import { klienServer } from "@/lib/supabase-server";
 import { Kartu, Kosong, Lencana, type NadaStatus } from "@/components/dasar";
 import { labelPeran } from "@/lib/peran";
-import { labelStatus, formatTanggal, type Peran } from "@/lib/kegiatan";
+import { labelStatus, formatTanggal } from "@/lib/kegiatan";
+import { perluTindakanUntuk } from "@/lib/notifikasi";
 
 export const metadata = { title: "Beranda" };
 
@@ -30,111 +31,39 @@ export default async function BerandaAdmin() {
   const perluTindakan: PerluTindakanItem[] = [];
 
   // ============================================================
-  // 1. KEGIATAN YANG MENUNGGU KEPUTUSAN PENGGUNA SAAT INI
+  // 1. KEGIATAN & BERITA YANG MENUNGGU TINDAKAN PENGGUNA
   // ============================================================
-  const { data: kegMenunggu } = await sb
-    .from("activities")
-    .select("id, judul, status, dibuat_oleh")
-    .in("status", ["diajukan", "dalam_review", "laporan_diajukan", "laporan_dalam_review"]);
+  const daftarTindakan = await perluTindakanUntuk(pengguna.id);
+  perluTindakan.push(...daftarTindakan);
 
-  if (kegMenunggu && kegMenunggu.length > 0) {
-    // Ambil semua alur persetujuan
-    const { data: flows } = await sb
-      .from("approval_flows")
-      .select("id, nama, approval_steps(urutan, peran)");
+  // ============================================================
+  // 2. NOTIFIKASI BELUM DIBACA DARI TABEL NOTIFICATIONS
+  //    (selain kegiatan yang sudah menunggu keputusan di atas)
+  // ============================================================
+  const { data: notifBelumDibaca } = await sb
+    .from("notifications")
+    .select("id, jenis, judul, pesan, tautan, activity_id, dibuat_pada")
+    .eq("user_id", pengguna.id)
+    .eq("dibaca", false)
+    .order("dibuat_pada", { ascending: false })
+    .limit(5);
 
-    const kegIds = kegMenunggu.map((k) => k.id);
-    const { data: approvalsData } = await sb
-      .from("approvals")
-      .select("activity_id, tahap, step_urutan, peran, keputusan")
-      .in("activity_id", kegIds);
-
-    const { data: delegationsData } = await sb
-      .from("delegations")
-      .select("dari_peran, ke_peran")
-      .lte("mulai", hariIni)
-      .gte("selesai", hariIni);
-
-    const delegations = delegationsData ?? [];
-    const peranSaya = pengguna.peran as Peran[];
-
-    for (const keg of kegMenunggu) {
-      // Pengusul TIDAK boleh menyetujui usulannya sendiri
-      if (keg.dibuat_oleh === pengguna.id) continue;
-
-      const namaTahap = ["diajukan", "dalam_review"].includes(keg.status)
-        ? "perencanaan"
-        : "pelaporan";
-
-      const flow = (flows ?? []).find((f: { nama: string }) => f.nama === namaTahap);
-      if (!flow) continue;
-
-      const steps = ((flow.approval_steps ?? []) as { urutan: number; peran: string }[])
-        .slice()
-        .sort((a, b) => a.urutan - b.urutan);
-
-      const approvedSteps = new Set(
-        (approvalsData ?? [])
-          .filter(
-            (a: { activity_id: string; tahap: string; keputusan: string }) =>
-              a.activity_id === keg.id && a.tahap === namaTahap && a.keputusan === "setuju",
-          )
-          .map((a: { step_urutan: number }) => a.step_urutan),
-      );
-
-      const berikut = steps.find((s) => !approvedSteps.has(s.urutan));
-      if (!berikut) continue;
-
-      const bolehDelegasi = delegations.some(
-        (d: { dari_peran: string; ke_peran: string }) =>
-          d.dari_peran === berikut.peran && peranSaya.includes(d.ke_peran as Peran),
-      );
-
-      const bolehMenilai =
-        peranSaya.includes("super_admin") ||
-        peranSaya.includes(berikut.peran as Peran) ||
-        bolehDelegasi;
-
-      if (bolehMenilai) {
-        perluTindakan.push({
-          id: `keg-${keg.id}`,
-          judul: keg.judul,
-          tahap: namaTahap === "perencanaan" ? "Perencanaan" : "Pelaporan",
-          keterangan: `Menunggu persetujuan Anda (${berikut.peran.replace(/_/g, " ")})`,
-          statusLencana: "Menunggu",
-          nada: "warn",
-          aksi: "Tinjau",
-          tautan: `/admin/kegiatan/${keg.id}`,
-        });
-      }
+  for (const n of notifBelumDibaca ?? []) {
+    // Jangan tampilkan ganda jika kegiatan sudah ada di daftar tindakan di atas
+    if (n.activity_id && perluTindakan.some((t) => t.id === `keg-${n.activity_id}`)) {
+      continue;
     }
-  }
 
-  // ============================================================
-  // 2. BERITA DI ANTREAN (BILA PENGGUNA BERPERAN EDITOR / SUPER ADMIN)
-  // ============================================================
-  const apakahEditor = pengguna.peran.some((p) => ["editor", "super_admin"].includes(p));
-  if (apakahEditor) {
-    const { data: posAntrean } = await sb
-      .from("posts")
-      .select("id, judul, status")
-      .eq("sumber", "otomatis")
-      .or("status.eq.antrean,perlu_tinjauan.eq.true")
-      .order("dibuat_pada", { ascending: false })
-      .limit(5);
-
-    for (const pos of posAntrean ?? []) {
-      perluTindakan.push({
-        id: `pos-${pos.id}`,
-        judul: pos.judul,
-        tahap: "Konten",
-        keterangan: "Menunggu tinjauan Editor sebelum terbit",
-        statusLencana: "Antrean",
-        nada: "brand",
-        aksi: "Tinjau",
-        tautan: "/admin/konten?tab=antrean",
-      });
-    }
+    perluTindakan.push({
+      id: `notif-${n.id}`,
+      judul: n.judul,
+      tahap: n.jenis === "penyapu_dijeda" ? "Sistem" : "Pemberitahuan",
+      keterangan: n.pesan ?? "Pemberitahuan baru belum dibaca",
+      statusLencana: "Baru",
+      nada: n.jenis === "penyapu_dijeda" ? "bad" : "brand",
+      aksi: "Buka",
+      tautan: n.tautan || "/admin",
+    });
   }
 
   // ============================================================

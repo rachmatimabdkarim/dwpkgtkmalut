@@ -9,6 +9,7 @@ import { JudulAplikasi } from "./judul-aplikasi";
 import { MENU_ADMIN, bolehAkses, type MenuItem, type RoleKey } from "@/lib/peran";
 import type { SesiPengguna } from "@/lib/sesi";
 import { useTema } from "@/components/penyedia-tema";
+import { Lonceng } from "./lonceng";
 
 /**
  * Kerangka panel admin: sidebar 6 menu (berubah jadi menu geser di HP),
@@ -142,12 +143,7 @@ export function KerangkaAdmin({
           </button>
           <h1 className="judul-2 text-n-800 truncate flex-1">{judul}</h1>
           {aksi}
-          <button
-            aria-label="Notifikasi"
-            className="h-11 w-11 inline-flex items-center justify-center rounded-token text-n-600 hover:bg-n-100"
-          >
-            <Ikon nama="lonceng" ukuran={19} />
-          </button>
+          <Lonceng />
         </header>
 
         <main className="px-3 sm:px-6 py-5 sm:py-7 max-w-[980px]">{children}</main>

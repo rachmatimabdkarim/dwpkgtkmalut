@@ -1,6 +1,7 @@
 {
   "crons": [
     { "path": "/api/sapu-berkas", "schedule": "0 17 * * *" },
-    { "path": "/api/keep-alive", "schedule": "0 1 * * *" }
+    { "path": "/api/keep-alive", "schedule": "0 1 * * *" },
+    { "path": "/api/ingatkan-review", "schedule": "0 18 * * *" }
   ]
 }
