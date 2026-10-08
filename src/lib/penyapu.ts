@@ -95,20 +95,9 @@ export function formatUkuranByte(byte: number): string {
  * secara otomatis masuk dengan sesi Super Admin.
  */
 async function klienAdminDatabase() {
-  const sb = klienAdmin();
-  try {
-    const { error } = await sb.from("app_settings").select("kunci").limit(1);
-    if (error && error.code === "42501") {
-      // Role service_role belum di-grant; gunakan sesi super_admin agar operasi database berhasil
-      await sb.auth.signInWithPassword({
-        email: "rachmat.karim@kemendikdasmen.go.id",
-        password: "Bambu283#",
-      });
-    }
-  } catch {
-    // abaikan jika jaringan atau auth gagal
-  }
-  return sb;
+  // Memakai kunci rahasia server (SUPABASE_SERVICE_ROLE_KEY).
+  // TIDAK BOLEH memuat kata sandi pengguna di dalam kode.
+  return klienAdmin();
 }
 
 /**

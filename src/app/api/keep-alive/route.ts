@@ -32,10 +32,7 @@ async function handleKeepAlive() {
 
     // Jika service_role belum di-grant di Supabase Cloud, gunakan sesi super admin
     if (error && error.code === "42501") {
-      await sb.auth.signInWithPassword({
-        email: "rachmat.karim@kemendikdasmen.go.id",
-        password: "Bambu283#",
-      });
+      // Memakai kunci rahasia server; tidak ada kata sandi di dalam kode.
       await sb
         .from("app_settings")
         .update({
