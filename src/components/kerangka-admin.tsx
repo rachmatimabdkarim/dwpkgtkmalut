@@ -2,11 +2,13 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { Ikon, LambangTeks } from "./ikon";
 import { JudulAplikasi } from "./judul-aplikasi";
 import { MENU_ADMIN, bolehAkses, type MenuItem, type RoleKey } from "@/lib/peran";
 import type { SesiPengguna } from "@/lib/sesi";
+import { useTema } from "@/components/penyedia-tema";
 
 /**
  * Kerangka panel admin: sidebar 6 menu (berubah jadi menu geser di HP),
@@ -16,15 +18,19 @@ export function KerangkaAdmin({
   pengguna,
   judul,
   aksi,
+  logoUrl,
   children,
 }: {
   pengguna: SesiPengguna;
   judul: string;
   aksi?: React.ReactNode;
+  logoUrl?: string | null;
   children: React.ReactNode;
 }) {
   const [terbuka, setTerbuka] = useState(false);
   const pathname = usePathname();
+  const tema = useTema();
+  const logo = logoUrl ?? tema.logoUrl;
 
   const menuTampil = MENU_ADMIN.filter((m: MenuItem) => bolehAkses(m, pengguna.peran as RoleKey[]));
 
@@ -56,8 +62,19 @@ export function KerangkaAdmin({
       {/* Sidebar desktop */}
       <aside className="hidden md:flex fixed inset-y-0 left-0 w-[248px] flex-col border-r border-n-200 bg-n-0">
         <div className="flex items-center gap-2.5 px-4 h-16 border-b border-n-200">
-          <LambangTeks />
-          <JudulAplikasi />
+          {logo ? (
+            <Image
+              src={logo}
+              alt="Logo DWP"
+              width={36}
+              height={36}
+              unoptimized
+              className="h-9 w-9 object-contain rounded-token shrink-0"
+            />
+          ) : (
+            <LambangTeks />
+          )}
+          <JudulAplikasi baris1={tema.namaAplikasi} baris2={tema.namaUnit} />
         </div>
         {isiSidebar}
         <div className="mt-auto p-3 border-t border-n-200">
@@ -83,7 +100,21 @@ export function KerangkaAdmin({
           />
           <div className="absolute inset-y-0 left-0 w-[86%] max-w-[300px] bg-n-0 shadow-lg">
             <div className="flex items-center justify-between px-4 h-16 border-b border-n-200">
-              <JudulAplikasi />
+              <div className="flex items-center gap-2.5 min-w-0">
+                {logo ? (
+                  <Image
+                    src={logo}
+                    alt="Logo DWP"
+                    width={32}
+                    height={32}
+                    unoptimized
+                    className="h-8 w-8 object-contain rounded-token shrink-0"
+                  />
+                ) : (
+                  <LambangTeks ukuran={32} />
+                )}
+                <JudulAplikasi baris1={tema.namaAplikasi} baris2={tema.namaUnit} />
+              </div>
               <button
                 aria-label="Tutup menu"
                 onClick={() => setTerbuka(false)}

@@ -3,13 +3,17 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import Image from "next/image";
 import { TombolUtama, Kolom, Isian } from "@/components/dasar";
 import { LambangTeks } from "@/components/ikon";
 import { JudulAplikasi } from "@/components/judul-aplikasi";
 import { klienPeramban } from "@/lib/supabase-peramban";
+import { useTema } from "@/components/penyedia-tema";
 
-export function FormMasuk() {
+export function FormMasuk({ logoUrl }: { logoUrl?: string | null } = {}) {
   const router = useRouter();
+  const tema = useTema();
+  const logo = logoUrl ?? tema.logoUrl;
   const [email, setEmail] = useState("");
   const [kataSandi, setKataSandi] = useState("");
   const [galat, setGalat] = useState("");
@@ -47,8 +51,19 @@ export function FormMasuk() {
       {/* Sisi kiri: penjelas singkat (disembunyikan di HP) */}
       <section className="hidden md:flex flex-col justify-between bg-brand-700 text-brand-contrast p-10">
         <div className="flex items-center gap-3">
-          <LambangTeks ukuran={40} />
-          <JudulAplikasi terang />
+          {logo ? (
+            <Image
+              src={logo}
+              alt="Logo DWP"
+              width={40}
+              height={40}
+              unoptimized
+              className="h-10 w-10 object-contain rounded-token shrink-0 bg-white/10 p-1"
+            />
+          ) : (
+            <LambangTeks ukuran={40} />
+          )}
+          <JudulAplikasi terang baris1={tema.namaAplikasi} baris2={tema.namaUnit} />
         </div>
         <div>
           <h2 className="text-[26px] font-semibold leading-snug max-w-[420px]">
@@ -60,7 +75,7 @@ export function FormMasuk() {
           </p>
         </div>
         <p className="teks-3 opacity-80">
-          Dharma Wanita Persatuan Kantor GTK Provinsi Maluku Utara
+          {tema.namaOrganisasi}
         </p>
       </section>
 
@@ -68,8 +83,19 @@ export function FormMasuk() {
       <section className="flex items-center justify-center p-5 sm:p-10">
         <div className="w-full max-w-[380px]">
           <div className="md:hidden flex items-center gap-3 mb-7">
-            <LambangTeks ukuran={40} />
-            <JudulAplikasi />
+            {logo ? (
+              <Image
+                src={logo}
+                alt="Logo DWP"
+                width={40}
+                height={40}
+                unoptimized
+                className="h-10 w-10 object-contain rounded-token shrink-0"
+              />
+            ) : (
+              <LambangTeks ukuran={40} />
+            )}
+            <JudulAplikasi baris1={tema.namaAplikasi} baris2={tema.namaUnit} />
           </div>
 
           <h1 className="judul-1 text-n-800">Masuk</h1>

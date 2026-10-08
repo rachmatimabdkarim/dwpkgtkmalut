@@ -1,7 +1,9 @@
 import type { Metadata } from "next";
 import { Plus_Jakarta_Sans } from "next/font/google";
 import "./globals.css";
-import { TEMA_BAWAAN, gayaTema } from "@/lib/tema";
+import { gayaTema } from "@/lib/tema";
+import { ambilTema } from "@/lib/pengaturan";
+import { PenyediaTema } from "@/components/penyedia-tema";
 
 const fontUtama = Plus_Jakarta_Sans({
   subsets: ["latin"],
@@ -9,21 +11,37 @@ const fontUtama = Plus_Jakarta_Sans({
   variable: "--font-utama",
 });
 
-export function generateMetadata(): Metadata {
-  // Kelak dibaca dari Pengaturan → Tampilan (Super Admin).
+export const instant = false;
+
+export async function generateMetadata(): Promise<Metadata> {
+  const tema = await ambilTema();
+
   return {
     title: {
-      default: TEMA_BAWAAN.namaAplikasi,
-      template: `%s — ${TEMA_BAWAAN.namaAplikasi} ${TEMA_BAWAAN.namaUnit}`,
+      default: `${tema.namaAplikasi} — ${tema.namaUnit}`,
+      template: `%s — ${tema.namaAplikasi} ${tema.namaUnit}`,
     },
-    description: TEMA_BAWAAN.namaOrganisasi,
+    description: tema.namaOrganisasi,
+    icons: tema.faviconUrl
+      ? {
+          icon: tema.faviconUrl,
+          shortcut: tema.faviconUrl,
+          apple: tema.faviconUrl,
+        }
+      : undefined,
   };
 }
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default async function RootLayout({ children }: { children: React.ReactNode }) {
+  const tema = await ambilTema();
+
   return (
-    <html lang="id" className={fontUtama.variable} style={gayaTema(TEMA_BAWAAN)}>
-      <body className="min-h-dvh antialiased">{children}</body>
+    <html lang="id" className={fontUtama.variable} style={gayaTema(tema)}>
+      <body className="min-h-dvh antialiased">
+        <PenyediaTema tema={tema}>
+          {children}
+        </PenyediaTema>
+      </body>
     </html>
   );
 }

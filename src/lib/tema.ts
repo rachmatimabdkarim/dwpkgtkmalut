@@ -12,6 +12,11 @@ export type TemaSitus = {
   namaAplikasi: string;
   namaUnit: string;
   namaOrganisasi: string;
+  logoPath?: string | null;
+  faviconPath?: string | null;
+  alamat?: string | null;
+  telepon?: string | null;
+  email?: string | null;
 };
 
 export const TEMA_BAWAAN: TemaSitus = {
@@ -21,6 +26,11 @@ export const TEMA_BAWAAN: TemaSitus = {
   namaAplikasi: APP_NAME,
   namaUnit: APP_SUB,
   namaOrganisasi: "Dharma Wanita Persatuan Kantor GTK Provinsi Maluku Utara",
+  logoPath: null,
+  faviconPath: null,
+  alamat: "Jl. Ki Hajar Dewantara, Kota Ternate, Provinsi Maluku Utara",
+  telepon: "(0921) 3123456",
+  email: "dwp.gtkmalut@kemdikbud.go.id",
 };
 
 /* ---------- Perhitungan warna (tanpa pustaka tambahan) ---------- */

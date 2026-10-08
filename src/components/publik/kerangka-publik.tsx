@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { LambangTeks } from "@/components/ikon";
 import { JudulAplikasi } from "@/components/judul-aplikasi";
@@ -29,10 +30,12 @@ export function KerangkaPublik({
               aria-label="Kembali ke Beranda"
             >
               {tema.logoUrl ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
+                <Image
                   src={tema.logoUrl}
-                  alt="Logo DWP"
+                  alt={`Logo ${tema.namaAplikasi}`}
+                  width={36}
+                  height={36}
+                  unoptimized
                   className="h-9 w-9 object-contain rounded-token shrink-0"
                 />
               ) : (
@@ -105,7 +108,18 @@ export function KerangkaPublik({
             {/* Identitas Organisasi */}
             <div className="space-y-3">
               <div className="flex items-center gap-2.5">
-                <LambangTeks teks="DWP" ukuran={32} />
+                {tema.logoUrl ? (
+                  <Image
+                    src={tema.logoUrl}
+                    alt={`Logo ${tema.namaAplikasi}`}
+                    width={32}
+                    height={32}
+                    unoptimized
+                    className="h-8 w-8 object-contain rounded-token shrink-0"
+                  />
+                ) : (
+                  <LambangTeks teks="DWP" ukuran={32} />
+                )}
                 <span className="font-semibold text-n-0 text-[15px]">
                   {tema.namaOrganisasi}
                 </span>
@@ -120,26 +134,30 @@ export function KerangkaPublik({
             <div className="space-y-2 text-[14px]">
               <h3 className="text-n-0 font-medium mb-3">Sekretariat</h3>
               <p className="text-n-300">
-                Jl. Ki Hajar Dewantara, Kota Ternate, Provinsi Maluku Utara
+                {tema.alamat || "Jl. Ki Hajar Dewantara, Kota Ternate, Provinsi Maluku Utara"}
               </p>
-              <p className="text-n-400">
-                Telepon:{" "}
-                <a
-                  href="tel:09213123456"
-                  className="text-n-200 hover:underline min-h-[44px] inline-flex items-center"
-                >
-                  (0921) 3123456
-                </a>
-              </p>
-              <p className="text-n-400">
-                Email:{" "}
-                <a
-                  href="mailto:dwp.gtkmalut@kemdikbud.go.id"
-                  className="text-n-200 hover:underline min-h-[44px] inline-flex items-center"
-                >
-                  dwp.gtkmalut@kemdikbud.go.id
-                </a>
-              </p>
+              {tema.telepon && (
+                <p className="text-n-400">
+                  Telepon:{" "}
+                  <a
+                    href={`tel:${tema.telepon.replace(/[^0-9+]/g, "")}`}
+                    className="text-n-200 hover:underline min-h-[44px] inline-flex items-center"
+                  >
+                    {tema.telepon}
+                  </a>
+                </p>
+              )}
+              {tema.email && (
+                <p className="text-n-400">
+                  Email:{" "}
+                  <a
+                    href={`mailto:${tema.email}`}
+                    className="text-n-200 hover:underline min-h-[44px] inline-flex items-center"
+                  >
+                    {tema.email}
+                  </a>
+                </p>
+              )}
             </div>
 
             {/* Tautan Tambahan (Unduhan, Kontak, Masuk Pengurus) */}
