@@ -7,6 +7,9 @@ import { Kartu, JudulSeksi, Lencana, TombolHalus } from "@/components/dasar";
 import { labelStatus, tahapSaatIni, formatTanggal, formatRupiah, type Peran } from "@/lib/kegiatan";
 import { PanelTindakan, PanelLaporan, LinimasaRiwayat, TombolUtamaAjukan } from "./panel";
 import { SembunyikanToggle } from "./sembunyikan";
+import { PanelPanitia, type PanitiaItem, type PengurusOpsi } from "./panitia";
+import { PanelPresensi, type PesertaItem } from "./presensi";
+import { PanelDokumentasi, type FotoItem } from "./dokumentasi";
 
 export const instant = false;
 
@@ -81,6 +84,41 @@ export default async function DetailKegiatan({
     ? await sb.from("sections").select("nama").eq("id", keg.section_id).maybeSingle()
     : { data: null };
 
+  const { data: daftarPengurus } = await sb
+    .from("profiles")
+    .select("id, nama, jabatan")
+    .eq("aktif", true)
+    .order("nama");
+
+  const { data: panitia } = await sb
+    .from("committees")
+    .select(`
+      id, profile_id, nama_luar, peran, dibuat_pada,
+      profiles(id, nama, jabatan),
+      tasks(id, judul, selesai, batas, committee_id)
+    `)
+    .eq("activity_id", id)
+    .order("dibuat_pada", { ascending: true });
+
+  const { data: presensi } = await sb
+    .from("attendances")
+    .select("id, profile_id, nama, keterangan, dibuat_pada")
+    .eq("activity_id", id)
+    .order("dibuat_pada", { ascending: true });
+
+  const { data: foto } = await sb
+    .from("attachments")
+    .select("id, bucket, path, nama_asli, visibilitas, status, keterangan, ukuran_byte")
+    .eq("entitas_id", id)
+    .eq("status", "resmi")
+    .order("diunggah_pada", { ascending: true });
+
+  const bolehUbahPublik =
+    pengguna.id === keg.penanggung_jawab ||
+    pengguna.peran.some((p) =>
+      ["super_admin", "ketua", "wakil_ketua", "sekretaris"].includes(p),
+    );
+
   // jenjang persetujuan untuk tahap yang sedang berjalan
   const namaAlur = tahap === "pelaporan" ? "pelaporan" : "perencanaan";
   const { data: alur } = await sb
@@ -150,6 +188,9 @@ export default async function DetailKegiatan({
   const semuaTab = [
     { key: "ringkasan", label: "Ringkasan", tahap: ["perencanaan", "pelaksanaan", "pelaporan"] },
     { key: "anggaran", label: "Anggaran", tahap: ["perencanaan", "pelaksanaan", "pelaporan"] },
+    { key: "panitia", label: "Panitia", tahap: ["pelaksanaan", "pelaporan"] },
+    { key: "presensi", label: "Presensi", tahap: ["pelaksanaan", "pelaporan"] },
+    { key: "dokumentasi", label: "Dokumentasi", tahap: ["pelaksanaan", "pelaporan"] },
     { key: "laporan", label: "Laporan", tahap: ["pelaporan"] },
     { key: "riwayat", label: "Riwayat", tahap: ["perencanaan", "pelaksanaan", "pelaporan"] },
   ];
@@ -281,6 +322,30 @@ export default async function DetailKegiatan({
                 </>
               )}
             </Kartu>
+          )}
+
+          {tabAktif === "panitia" && (
+            <PanelPanitia
+              activityId={keg.id}
+              daftarPanitia={(panitia ?? []) as unknown as PanitiaItem[]}
+              daftarPengurus={(daftarPengurus ?? []) as PengurusOpsi[]}
+            />
+          )}
+
+          {tabAktif === "presensi" && (
+            <PanelPresensi
+              activityId={keg.id}
+              daftarPeserta={(presensi ?? []) as PesertaItem[]}
+              daftarPengurus={(daftarPengurus ?? []) as PengurusOpsi[]}
+            />
+          )}
+
+          {tabAktif === "dokumentasi" && (
+            <PanelDokumentasi
+              activityId={keg.id}
+              daftarFoto={(foto ?? []) as FotoItem[]}
+              bolehUbahPublik={bolehUbahPublik}
+            />
           )}
 
           {tabAktif === "laporan" && (
