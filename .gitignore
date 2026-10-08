@@ -44,3 +44,5 @@ next-env.d.ts
 # daftar kata sandi pengurus — RAHASIA, jangan diunggah
 docs/kata-sandi-pengurus.md
 dokumentasi/
+docs/panduan-gambar/
+docs/panduan-halaman/
