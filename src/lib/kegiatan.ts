@@ -73,7 +73,12 @@ export function formatTanggal(iso: string | null): string {
     "Jul", "Agu", "Sep", "Okt", "Nov", "Des",
   ];
   const hari = ["Minggu", "Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu"];
-  const d = new Date(iso + "T00:00:00");
+
+  // Nilai dari basis data bisa berupa tanggal saja ("2026-10-08") atau
+  // tanggal lengkap dengan jam ("2026-10-08T08:15:42+00:00").
+  // Tanggal saja ditambah waktu tengah malam agar tidak bergeser hari.
+  const hanyaTanggal = /^\d{4}-\d{2}-\d{2}$/.test(iso);
+  const d = hanyaTanggal ? new Date(iso + "T00:00:00") : new Date(iso);
   if (isNaN(d.getTime())) return iso;
   return `${hari[d.getDay()]}, ${d.getDate()} ${bulan[d.getMonth()]} ${d.getFullYear()}`;
 }
