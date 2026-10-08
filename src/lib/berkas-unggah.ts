@@ -156,7 +156,7 @@ export async function jadikanResmi(
   item: BerkasTerunggah,
   tujuan: string,
   entitas: string,
-  entitasId: string,
+  entitasId: string | null,
 ): Promise<BerkasTerunggah> {
   const sb = klienPeramban();
   const namaBaru = item.path.replace(/^tmp\//, `${tujuan}/`);

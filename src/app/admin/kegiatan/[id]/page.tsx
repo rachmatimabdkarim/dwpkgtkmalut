@@ -114,7 +114,18 @@ export default async function DetailKegiatan({
     .eq("status", "resmi")
     .order("diunggah_pada", { ascending: true });
 
-  const tampilkanPerubahan = ["disetujui", "berjalan", "selesai"].includes(keg.status);
+  // Perubahan hanya masuk akal SETELAH perencanaan disetujui. Kegiatan yang
+  // sudah selesai laporan atau diarsipkan pun masih boleh diajukan perubahan
+  // (mis. koreksi tanggal/tempat yang tercatat keliru), karena itu ikut dicakup.
+  const tampilkanPerubahan = [
+    "disetujui",
+    "berjalan",
+    "selesai",
+    "laporan_diajukan",
+    "laporan_dalam_review",
+    "laporan_disetujui",
+    "arsip",
+  ].includes(keg.status);
   const { data: dataPerubahan } = tampilkanPerubahan
     ? await sb
         .from("change_requests")

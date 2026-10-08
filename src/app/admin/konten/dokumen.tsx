@@ -88,7 +88,8 @@ export function PanelUnduhan({ daftar }: { daftar: ItemDokumen[] }) {
       terunggah = await unggahDokumen(berkasPilihan, "publik", 2, "dokumen");
 
       // 2. Pindahkan ke folder resmi "dokumen/"
-      const resmi = await jadikanResmi(terunggah, "dokumen", "documents", "umum");
+      // Dokumen tidak terikat pada satu kegiatan, jadi tanpa nomor rujukan.
+      const resmi = await jadikanResmi(terunggah, "dokumen", "documents", null);
 
       // 3. Simpan catatan ke tabel documents
       const res = await aksiSimpanDokumen({

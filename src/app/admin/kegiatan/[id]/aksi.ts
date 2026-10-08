@@ -276,7 +276,19 @@ export async function ajukanPerubahan(
     .maybeSingle<{ id: string; judul: string; status: string }>();
 
   if (!keg) return { galat: "Kegiatan tidak ditemukan." };
-  if (!["disetujui", "berjalan", "selesai"].includes(keg.status)) {
+  // Perubahan boleh diajukan setelah perencanaan disetujui, termasuk ketika
+  // kegiatan sudah selesai laporan atau diarsipkan (untuk koreksi data).
+  // Daftar ini HARUS sama dengan yang dipakai halaman detail kegiatan.
+  const statusBolehPerubahan = [
+    "disetujui",
+    "berjalan",
+    "selesai",
+    "laporan_diajukan",
+    "laporan_dalam_review",
+    "laporan_disetujui",
+    "arsip",
+  ];
+  if (!statusBolehPerubahan.includes(keg.status)) {
     return {
       galat: "Pengajuan perubahan hanya dapat dilakukan setelah tahap perencanaan kegiatan disetujui.",
     };
@@ -406,16 +418,26 @@ export async function putuskanPerubahan(
       const mulai = bagian[0];
       const selesai = bagian[1] || mulai;
       if (mulai) {
-        await sb
-          .from("activities")
-          .update({
-            tanggal_mulai: mulai,
-            tanggal_selesai: selesai,
-          })
-          .eq("id", activityId);
+        const { error: gagalTanggal } = await sb.rpc("terapkan_perubahan_kegiatan", {
+          p_activity_id: activityId,
+          p_jenis: "tanggal",
+          p_usulan: `${mulai};${selesai}`,
+        });
+        if (gagalTanggal) {
+          return { galat: "Gagal menerapkan perubahan tanggal: " + gagalTanggal.message };
+        }
       }
     } else if (cr.jenis === "tempat") {
-      await sb.from("activities").update({ tempat: cr.usulan.trim() }).eq("id", activityId);
+      // Lewat fungsi khusus agar tetap berlaku walau kegiatan sudah diarsipkan
+      // (aturan pengaman biasa menolak pembaruan pada kegiatan yang terkunci).
+      const { error: gagalTempat } = await sb.rpc("terapkan_perubahan_kegiatan", {
+        p_activity_id: activityId,
+        p_jenis: "tempat",
+        p_usulan: cr.usulan,
+      });
+      if (gagalTempat) {
+        return { galat: "Gagal menerapkan perubahan tempat: " + gagalTempat.message };
+      }
     } else if (cr.jenis === "anggaran") {
       // Usulan anggaran: format uraian|jumlah|harga per baris
       const baris = cr.usulan.split("\n").map((b) => b.trim()).filter(Boolean);
