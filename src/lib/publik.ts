@@ -1,5 +1,9 @@
+import { unstable_cache } from "next/cache";
 import { klienServer } from "@/lib/supabase-server";
 import { TEMA_BAWAAN, type TemaSitus } from "@/lib/tema";
+
+/** Berapa lama hasil disimpan sebelum diambil ulang dari database (detik). */
+const SEGAR = 60;
 
 export type AgendaPublik = {
   id: string;
@@ -57,7 +61,7 @@ export function urlPublik(path: string | null | undefined): string | null {
 }
 
 /** Mengambil agenda terdekat (tanggal_mulai >= hari ini), diurutkan naik */
-export async function agendaTerdekat(batas = 3): Promise<AgendaPublik[]> {
+async function agendaTerdekatAsli(batas = 3): Promise<AgendaPublik[]> {
   try {
     const sb = await klienServer();
     const hariIni = new Date().toISOString().slice(0, 10);
@@ -76,7 +80,7 @@ export async function agendaTerdekat(batas = 3): Promise<AgendaPublik[]> {
 }
 
 /** Mengambil semua agenda publik, diurutkan tanggal mulai turun */
-export async function daftarAgenda(): Promise<AgendaPublik[]> {
+async function daftarAgendaAsli(): Promise<AgendaPublik[]> {
   try {
     const sb = await klienServer();
     const { data, error } = await sb
@@ -92,7 +96,7 @@ export async function daftarAgenda(): Promise<AgendaPublik[]> {
 }
 
 /** Mengambil berita terbaru yang telah terbit, diurutkan tanggal terbit turun */
-export async function beritaTerbaru(batas = 3): Promise<BeritaPublik[]> {
+async function beritaTerbaruAsli(batas = 3): Promise<BeritaPublik[]> {
   try {
     const sb = await klienServer();
     const { data, error } = await sb
@@ -109,7 +113,7 @@ export async function beritaTerbaru(batas = 3): Promise<BeritaPublik[]> {
 }
 
 /** Mengambil seluruh daftar berita publik */
-export async function daftarBerita(): Promise<BeritaPublik[]> {
+async function daftarBeritaAsli(): Promise<BeritaPublik[]> {
   try {
     const sb = await klienServer();
     const { data, error } = await sb
@@ -142,7 +146,7 @@ export async function beritaSlug(slug: string): Promise<BeritaPublik | null> {
 }
 
 /** Mengambil galeri publik dan mengelompokkannya per activity_id */
-export async function daftarGaleri(): Promise<GaleriKelompok[]> {
+async function daftarGaleriAsli(): Promise<GaleriKelompok[]> {
   try {
     const sb = await klienServer();
     const { data, error } = await sb
@@ -172,7 +176,7 @@ export async function daftarGaleri(): Promise<GaleriKelompok[]> {
 }
 
 /** Membaca pengaturan situs dari tabel site_settings; bila kosong/gagal, memakai TEMA_BAWAAN */
-export async function pengaturanSitus(): Promise<TemaSitus> {
+async function pengaturanSitusAsli(): Promise<TemaSitus> {
   try {
     const sb = await klienServer();
     const { data, error } = await sb
@@ -197,7 +201,7 @@ export async function pengaturanSitus(): Promise<TemaSitus> {
 }
 
 /** Mengambil daftar pengurus untuk halaman profil publik */
-export async function daftarPengurus(): Promise<PengurusPublik[]> {
+async function daftarPengurusAsli(): Promise<PengurusPublik[]> {
   // Dibaca dari view publik (public_officers) — bukan tabel internal.
   try {
     const sb = await klienServer();
@@ -226,7 +230,7 @@ export type DokumenPublik = {
 };
 
 /** Mengambil seluruh daftar dokumen yang dipublikasikan untuk publik */
-export async function daftarDokumenPublik(): Promise<DokumenPublik[]> {
+async function daftarDokumenPublikAsli(): Promise<DokumenPublik[]> {
   try {
     const sb = await klienServer();
     const { data, error } = await sb
@@ -241,3 +245,66 @@ export async function daftarDokumenPublik(): Promise<DokumenPublik[]> {
   }
 }
 
+// ============================================================
+// Pembungkus memori: hasil disimpan sebentar supaya perpindahan
+// halaman dan pembukaan ulang tidak selalu menunggu database.
+// Setiap perubahan di panel admin langsung menyegarkan tampilan
+// publik lewat revalidatePath, jadi data tetap akurat.
+// ============================================================
+
+export function agendaTerdekat(...args: Parameters<typeof agendaTerdekatAsli>) {
+  return unstable_cache(
+    () => agendaTerdekatAsli(...args),
+    ["publik", "agenda-terdekat", JSON.stringify(args)],
+    { revalidate: SEGAR, tags: ["publik"] },
+  )();
+}
+export function daftarAgenda(...args: Parameters<typeof daftarAgendaAsli>) {
+  return unstable_cache(
+    () => daftarAgendaAsli(...args),
+    ["publik", "agenda-semua", JSON.stringify(args)],
+    { revalidate: SEGAR, tags: ["publik"] },
+  )();
+}
+export function beritaTerbaru(...args: Parameters<typeof beritaTerbaruAsli>) {
+  return unstable_cache(
+    () => beritaTerbaruAsli(...args),
+    ["publik", "berita-terbaru", JSON.stringify(args)],
+    { revalidate: SEGAR, tags: ["publik"] },
+  )();
+}
+export function daftarBerita(...args: Parameters<typeof daftarBeritaAsli>) {
+  return unstable_cache(
+    () => daftarBeritaAsli(...args),
+    ["publik", "berita-semua", JSON.stringify(args)],
+    { revalidate: SEGAR, tags: ["publik"] },
+  )();
+}
+export function daftarGaleri(...args: Parameters<typeof daftarGaleriAsli>) {
+  return unstable_cache(
+    () => daftarGaleriAsli(...args),
+    ["publik", "galeri", JSON.stringify(args)],
+    { revalidate: SEGAR, tags: ["publik"] },
+  )();
+}
+export function pengaturanSitus(...args: Parameters<typeof pengaturanSitusAsli>) {
+  return unstable_cache(
+    () => pengaturanSitusAsli(...args),
+    ["publik", "tema-situs", JSON.stringify(args)],
+    { revalidate: SEGAR, tags: ["publik"] },
+  )();
+}
+export function daftarPengurus(...args: Parameters<typeof daftarPengurusAsli>) {
+  return unstable_cache(
+    () => daftarPengurusAsli(...args),
+    ["publik", "pengurus", JSON.stringify(args)],
+    { revalidate: SEGAR, tags: ["publik"] },
+  )();
+}
+export function daftarDokumenPublik(...args: Parameters<typeof daftarDokumenPublikAsli>) {
+  return unstable_cache(
+    () => daftarDokumenPublikAsli(...args),
+    ["publik", "dokumen", JSON.stringify(args)],
+    { revalidate: SEGAR, tags: ["publik"] },
+  )();
+}
