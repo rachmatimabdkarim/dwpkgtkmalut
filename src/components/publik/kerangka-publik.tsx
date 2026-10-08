@@ -69,9 +69,9 @@ export function KerangkaPublik({
             </nav>
           </div>
 
-          {/* Baris Menu HP: digeser mendatar */}
+          {/* Baris Menu HP: kelima menu dimuat rata, tanpa perlu digeser */}
           <nav
-            className="sm:hidden flex items-center gap-1.5 overflow-x-auto py-2 border-t border-n-100 scrollbar-none"
+            className="sm:hidden grid grid-cols-5 gap-1 py-2 border-t border-n-100"
             aria-label="Navigasi Ponsel"
           >
             {MENU_PUBLIK.map((item) => {
@@ -84,7 +84,7 @@ export function KerangkaPublik({
                 <Link
                   key={item.href}
                   href={item.href}
-                  className={`shrink-0 inline-flex items-center justify-center px-3.5 min-h-[44px] rounded-token text-[13px] transition-colors ${
+                  className={`min-w-0 inline-flex items-center justify-center px-1.5 min-h-[44px] rounded-token text-[12.5px] transition-colors ${
                     aktif
                       ? "bg-brand-50 text-brand-700 font-semibold border border-brand-200"
                       : "text-n-700 bg-n-50 border border-n-200 hover:bg-n-100"
