@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { klienServer, penggunaSaatIni } from "@/lib/supabase-server";
 import type { Peran } from "@/lib/kegiatan";
+import { racikBeritaOtomatis } from "@/lib/publikasi";
 
 /** Jenjang persetujuan untuk sebuah tahap (diambil dari tabel pengaturan alur). */
 async function jenjang(sb: Awaited<ReturnType<typeof klienServer>>, tahap: "perencanaan" | "pelaporan") {
@@ -110,6 +111,17 @@ export async function beriKeputusan(
     pelaku_id: pengguna.id,
     pelaku_nama: pengguna.nama,
   });
+
+  if (statusBaru === "laporan_disetujui") {
+    const hasil = await racikBeritaOtomatis(activityId);
+    await sb.from("activity_logs").insert({
+      activity_id: activityId,
+      aksi: "racik_berita_otomatis",
+      keterangan: `Berita kegiatan dirakit otomatis (status: ${hasil.status})`,
+      pelaku_id: pengguna.id,
+      pelaku_nama: pengguna.nama,
+    });
+  }
 
   revalidatePath(`/admin/kegiatan/${activityId}`);
   revalidatePath("/admin/kegiatan");
