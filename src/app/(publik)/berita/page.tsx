@@ -1,27 +1,26 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { formatTanggal } from "@/lib/kegiatan";
-import { daftarBerita, urlPublik } from "@/lib/publik";
+import { daftarBerita, pengaturanSitus, urlPublik } from "@/lib/publik";
 
 export const instant = false;
 
 export async function generateMetadata(): Promise<Metadata> {
+  const tema = await pengaturanSitus();
   return {
     title: "Berita",
-    description: "Kumpulan warta dan dokumentasi kegiatan DWP Kantor GTK Provinsi Maluku Utara",
+    description: tema.subJudulBerita ?? undefined,
   };
 }
 
 export default async function HalamanBerita() {
-  const beritaList = await daftarBerita();
+  const [beritaList, tema] = await Promise.all([daftarBerita(), pengaturanSitus()]);
 
   return (
     <div className="space-y-6">
       <header className="border-b border-n-200 pb-5">
         <h1 className="judul-1 text-n-900">Berita & Informasi</h1>
-        <p className="teks-3 text-n-600 mt-1.5">
-          Kabar terbaru seputar program, kegiatan, dan liputan DWP Kantor GTK Malut.
-        </p>
+        <p className="teks-3 text-n-600 mt-1.5">{tema.subJudulBerita}</p>
       </header>
 
       {beritaList.length === 0 ? (

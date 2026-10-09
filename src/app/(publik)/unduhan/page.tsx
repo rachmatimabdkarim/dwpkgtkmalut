@@ -1,15 +1,12 @@
 import type { Metadata } from "next";
 import { formatTanggal } from "@/lib/kegiatan";
-import { daftarDokumenPublik, urlPublik } from "@/lib/publik";
+import { daftarDokumenPublik, pengaturanSitus, urlPublik } from "@/lib/publik";
 
 export const instant = false;
 
 export async function generateMetadata(): Promise<Metadata> {
-  return {
-    title: "Unduhan Dokumen",
-    description:
-      "Daftar dokumen, formulir, panduan, dan surat keputusan resmi DWP Kantor GTK Malut yang dapat diunduh.",
-  };
+  const tema = await pengaturanSitus();
+  return { title: "Unduhan Dokumen", description: tema.subJudulUnduhan ?? undefined };
 }
 
 function formatUkuran(byte: number | null | undefined): string {
@@ -20,16 +17,13 @@ function formatUkuran(byte: number | null | undefined): string {
 }
 
 export default async function HalamanUnduhan() {
-  const dokumenList = await daftarDokumenPublik();
+  const [dokumenList, tema] = await Promise.all([daftarDokumenPublik(), pengaturanSitus()]);
 
   return (
     <div className="space-y-6">
       <header className="border-b border-n-200 pb-5">
         <h1 className="judul-1 text-n-900">Unduhan Dokumen</h1>
-        <p className="teks-3 text-n-600 mt-1.5">
-          Kumpulan berkas resmi, surat keputusan, materi sosialisasi, dan formulir pelayanan Dharma
-          Wanita Persatuan Kantor GTK Provinsi Maluku Utara.
-        </p>
+        <p className="teks-3 text-n-600 mt-1.5">{tema.subJudulUnduhan}</p>
       </header>
 
       {dokumenList.length === 0 ? (

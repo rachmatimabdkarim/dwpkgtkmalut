@@ -124,10 +124,9 @@ export function KerangkaPublik({
                   {tema.namaOrganisasi}
                 </span>
               </div>
-              <p className="teks-3 text-n-400 leading-relaxed">
-                Wadah silaturahmi, kebersamaan, dan pengabdian bagi peningkatan kualitas
-                keluarga pendidik dan tenaga kependidikan Maluku Utara.
-              </p>
+              {tema.sambutan && (
+                <p className="teks-3 text-n-400 leading-relaxed">{tema.sambutan}</p>
+              )}
             </div>
 
             {/* Kontak & Alamat */}
@@ -174,7 +173,7 @@ export function KerangkaPublik({
                 </li>
                 <li>
                   <a
-                    href="mailto:dwp.gtkmalut@kemdikbud.go.id?subject=Pertanyaan%20Publik%20DWP%20GTK%20Malut"
+                    href={`mailto:${tema.email ?? ""}?subject=${encodeURIComponent("Pertanyaan Publik DWP GTK Malut")}`}
                     className="text-n-300 hover:text-n-0 min-h-[44px] inline-flex items-center transition-colors"
                   >
                     Hubungi Kami (Kontak)
@@ -195,7 +194,7 @@ export function KerangkaPublik({
 
           <div className="mt-10 pt-6 border-t border-n-800 flex flex-col sm:flex-row items-center justify-between gap-3 text-center sm:text-left teks-3 text-n-500">
             <p>© {new Date().getFullYear()} {tema.namaAplikasi} {tema.namaUnit}. Hak cipta dilindungi.</p>
-            <p>Dharma Wanita Persatuan Kantor GTK Provinsi Maluku Utara</p>
+            {tema.namaOrganisasi && <p>{tema.namaOrganisasi}</p>}
           </div>
         </div>
       </footer>

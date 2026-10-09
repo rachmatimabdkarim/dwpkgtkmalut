@@ -195,8 +195,13 @@ async function pengaturanSitusAsli(): Promise<TemaSitus> {
   try {
     const sb = klienPublik();
     const { data, error } = await sb
-      .from("site_settings")
-      .select("nama_aplikasi, nama_unit, warna_utama, logo_path, favicon_path")
+      // WAJIB membaca view publik, bukan tabel internal: tabel site_settings
+      // dilindungi aturan pengaman sehingga untuk pengunjung publik hasilnya
+      // kosong dan tampilan jatuh ke nilai bawaan.
+      .from("public_site_settings")
+      .select(
+        "nama_aplikasi, nama_unit, nama_organisasi, warna_utama, logo_path, favicon_path, alamat, telepon, email, sambutan, profil_singkat, sub_judul_agenda, sub_judul_berita, sub_judul_galeri, sub_judul_unduhan",
+      )
       .limit(1)
       .maybeSingle();
 
@@ -204,11 +209,21 @@ async function pengaturanSitusAsli(): Promise<TemaSitus> {
 
     return {
       warnaUtama: data.warna_utama || TEMA_BAWAAN.warnaUtama,
+      // Logo/favicon: pakai yang diunggah; kalau belum ada, pakai bawaan
       logoUrl: data.logo_path ? urlPublik(data.logo_path) : TEMA_BAWAAN.logoUrl,
       faviconUrl: data.favicon_path ? urlPublik(data.favicon_path) : TEMA_BAWAAN.faviconUrl,
       namaAplikasi: data.nama_aplikasi || TEMA_BAWAAN.namaAplikasi,
       namaUnit: data.nama_unit || TEMA_BAWAAN.namaUnit,
-      namaOrganisasi: TEMA_BAWAAN.namaOrganisasi,
+      namaOrganisasi: data.nama_organisasi || TEMA_BAWAAN.namaOrganisasi,
+      alamat: data.alamat || TEMA_BAWAAN.alamat,
+      telepon: data.telepon || TEMA_BAWAAN.telepon,
+      email: data.email || TEMA_BAWAAN.email,
+      sambutan: data.sambutan || TEMA_BAWAAN.sambutan,
+      profilSingkat: data.profil_singkat || TEMA_BAWAAN.profilSingkat,
+      subJudulAgenda: data.sub_judul_agenda || TEMA_BAWAAN.subJudulAgenda,
+      subJudulBerita: data.sub_judul_berita || TEMA_BAWAAN.subJudulBerita,
+      subJudulGaleri: data.sub_judul_galeri || TEMA_BAWAAN.subJudulGaleri,
+      subJudulUnduhan: data.sub_judul_unduhan || TEMA_BAWAAN.subJudulUnduhan,
     };
   } catch {
     return TEMA_BAWAAN;

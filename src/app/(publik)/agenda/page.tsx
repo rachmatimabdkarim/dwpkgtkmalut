@@ -1,25 +1,23 @@
 import type { Metadata } from "next";
 import { formatTanggal } from "@/lib/kegiatan";
-import { daftarAgenda } from "@/lib/publik";
+import { daftarAgenda, pengaturanSitus } from "@/lib/publik";
 
 export const instant = false;
 
 export async function generateMetadata(): Promise<Metadata> {
-  return {
-    title: "Agenda",
-    description: "Jadwal dan agenda kegiatan DWP Kantor GTK Provinsi Maluku Utara",
-  };
+  const tema = await pengaturanSitus();
+  return { title: "Agenda", description: tema.subJudulAgenda ?? undefined };
 }
 
 export default async function HalamanAgenda() {
-  const agendaList = await daftarAgenda();
+  const [agendaList, tema] = await Promise.all([daftarAgenda(), pengaturanSitus()]);
 
   return (
     <div className="space-y-6">
       <header className="border-b border-n-200 pb-5">
         <h1 className="judul-1 text-n-900">Agenda Kegiatan</h1>
         <p className="teks-3 text-n-600 mt-1.5">
-          Jadwal pelaksanaan program kerja dan aktivitas DWP Kantor GTK Malut.
+          {tema.subJudulAgenda}
         </p>
       </header>
 

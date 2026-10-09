@@ -1,17 +1,18 @@
 import type { Metadata } from "next";
-import { daftarPengurus } from "@/lib/publik";
+import { daftarPengurus, pengaturanSitus } from "@/lib/publik";
 
 export const instant = false;
 
 export async function generateMetadata(): Promise<Metadata> {
+  const tema = await pengaturanSitus();
   return {
     title: "Profil",
-    description: "Profil organisasi dan susunan pengurus Dharma Wanita Persatuan Kantor GTK Provinsi Maluku Utara",
+    description: `Profil organisasi dan susunan pengurus ${tema.namaOrganisasi}`,
   };
 }
 
 export default async function HalamanProfil() {
-  const pengurusList = await daftarPengurus();
+  const [pengurusList, tema] = await Promise.all([daftarPengurus(), pengaturanSitus()]);
 
   // Kelompokkan pengurus per bidang, menjaga urutan bidang berdasarkan urutan anggota pertama
   const kelompokBidang: { bidang: string; anggota: typeof pengurusList }[] = [];
@@ -33,33 +34,13 @@ export default async function HalamanProfil() {
       <section className="space-y-4">
         <header className="border-b border-n-200 pb-5">
           <h1 className="judul-1 text-n-900">Profil Organisasi</h1>
-          <p className="teks-3 text-n-600 mt-1.5">
-            Mengenal lebih dekat Dharma Wanita Persatuan Kantor GTK Provinsi Maluku Utara.
-          </p>
+          <p className="teks-3 text-n-600 mt-1.5">Mengenal lebih dekat {tema.namaOrganisasi}.</p>
         </header>
 
         <div className="rounded-token-lg border border-n-200 bg-n-0 p-6 sm:p-8 shadow-xs space-y-4 text-n-800 text-[15px] sm:text-[16px] leading-relaxed">
-          <p>
-            Dharma Wanita Persatuan (DWP) Kantor Guru dan Tenaga Kependidikan (GTK)
-            Provinsi Maluku Utara adalah organisasi kemasyarakatan yang menghimpun
-            dan membina istri pegawai ASN serta karyawati di lingkungan instansi.
-            Organisasi ini bertekad mempererat rasa persaudaraan, meningkatkan
-            ketahanan keluarga, serta mengembangkan kualitas sumber daya manusia
-            secara berkelanjutan.
-          </p>
-          <p>
-            Dalam menjalankan perannya, DWP Kantor GTK Malut memfokuskan kegiatan pada
-            tiga pilar utama, yaitu Bidang Pendidikan, Bidang Ekonomi, dan Bidang
-            Sosial Budaya. Melalui program kerja yang terencana dan akuntabel,
-            organisasi secara aktif mendukung keberhasilan pembinaan tenaga pendidik
-            sekaligus memberi kontribusi sosial yang nyata bagi masyarakat luas.
-          </p>
-          <p>
-            Dengan menjunjung tinggi nilai kekeluargaan, integritas, dan semangat gotong
-            royong, DWP Kantor GTK Maluku Utara terus berkomitmen menjadi mitra
-            konstruktif pemerintah dalam memajukan mutu pendidikan dan mewujudkan
-            kesejahteraan keluarga di Bumi Moloku Kie Raha.
-          </p>
+          {(tema.profilSingkat ?? "").split("\n").filter(Boolean).map((par, i) => (
+            <p key={i}>{par}</p>
+          ))}
         </div>
       </section>
 

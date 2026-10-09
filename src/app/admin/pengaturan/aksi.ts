@@ -70,6 +70,12 @@ export async function simpanIdentitas(input: {
   alamat?: string;
   telepon?: string;
   email?: string;
+  sambutan?: string;
+  profilSingkat?: string;
+  subJudulAgenda?: string;
+  subJudulBerita?: string;
+  subJudulGaleri?: string;
+  subJudulUnduhan?: string;
 }): Promise<HasilAksi> {
   try {
     const pengguna = await periksaSuperAdmin();
@@ -95,6 +101,12 @@ export async function simpanIdentitas(input: {
       alamat: input.alamat?.trim() ?? null,
       telepon: input.telepon?.trim() ?? null,
       email: input.email?.trim() ?? null,
+      sambutan: input.sambutan?.trim() || null,
+      profil_singkat: input.profilSingkat?.trim() || null,
+      sub_judul_agenda: input.subJudulAgenda?.trim() || null,
+      sub_judul_berita: input.subJudulBerita?.trim() || null,
+      sub_judul_galeri: input.subJudulGaleri?.trim() || null,
+      sub_judul_unduhan: input.subJudulUnduhan?.trim() || null,
       diperbarui_pada: new Date().toISOString(),
       diperbarui_oleh: pengguna.id,
     };

@@ -1,19 +1,18 @@
 import type { Metadata } from "next";
-import { daftarBerita, daftarGaleri, urlPublik } from "@/lib/publik";
+import { daftarBerita, daftarGaleri, pengaturanSitus, urlPublik } from "@/lib/publik";
 
 export const instant = false;
 
 export async function generateMetadata(): Promise<Metadata> {
-  return {
-    title: "Galeri",
-    description: "Dokumentasi foto album kegiatan DWP Kantor GTK Provinsi Maluku Utara",
-  };
+  const tema = await pengaturanSitus();
+  return { title: "Galeri", description: tema.subJudulGaleri ?? undefined };
 }
 
 export default async function HalamanGaleri() {
-  const [kelompokGaleri, beritaList] = await Promise.all([
+  const [kelompokGaleri, beritaList, tema] = await Promise.all([
     daftarGaleri(),
     daftarBerita(),
+    pengaturanSitus(),
   ]);
 
   // Kumpulkan foto yang sudah dipakai di berita agar tidak berulang
@@ -36,7 +35,7 @@ export default async function HalamanGaleri() {
       <header className="border-b border-n-200 pb-5">
         <h1 className="judul-1 text-n-900">Galeri Foto Kegiatan</h1>
         <p className="teks-3 text-n-600 mt-1.5">
-          Album dokumentasi visual dari berbagai kegiatan dan program DWP Kantor GTK Malut.
+          {tema.subJudulGaleri}
         </p>
       </header>
 

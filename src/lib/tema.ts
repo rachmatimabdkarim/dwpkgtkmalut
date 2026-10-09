@@ -15,6 +15,12 @@ export type TemaSitus = {
   logoPath?: string | null;
   faviconPath?: string | null;
   alamat?: string | null;
+  sambutan?: string | null;
+  subJudulAgenda?: string | null;
+  subJudulBerita?: string | null;
+  subJudulGaleri?: string | null;
+  subJudulUnduhan?: string | null;
+  profilSingkat?: string | null;
   telepon?: string | null;
   email?: string | null;
 };
@@ -29,6 +35,14 @@ export const TEMA_BAWAAN: TemaSitus = {
   logoPath: null,
   faviconPath: null,
   alamat: "Jl. Ki Hajar Dewantara, Kota Ternate, Provinsi Maluku Utara",
+  sambutan:
+    "Mewujudkan kebersamaan, ketahanan keluarga, dan karya nyata di lingkungan pendidikan Maluku Utara.",
+  profilSingkat:
+    "Dharma Wanita Persatuan (DWP) Kantor Guru dan Tenaga Kependidikan Provinsi Maluku Utara adalah wadah silaturahmi, kebersamaan, dan pengabdian bagi peningkatan kualitas keluarga pendidik dan tenaga kependidikan di Maluku Utara.",
+  subJudulAgenda: "Jadwal pelaksanaan program kerja dan kegiatan organisasi.",
+  subJudulBerita: "Kabar terbaru seputar kegiatan dan program Dharma Wanita Persatuan.",
+  subJudulGaleri: "Album dokumentasi visual dari berbagai kegiatan dan program organisasi.",
+  subJudulUnduhan: "Dokumen resmi yang dapat diunduh oleh pengurus dan masyarakat umum.",
   telepon: "(0921) 3123456",
   email: "dwp.gtkmalut@kemdikbud.go.id",
 };

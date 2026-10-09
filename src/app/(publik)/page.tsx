@@ -19,9 +19,10 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export default async function BerandaPublik() {
-  const [daftarAgenda, daftarBerita] = await Promise.all([
+  const [daftarAgenda, daftarBerita, tema] = await Promise.all([
     agendaTerdekat(3),
     beritaTerbaru(3),
+    pengaturanSitus(),
   ]);
 
   return (
@@ -29,8 +30,7 @@ export default async function BerandaPublik() {
       {/* Blok 1: Hero */}
       <section className="rounded-token-lg border border-n-200 bg-n-0 p-8 sm:p-12 text-center shadow-xs">
         <h1 className="judul-1 text-n-900 max-w-2xl mx-auto leading-tight">
-          Mewujudkan kebersamaan, ketahanan keluarga, dan karya nyata di lingkungan
-          pendidikan Maluku Utara.
+          {tema.sambutan}
         </h1>
         <div className="mt-8 flex justify-center">
           <Link

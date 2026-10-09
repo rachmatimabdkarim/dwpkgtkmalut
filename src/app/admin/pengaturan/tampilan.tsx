@@ -11,6 +11,7 @@ import {
   TombolSekunder,
   TombolBahaya,
   Lencana,
+  AreaTeks,
 } from "@/components/dasar";
 import { LambangTeks } from "@/components/ikon";
 import { JudulAplikasi } from "@/components/judul-aplikasi";
@@ -38,6 +39,12 @@ export function FormPengaturanTampilan({ temaAwal }: { temaAwal: TemaSitus }) {
     alamat: temaAwal.alamat ?? TEMA_BAWAAN.alamat ?? "",
     telepon: temaAwal.telepon ?? TEMA_BAWAAN.telepon ?? "",
     email: temaAwal.email ?? TEMA_BAWAAN.email ?? "",
+    sambutan: temaAwal.sambutan ?? TEMA_BAWAAN.sambutan ?? "",
+    profilSingkat: temaAwal.profilSingkat ?? TEMA_BAWAAN.profilSingkat ?? "",
+    subJudulAgenda: temaAwal.subJudulAgenda ?? TEMA_BAWAAN.subJudulAgenda ?? "",
+    subJudulBerita: temaAwal.subJudulBerita ?? TEMA_BAWAAN.subJudulBerita ?? "",
+    subJudulGaleri: temaAwal.subJudulGaleri ?? TEMA_BAWAAN.subJudulGaleri ?? "",
+    subJudulUnduhan: temaAwal.subJudulUnduhan ?? TEMA_BAWAAN.subJudulUnduhan ?? "",
   });
   const [sedangIdentitas, setSedangIdentitas] = useState(false);
   const [pesanIdentitas, setPesanIdentitas] = useState<{ jenis: "ok" | "bad"; teks: string } | null>(null);
@@ -432,6 +439,70 @@ export function FormPengaturanTampilan({ temaAwal }: { temaAwal: TemaSitus }) {
                 />
               </Kolom>
             </div>
+
+            <Kolom
+              label="Kalimat sambutan (tampil di beranda & footer)"
+              bantuan="Ditulis singkat, satu sampai dua kalimat."
+            >
+              <AreaTeks
+                rows={2}
+                value={identitas.sambutan}
+                onChange={(e) => setIdentitas({ ...identitas, sambutan: e.target.value })}
+                placeholder="Contoh: Mewujudkan kebersamaan dan ketahanan keluarga di lingkungan pendidikan Maluku Utara."
+              />
+            </Kolom>
+
+            <Kolom
+              label="Keterangan halaman Agenda"
+              bantuan="Kalimat kecil di bawah judul halaman Agenda."
+            >
+              <Isian
+                value={identitas.subJudulAgenda}
+                onChange={(e) => setIdentitas({ ...identitas, subJudulAgenda: e.target.value })}
+              />
+            </Kolom>
+
+            <Kolom
+              label="Keterangan halaman Berita"
+              bantuan="Kalimat kecil di bawah judul halaman Berita."
+            >
+              <Isian
+                value={identitas.subJudulBerita}
+                onChange={(e) => setIdentitas({ ...identitas, subJudulBerita: e.target.value })}
+              />
+            </Kolom>
+
+            <Kolom
+              label="Keterangan halaman Galeri"
+              bantuan="Kalimat kecil di bawah judul halaman Galeri."
+            >
+              <Isian
+                value={identitas.subJudulGaleri}
+                onChange={(e) => setIdentitas({ ...identitas, subJudulGaleri: e.target.value })}
+              />
+            </Kolom>
+
+            <Kolom
+              label="Keterangan halaman Unduhan"
+              bantuan="Kalimat kecil di bawah judul halaman Unduhan."
+            >
+              <Isian
+                value={identitas.subJudulUnduhan}
+                onChange={(e) => setIdentitas({ ...identitas, subJudulUnduhan: e.target.value })}
+              />
+            </Kolom>
+
+            <Kolom
+              label="Profil singkat organisasi (tampil di halaman Profil)"
+              bantuan="Pisahkan antar paragraf dengan menekan Enter."
+            >
+              <AreaTeks
+                rows={5}
+                value={identitas.profilSingkat}
+                onChange={(e) => setIdentitas({ ...identitas, profilSingkat: e.target.value })}
+                placeholder="Ceritakan singkat tentang organisasi..."
+              />
+            </Kolom>
 
             {pesanIdentitas && (
               <div
