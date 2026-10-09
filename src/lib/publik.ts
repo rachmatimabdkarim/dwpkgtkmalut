@@ -1,9 +1,24 @@
+import { createClient } from "@supabase/supabase-js";
 import { unstable_cache } from "next/cache";
-import { klienServer } from "@/lib/supabase-server";
 import { TEMA_BAWAAN, type TemaSitus } from "@/lib/tema";
 
 /** Berapa lama hasil disimpan sebelum diambil ulang dari database (detik). */
 const SEGAR = 60;
+
+/**
+ * Klien khusus web publik: TIDAK memakai sesi pengunjung.
+ * Aman karena hanya membaca VIEW publik (public_agenda, public_news,
+ * public_gallery, public_site_settings) yang memang boleh dibaca siapa saja.
+ * Ini juga membuat penyimpanan memori boleh dipakai (aturan Next.js melarang
+ * membaca sesi di dalamnya).
+ */
+function klienPublik() {
+  return createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    { auth: { persistSession: false, autoRefreshToken: false } },
+  );
+}
 
 export type AgendaPublik = {
   id: string;
@@ -63,7 +78,7 @@ export function urlPublik(path: string | null | undefined): string | null {
 /** Mengambil agenda terdekat (tanggal_mulai >= hari ini), diurutkan naik */
 async function agendaTerdekatAsli(batas = 3): Promise<AgendaPublik[]> {
   try {
-    const sb = await klienServer();
+    const sb = klienPublik();
     const hariIni = new Date().toISOString().slice(0, 10);
     const { data, error } = await sb
       .from("public_agenda")
@@ -82,7 +97,7 @@ async function agendaTerdekatAsli(batas = 3): Promise<AgendaPublik[]> {
 /** Mengambil semua agenda publik, diurutkan tanggal mulai turun */
 async function daftarAgendaAsli(): Promise<AgendaPublik[]> {
   try {
-    const sb = await klienServer();
+    const sb = klienPublik();
     const { data, error } = await sb
       .from("public_agenda")
       .select("id, judul, ringkasan, tanggal_mulai, tanggal_selesai, tempat, status, slug")
@@ -98,7 +113,7 @@ async function daftarAgendaAsli(): Promise<AgendaPublik[]> {
 /** Mengambil berita terbaru yang telah terbit, diurutkan tanggal terbit turun */
 async function beritaTerbaruAsli(batas = 3): Promise<BeritaPublik[]> {
   try {
-    const sb = await klienServer();
+    const sb = klienPublik();
     const { data, error } = await sb
       .from("public_news")
       .select("id, judul, slug, ringkasan, isi, gambar_path, terbit_pada, activity_id")
@@ -115,7 +130,7 @@ async function beritaTerbaruAsli(batas = 3): Promise<BeritaPublik[]> {
 /** Mengambil seluruh daftar berita publik */
 async function daftarBeritaAsli(): Promise<BeritaPublik[]> {
   try {
-    const sb = await klienServer();
+    const sb = klienPublik();
     const { data, error } = await sb
       .from("public_news")
       .select("id, judul, slug, ringkasan, isi, gambar_path, terbit_pada, activity_id")
@@ -131,7 +146,7 @@ async function daftarBeritaAsli(): Promise<BeritaPublik[]> {
 /** Mengambil satu berita berdasarkan slug */
 export async function beritaSlug(slug: string): Promise<BeritaPublik | null> {
   try {
-    const sb = await klienServer();
+    const sb = klienPublik();
     const { data, error } = await sb
       .from("public_news")
       .select("id, judul, slug, ringkasan, isi, gambar_path, terbit_pada, activity_id")
@@ -148,7 +163,7 @@ export async function beritaSlug(slug: string): Promise<BeritaPublik | null> {
 /** Mengambil galeri publik dan mengelompokkannya per activity_id */
 async function daftarGaleriAsli(): Promise<GaleriKelompok[]> {
   try {
-    const sb = await klienServer();
+    const sb = klienPublik();
     const { data, error } = await sb
       .from("public_gallery")
       .select("id, activity_id, path, keterangan, urutan")
@@ -178,7 +193,7 @@ async function daftarGaleriAsli(): Promise<GaleriKelompok[]> {
 /** Membaca pengaturan situs dari tabel site_settings; bila kosong/gagal, memakai TEMA_BAWAAN */
 async function pengaturanSitusAsli(): Promise<TemaSitus> {
   try {
-    const sb = await klienServer();
+    const sb = klienPublik();
     const { data, error } = await sb
       .from("site_settings")
       .select("nama_aplikasi, nama_unit, warna_utama, logo_path, favicon_path")
@@ -204,7 +219,7 @@ async function pengaturanSitusAsli(): Promise<TemaSitus> {
 async function daftarPengurusAsli(): Promise<PengurusPublik[]> {
   // Dibaca dari view publik (public_officers) — bukan tabel internal.
   try {
-    const sb = await klienServer();
+    const sb = klienPublik();
     const { data, error } = await sb
       .from("public_officers")
       .select("nama, bidang, jabatan, email, urutan")
@@ -232,7 +247,7 @@ export type DokumenPublik = {
 /** Mengambil seluruh daftar dokumen yang dipublikasikan untuk publik */
 async function daftarDokumenPublikAsli(): Promise<DokumenPublik[]> {
   try {
-    const sb = await klienServer();
+    const sb = klienPublik();
     const { data, error } = await sb
       .from("public_documents")
       .select("id, judul, keterangan, path, ukuran_byte, jenis, dibuat_pada")
