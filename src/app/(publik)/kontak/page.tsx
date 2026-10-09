@@ -15,12 +15,13 @@ export async function generateMetadata(): Promise<Metadata> {
 export default async function HalamanKontak() {
   const tema = await pengaturanSitus();
 
-  // Peta lokasi: memakai titik dari pengaturan (Kel. Rum, Tidore Utara)
+  // Peta lokasi: memakai titik dari pengaturan. Peta memakai Google Maps.
   const lat = tema.lat ?? null;
   const bujur = tema.bujur ?? null;
+  const zum = tema.zoom ?? 17;
   const peta =
     lat !== null && bujur !== null
-      ? `https://www.openstreetmap.org/export/embed.html?bbox=${bujur - 0.008}%2C${lat - 0.006}%2C${bujur + 0.008}%2C${lat + 0.006}&layer=mapnik&marker=${lat}%2C${bujur}`
+      ? `https://maps.google.com/maps?q=${lat},${bujur}&z=${zum}&hl=id&output=embed`
       : null;
   const tautanPeta =
     lat !== null && bujur !== null
