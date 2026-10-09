@@ -18,7 +18,7 @@ import {
   Lencana,
   JudulSeksi,
 } from "@/components/dasar";
-import { tambahPengurus, ubahPengurus, hapusPengurus, buatkanAkun } from "./aksi";
+import { tambahPengurus, ubahPengurus, hapusPengurus, buatkanAkun, aturUlangSandi } from "./aksi";
 
 export type BarisPengurus = {
   id: string;
@@ -28,6 +28,8 @@ export type BarisPengurus = {
   urutan: number;
   email: string | null;
   profile_id: string | null;
+  sandi_diganti_pada?: string | null;
+  sandi_diatur_ulang_pada?: string | null;
 };
 
 const BIDANG = [
@@ -61,14 +63,18 @@ type Mode =
   | { jenis: "tutup" }
   | { jenis: "tambah" }
   | { jenis: "ubah"; data: BarisPengurus }
-  | { jenis: "akun"; data: BarisPengurus };
+  | { jenis: "akun"; data: BarisPengurus }
+  | { jenis: "sandi"; data: BarisPengurus }
+  | { jenis: "sandiHasil"; data: BarisPengurus; sandi: string };
 
 export function KelolaPengurus({
   daftar,
   bolehUbah,
+  bolehResetSandi,
 }: {
   daftar: BarisPengurus[];
   bolehUbah: boolean;
+  bolehResetSandi: boolean;
 }) {
   const [mode, setMode] = useState<Mode>({ jenis: "tutup" });
   const [pesan, setPesan] = useState<string | null>(null);
@@ -125,6 +131,31 @@ export function KelolaPengurus({
       }
       setSukses(`Akun untuk ${mode.data.nama} berhasil dibuat.`);
       setMode({ jenis: "tutup" });
+      router.refresh();
+    });
+  }
+
+  function konfirmasiResetSandi(o: BarisPengurus) {
+    setMenu(null);
+    setPesan(null);
+    setSukses(null);
+    if (!o.profile_id) {
+      setPesan(`${o.nama} belum punya akun. Buatkan akun dulu.`);
+      return;
+    }
+    const lanjut = window.confirm(
+      `Atur ulang kata sandi untuk ${o.nama}?\n\n` +
+        `Sandi lama tidak akan berlaku lagi. Sandi baru akan ditampilkan SEKALI ` +
+        `untuk Anda kirim ke yang bersangkutan.`,
+    );
+    if (!lanjut) return;
+    mulai(async () => {
+      const hasil = await aturUlangSandi(o.profile_id as string);
+      if (hasil.galat) {
+        setPesan(hasil.galat);
+        return;
+      }
+      setMode({ jenis: "sandiHasil", data: o, sandi: hasil.sandi ?? "" });
       router.refresh();
     });
   }
@@ -290,6 +321,58 @@ export function KelolaPengurus({
         </Kartu>
       )}
 
+      {/* Hasil pengaturan ulang sandi — ditampilkan SEKALI */}
+      {mode.jenis === "sandiHasil" && (
+        <Kartu className="p-5 mb-5 border-brand-300">
+          <h3 className="judul-3 text-n-900 mb-1">Sandi Baru Sudah Dibuat</h3>
+          <p className="teks-3 text-n-500 mb-4">
+            Untuk {mode.data.nama} ({mode.data.email})
+          </p>
+
+          <div className="rounded-token border border-brand-200 bg-brand-50 px-4 py-4 mb-4">
+            <p className="teks-3 text-n-600 mb-1">Kata sandi baru</p>
+            <p className="text-[22px] font-semibold text-n-900 tracking-wide select-all break-all">
+              {mode.sandi}
+            </p>
+          </div>
+
+          <p className="text-[14px] text-bahaya-700 bg-bahaya-50 border border-bahaya-200 rounded-token px-3 py-2 mb-4">
+            Catat atau salin sekarang. Sandi ini tidak bisa ditampilkan lagi setelah jendela ini
+            ditutup.
+          </p>
+
+          <p className="teks-3 text-n-600 mb-4">
+            Kirimkan ke {mode.data.nama} lewat jalur pribadi (WhatsApp atau pesan langsung), lalu
+            minta segera diganti sendiri di menu Profil.
+          </p>
+
+          <div className="flex flex-wrap gap-3">
+            <TombolUtama
+              type="button"
+              onClick={() => {
+                void navigator.clipboard?.writeText(mode.sandi);
+                setSukses("Sandi sudah disalin. Silakan tempel di pesan untuk yang bersangkutan.");
+              }}
+            >
+              Salin sandi
+            </TombolUtama>
+            <a
+              href={`https://wa.me/?text=${encodeURIComponent(
+                `Assalamualaikum ${mode.data.nama}, kata sandi akun DWP Anda sudah diatur ulang: ${mode.sandi}. Mohon segera diganti setelah masuk melalui menu Profil. Terima kasih.`,
+              )}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center justify-center min-h-[44px] px-5 rounded-token border border-n-200 text-n-700 text-[14px] hover:bg-n-50"
+            >
+              Kirim lewat WhatsApp
+            </a>
+            <TombolSekunder type="button" onClick={tutup}>
+              Tutup
+            </TombolSekunder>
+          </div>
+        </Kartu>
+      )}
+
       {/* Pesan hasil */}
       {pesan && mode.jenis === "tutup" && <PesanGalat teks={pesan} />}
       {sukses && (
@@ -328,6 +411,11 @@ export function KelolaPengurus({
                     <div className="flex-1 min-w-0">
                       <p className="text-n-800 font-medium truncate">{o.nama}</p>
                       <p className="teks-3 text-n-500 truncate">{o.jabatan}</p>
+                      {o.profile_id && !o.sandi_diganti_pada && (
+                        <p className="text-[12px] text-warn-fg mt-0.5">
+                          Belum pernah ganti sandi
+                        </p>
+                      )}
                     </div>
 
                     <Lencana nada={o.profile_id ? "ok" : "netral"}>
@@ -380,6 +468,16 @@ export function KelolaPengurus({
                                   className="w-full text-left px-4 min-h-[44px] text-[14px] text-n-700 hover:bg-n-50"
                                 >
                                   Buatkan akun
+                                </button>
+                              )}
+
+                              {bolehResetSandi && o.profile_id && (
+                                <button
+                                  type="button"
+                                  onClick={() => konfirmasiResetSandi(o)}
+                                  className="w-full text-left px-4 min-h-[44px] text-[14px] text-n-700 hover:bg-n-50"
+                                >
+                                  Atur ulang sandi
                                 </button>
                               )}
 

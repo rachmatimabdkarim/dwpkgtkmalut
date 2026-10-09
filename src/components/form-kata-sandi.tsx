@@ -34,8 +34,20 @@ export function FormKataSandi() {
     setSedang(true);
     const sb = klienPeramban();
     const { error } = await sb.auth.updateUser({ password: baru });
+    if (error) {
+      setSedang(false);
+      return setGalat("Gagal mengganti kata sandi: " + error.message);
+    }
+
+    // Catat waktu ganti supaya Super Admin tahu siapa yang sudah mengganti sendiri
+    const { data: sesi } = await sb.auth.getUser();
+    if (sesi.user?.id) {
+      await sb
+        .from("profiles")
+        .update({ sandi_diganti_pada: new Date().toISOString() })
+        .eq("id", sesi.user.id);
+    }
     setSedang(false);
-    if (error) return setGalat("Gagal mengganti kata sandi: " + error.message);
     setSukses("Kata sandi berhasil diganti.");
     setLama("");
     setBaru("");

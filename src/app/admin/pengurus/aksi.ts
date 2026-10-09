@@ -274,3 +274,57 @@ function buatSandiSementara(): string {
   const tanda = ["#", "@", "!", "?"][Math.floor(Math.random() * 4)];
   return `${a}${b}${tanda}`;
 }
+
+/**
+ * Mengatur ulang sandi akun seorang pengurus.
+ * Hanya Super Admin. Sandi baru dikembalikan SEKALI untuk dikirim ke orangnya
+ * dan TIDAK disimpan dalam bentuk yang bisa dibaca.
+ */
+export async function aturUlangSandi(profileId: string): Promise<
+  HasilAksi & { sandi?: string; nama?: string; email?: string }
+> {
+  const pengguna = await penggunaSaatIni();
+  if (!pengguna) return { galat: "Sesi Anda sudah berakhir. Silakan masuk kembali." };
+  if (!pengguna.peran.includes("super_admin")) {
+    return { galat: "Hanya Super Admin yang dapat mengatur ulang kata sandi." };
+  }
+
+  try {
+    const sb = await klienServer();
+    const { data: orang } = await sb
+      .from("profiles")
+      .select("id, nama, email")
+      .eq("id", profileId)
+      .maybeSingle<{ id: string; nama: string; email: string }>();
+    if (!orang) return { galat: "Pengguna tidak ditemukan." };
+
+    const sandi = buatSandiSementara();
+    const admin = klienAdmin();
+    const { error } = await admin.auth.admin.updateUserById(orang.id, {
+      password: sandi,
+      user_metadata: { nama: orang.nama, wajib_ganti_sandi: true },
+    });
+    if (error) return { galat: "Gagal mengatur ulang sandi: " + error.message };
+
+    // Catat waktu pengaturan ulang supaya bisa ditelusuri
+    await sb
+      .from("profiles")
+      .update({
+        sandi_diatur_ulang_pada: new Date().toISOString(),
+        sandi_diatur_ulang_oleh: pengguna.id,
+      })
+      .eq("id", orang.id);
+
+    await catatAudit(
+      sb,
+      pengguna,
+      "atur_ulang_sandi",
+      `Mengatur ulang kata sandi untuk ${orang.nama} (${orang.email})`,
+    );
+
+    revalidatePath("/admin/pengurus");
+    return { ok: true, sandi, nama: orang.nama, email: orang.email };
+  } catch (e) {
+    return { galat: e instanceof Error ? e.message : "Terjadi kesalahan saat mengatur ulang sandi." };
+  }
+}

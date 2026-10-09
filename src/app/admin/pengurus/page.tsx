@@ -16,6 +16,9 @@ type BarisPengurus = {
   urutan: number;
   email: string | null;
   profile_id: string | null;
+  /** Kosong = belum pernah mengganti sandi sendiri */
+  sandi_diganti_pada?: string | null;
+  sandi_diatur_ulang_pada?: string | null;
 };
 
 export default async function HalamanPengurus() {
@@ -34,6 +37,24 @@ export default async function HalamanPengurus() {
     .order("urutan");
   const daftar: BarisPengurus[] = data ?? [];
 
+  // Status sandi tiap akun — diambil terpisah supaya daftar tetap tampil walau gagal
+  const { data: statusSandi } = await sb
+    .from("profiles")
+    .select("id, sandi_diganti_pada, sandi_diatur_ulang_pada");
+  const peta: Record<string, { ganti: string | null; atur: string | null }> = {};
+  for (const s of (statusSandi ?? []) as {
+    id: string;
+    sandi_diganti_pada: string | null;
+    sandi_diatur_ulang_pada: string | null;
+  }[]) {
+    peta[s.id] = { ganti: s.sandi_diganti_pada, atur: s.sandi_diatur_ulang_pada };
+  }
+  const daftarLengkap: BarisPengurus[] = daftar.map((d) => ({
+    ...d,
+    sandi_diganti_pada: d.profile_id ? (peta[d.profile_id]?.ganti ?? null) : null,
+    sandi_diatur_ulang_pada: d.profile_id ? (peta[d.profile_id]?.atur ?? null) : null,
+  }));
+
   // Jumlah pesan masuk yang belum dibaca — dipakai sebagai penanda di tautan
   const { count: pesanBaru } = await sb
     .from("contact_messages")
@@ -43,6 +64,7 @@ export default async function HalamanPengurus() {
   const bolehUbah = pengguna.peran.some((p) =>
     ["super_admin", "ketua", "wakil_ketua", "sekretaris"].includes(p),
   );
+  const bolehResetSandi = pengguna.peran.includes("super_admin");
 
   return (
     <KerangkaAdmin pengguna={pengguna} judul="Pengurus">
@@ -61,7 +83,11 @@ export default async function HalamanPengurus() {
       </Link>
 
       {/* Satu daftar saja — dikelola dari komponen kelola */}
-      <KelolaPengurus daftar={daftar} bolehUbah={bolehUbah} />
+      <KelolaPengurus
+        daftar={daftarLengkap}
+        bolehUbah={bolehUbah}
+        bolehResetSandi={bolehResetSandi}
+      />
 
       {/* Keterangan masa bakti, satu tempat */}
       {periode && (
