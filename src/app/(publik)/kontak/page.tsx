@@ -23,10 +23,6 @@ export default async function HalamanKontak() {
     lat !== null && bujur !== null
       ? `https://maps.google.com/maps?q=${lat},${bujur}&z=${zum}&hl=id&output=embed`
       : null;
-  const tautanPeta =
-    lat !== null && bujur !== null
-      ? `https://www.google.com/maps/search/?api=1&query=${lat},${bujur}`
-      : `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(tema.alamat ?? "")}`;
 
   return (
     <div className="space-y-10">
@@ -68,15 +64,6 @@ export default async function HalamanKontak() {
                 </div>
               )}
             </div>
-
-            <a
-              href={tautanPeta}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center justify-center min-h-[44px] px-5 rounded-token border border-brand-300 text-brand-700 font-medium text-[14px] hover:bg-brand-50 transition-colors"
-            >
-              Buka di Google Maps
-            </a>
           </section>
 
           {peta && (
