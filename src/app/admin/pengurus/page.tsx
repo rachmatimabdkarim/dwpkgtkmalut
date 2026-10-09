@@ -1,6 +1,7 @@
 import { KerangkaAdmin } from "@/components/kerangka-admin";
 import { sesiWajibPeran } from "@/lib/sesi-server";
-import { Kartu, JudulSeksi, Lencana, Kosong, TombolUtama } from "@/components/dasar";
+import { Kartu, JudulSeksi, Lencana, Kosong } from "@/components/dasar";
+import { KelolaPengurus } from "./kelola";
 import { klienServer } from "@/lib/supabase-server";
 
 export const metadata = { title: "Pengurus" };
@@ -40,17 +41,17 @@ export default async function HalamanPengurus() {
   }));
 
   const jumlahBelumBerakun = daftar.filter((d) => !d.profile_id).length;
+  const bolehUbah = pengguna.peran.some((p) =>
+    ["super_admin", "ketua", "wakil_ketua", "sekretaris"].includes(p),
+  );
 
   return (
     <KerangkaAdmin
       pengguna={pengguna}
       judul="Pengurus"
-      aksi={
-        <TombolUtama ukuran="sedang" type="button">
-          + Tambah Pengurus
-        </TombolUtama>
-      }
     >
+      <KelolaPengurus daftar={daftar} bolehUbah={bolehUbah} />
+
       <div className="flex flex-wrap items-center gap-2 mb-5">
         {periode && <Lencana nada="brand">Masa bakti {periode.nama}</Lencana>}
         <span className="text-n-500 teks-3">{daftar.length} orang tercatat</span>
@@ -93,8 +94,7 @@ export default async function HalamanPengurus() {
       )}
 
       <p className="teks-3 text-n-500 mt-5">
-        Catatan: “Ny. Nur” pada Bidang Pendidikan masih menunggu nama lengkap. Pembuatan akun
-        pengurus dan pengaturan perannya menyusul.
+        Data pengurus dipakai di halaman publik (Profil) dan sebagai pilihan panitia pada kegiatan.
       </p>
     </KerangkaAdmin>
   );
