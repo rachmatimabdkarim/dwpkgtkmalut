@@ -20,14 +20,17 @@ export async function ambilTema(): Promise<TemaSitus> {
   }
 
   try {
+    // WAJIB membaca view publik: tabel site_settings dilindungi aturan
+    // pengaman sehingga untuk pengunjung publik hasilnya kosong.
     const sb = await klienServer();
     const { data, error } = await sb
-      .from("site_settings")
+      .from("public_site_settings")
       .select("nama_aplikasi, nama_unit, nama_organisasi, warna_utama, logo_path, favicon_path, alamat, telepon, email")
-      .eq("id", 1)
+      .limit(1)
       .maybeSingle();
 
     if (error || !data) {
+      // JANGAN simpan hasil bawaan ke memori: kesalahan tidak boleh menempel
       return TEMA_BAWAAN;
     }
 
