@@ -1,6 +1,6 @@
 import { KerangkaAdmin } from "@/components/kerangka-admin";
 import { sesiWajibPeran } from "@/lib/sesi-server";
-import { Kartu, JudulSeksi, Lencana, Kosong } from "@/components/dasar";
+import { Lencana } from "@/components/dasar";
 import { KelolaPengurus } from "./kelola";
 import { klienServer } from "@/lib/supabase-server";
 
@@ -33,63 +33,19 @@ export default async function HalamanPengurus() {
     .order("urutan");
   const daftar: BarisPengurus[] = data ?? [];
 
-  // kelompokkan per bidang, urut sesuai urutan
-  const bidangUrut = Array.from(new Set(daftar.map((d) => d.bidang)));
-  const perBidang = bidangUrut.map((b) => ({
-    bidang: b,
-    anggota: daftar.filter((d) => d.bidang === b),
-  }));
-
-  const jumlahBelumBerakun = daftar.filter((d) => !d.profile_id).length;
   const bolehUbah = pengguna.peran.some((p) =>
     ["super_admin", "ketua", "wakil_ketua", "sekretaris"].includes(p),
   );
 
   return (
-    <KerangkaAdmin
-      pengguna={pengguna}
-      judul="Pengurus"
-    >
+    <KerangkaAdmin pengguna={pengguna} judul="Pengurus">
+      {/* Satu daftar saja — dikelola dari komponen kelola */}
       <KelolaPengurus daftar={daftar} bolehUbah={bolehUbah} />
 
-      <div className="flex flex-wrap items-center gap-2 mb-5">
-        {periode && <Lencana nada="brand">Masa bakti {periode.nama}</Lencana>}
-        <span className="text-n-500 teks-3">{daftar.length} orang tercatat</span>
-        {jumlahBelumBerakun > 0 && (
-          <span className="text-n-500 teks-3">· {jumlahBelumBerakun} belum punya akun</span>
-        )}
-      </div>
-
-      {daftar.length === 0 ? (
-        <Kosong pesan="Belum ada data pengurus. Mulai dengan menambahkan nama dan jabatan." />
-      ) : (
-        <div className="flex flex-col gap-6">
-          {perBidang.map(({ bidang, anggota }) => (
-            <section key={bidang}>
-              <JudulSeksi>{bidang}</JudulSeksi>
-              <Kartu>
-                {anggota.map((o, i) => (
-                  <div
-                    key={o.id}
-                    className={`flex items-center gap-3 px-4 py-3 ${
-                      i > 0 ? "border-t border-n-100" : ""
-                    }`}
-                  >
-                    <div className="h-9 w-9 rounded-full bg-brand-50 text-brand-700 flex items-center justify-center text-[13px] font-semibold shrink-0">
-                      {o.nama.replace(/^Ny\.\s*/i, "").slice(0, 1).toUpperCase()}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-n-800 font-medium truncate">{o.nama}</p>
-                      <p className="teks-3 text-n-500 truncate">{o.jabatan}</p>
-                    </div>
-                    <Lencana nada={o.profile_id ? "ok" : "netral"}>
-                      {o.profile_id ? "Punya akun" : "Belum berakun"}
-                    </Lencana>
-                  </div>
-                ))}
-              </Kartu>
-            </section>
-          ))}
+      {/* Keterangan masa bakti, satu tempat */}
+      {periode && (
+        <div className="mt-5">
+          <Lencana nada="brand">Masa bakti {periode.nama}</Lencana>
         </div>
       )}
 

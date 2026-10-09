@@ -7,6 +7,10 @@
 
 import { revalidatePath } from "next/cache";
 import { klienServer, penggunaSaatIni } from "@/lib/supabase-server";
+import { klienAdmin } from "@/lib/supabase-admin";
+import { ROLES } from "@/lib/peran";
+
+const ROLES_SAH = Object.keys(ROLES);
 
 const PERAN_BERHAK = ["super_admin", "ketua", "wakil_ketua", "sekretaris"];
 
@@ -190,4 +194,83 @@ export async function hapusPengurus(id: string): Promise<HasilAksi> {
   } catch (e) {
     return { galat: e instanceof Error ? e.message : "Terjadi kesalahan." };
   }
+}
+
+/** Membuat akun masuk untuk seorang pengurus. */
+export async function buatkanAkun(masukan: {
+  officerId: string;
+  email: string;
+  peran: string;
+  kirimUndangan?: boolean;
+}): Promise<HasilAksi & { email?: string }> {
+  const izin = await pastikanBerhak();
+  if ("galat" in izin) return { galat: izin.galat };
+
+  try {
+    const email = periksaEmail(bersihkan(masukan.email, true));
+    if (!email) throw new Error("Email wajib diisi.");
+
+    const sb = await klienServer();
+    const { data: orang } = await sb
+      .from("officers")
+      .select("nama, jabatan, profile_id, email")
+      .eq("id", masukan.officerId)
+      .maybeSingle<{ nama: string; jabatan: string; profile_id: string | null; email: string | null }>();
+    if (!orang) return { galat: "Data pengurus tidak ditemukan." };
+    if (orang.profile_id) return { galat: `${orang.nama} sudah punya akun.` };
+
+    // Satu email hanya untuk satu akun
+    const { data: pemakaiEmail } = await sb
+      .from("profiles")
+      .select("id")
+      .eq("email", email)
+      .maybeSingle();
+    if (pemakaiEmail) return { galat: `Email ${email} sudah dipakai akun lain.` };
+
+    // Akun baru selalu diberi kata sandi sementara; wajib diganti saat masuk pertama
+    const sandiSementara = buatSandiSementara();
+    const admin = klienAdmin();
+    const { data: dibuat, error: gagalBuat } = await admin.auth.admin.createUser({
+      email,
+      password: sandiSementara,
+      email_confirm: true,
+      user_metadata: { nama: orang.nama, wajib_ganti_sandi: true },
+    });
+    if (gagalBuat) return { galat: "Gagal membuat akun: " + gagalBuat.message };
+
+    const idBaru = dibuat.user?.id;
+    if (!idBaru) return { galat: "Akun terbentuk tetapi id-nya tidak diterima." };
+
+    // Catat profil dan peran
+    await sb.from("profiles").upsert({
+      id: idBaru,
+      nama: orang.nama,
+      email,
+      jabatan: orang.jabatan,
+    });
+
+    const peran = ROLES_SAH.includes(masukan.peran) ? masukan.peran : "pengurus";
+    await sb.from("user_roles").upsert({ user_id: idBaru, peran });
+
+    // Tautkan pengurus ke akunnya
+    await sb.from("officers").update({ profile_id: idBaru, email }).eq("id", masukan.officerId);
+
+    await catatAudit(sb, izin.pengguna, "buat_akun_pengurus",
+      `Membuat akun untuk ${orang.nama} (${email}) dengan peran ${peran}`);
+
+    revalidatePath("/admin/pengurus");
+    revalidatePath("/admin");
+    return { ok: true, email };
+  } catch (e) {
+    return { galat: e instanceof Error ? e.message : "Terjadi kesalahan saat membuat akun." };
+  }
+}
+
+/** Kata sandi sementara yang mudah dibaca tetapi cukup kuat. */
+function buatSandiSementara(): string {
+  const kata = ["Bakau", "Cengkih", "Kenari", "Pala", "Rotan", "Serai", "Sukun", "Kunyit", "Gurita", "Melati"];
+  const a = kata[Math.floor(Math.random() * kata.length)];
+  const b = Math.floor(100 + Math.random() * 900);
+  const tanda = ["#", "@", "!", "?"][Math.floor(Math.random() * 4)];
+  return `${a}${b}${tanda}`;
 }
