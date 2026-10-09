@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import Image from "next/image";
 import Link from "next/link";
 import {
   Kartu,
@@ -203,12 +202,11 @@ export function FormulirBerita({
           {urlGambarTampil ? (
             <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 p-3 rounded-token border border-n-200 bg-n-50">
               <div className="relative w-36 h-24 rounded-token overflow-hidden border border-n-300 bg-n-100 shrink-0">
-                <Image
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
                   src={urlGambarTampil}
                   alt="Pratinjau gambar unggulan"
-                  fill
-                  unoptimized
-                  className="object-cover"
+                  className="w-full h-full object-cover"
                 />
               </div>
               <div className="flex-1 min-w-0">
@@ -486,13 +484,8 @@ export function DaftarBerita({
                 <div className="flex flex-col sm:flex-row sm:items-start gap-4">
                   {fotoUrl && (
                     <div className="relative w-full sm:w-40 h-28 rounded-token overflow-hidden border border-n-200 bg-n-100 shrink-0">
-                      <Image
-                        src={fotoUrl}
-                        alt={post.judul}
-                        fill
-                        unoptimized
-                        className="object-cover"
-                      />
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={fotoUrl} alt={post.judul} className="w-full h-full object-cover" />
                     </div>
                   )}
 

@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import Image from "next/image";
 import {
   Kartu,
   Lencana,
@@ -221,13 +220,8 @@ export function AntreanBerita({
                 <div className="flex flex-col sm:flex-row sm:items-start gap-4">
                   {fotoUrl && (
                     <div className="relative w-full sm:w-44 h-32 rounded-token overflow-hidden border border-n-200 bg-n-100 shrink-0">
-                      <Image
-                        src={fotoUrl}
-                        alt={item.judul}
-                        fill
-                        unoptimized
-                        className="object-cover"
-                      />
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={fotoUrl} alt={item.judul} className="w-full h-full object-cover" />
                     </div>
                   )}
 
@@ -460,12 +454,11 @@ export function PanelGaleri({
                   <div>
                     <div className="relative w-full aspect-video rounded-token overflow-hidden border border-n-200 bg-n-100 mb-3">
                       {fotoUrl && (
-                        <Image
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img
                           src={fotoUrl}
                           alt={foto.keterangan || foto.nama_asli}
-                          fill
-                          unoptimized
-                          className="object-cover"
+                          className="w-full h-full object-cover"
                         />
                       )}
                     </div>
