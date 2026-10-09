@@ -13,6 +13,11 @@ const fontUtama = Plus_Jakarta_Sans({
 
 export const instant = false;
 
+/** Memilih berkas favicon ukuran lain dari jalur yang sama (mis. -192 -> -180). */
+function gantiNamaFavicon(url: string, ukuran: string): string {
+  return url.replace(/-\d+\.png$/, `-${ukuran}.png`);
+}
+
 export async function generateMetadata(): Promise<Metadata> {
   const tema = await ambilTema();
 
@@ -22,11 +27,16 @@ export async function generateMetadata(): Promise<Metadata> {
       template: `%s — ${tema.namaAplikasi} ${tema.namaUnit}`,
     },
     description: tema.namaOrganisasi,
+    // Favicon: pakai PNG (bukan WebP) karena banyak peramban — terutama di
+    // Android — tidak menerima WebP sebagai ikon tab dan menampilkan ikon bawaan.
     icons: tema.faviconUrl
       ? {
-          icon: tema.faviconUrl,
+          icon: [
+            { url: tema.faviconUrl, sizes: "192x192", type: "image/png" },
+            { url: gantiNamaFavicon(tema.faviconUrl, "32"), sizes: "32x32", type: "image/png" },
+          ],
           shortcut: tema.faviconUrl,
-          apple: tema.faviconUrl,
+          apple: [{ url: gantiNamaFavicon(tema.faviconUrl, "180"), sizes: "180x180", type: "image/png" }],
         }
       : undefined,
   };
