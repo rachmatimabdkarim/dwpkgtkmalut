@@ -200,7 +200,7 @@ async function pengaturanSitusAsli(): Promise<TemaSitus> {
       // kosong dan tampilan jatuh ke nilai bawaan.
       .from("public_site_settings")
       .select(
-        "nama_aplikasi, nama_unit, nama_organisasi, warna_utama, logo_path, favicon_path, alamat, telepon, email, sambutan, profil_singkat, sub_judul_agenda, sub_judul_berita, sub_judul_galeri, sub_judul_unduhan",
+        "nama_aplikasi, nama_unit, nama_organisasi, warna_utama, logo_path, favicon_path, alamat, telepon, email, sambutan, profil_singkat, sub_judul_agenda, sub_judul_berita, sub_judul_galeri, sub_judul_unduhan, peta_lintang, peta_bujur, peta_zoom",
       )
       .limit(1)
       .maybeSingle();
@@ -224,6 +224,9 @@ async function pengaturanSitusAsli(): Promise<TemaSitus> {
       subJudulBerita: data.sub_judul_berita || TEMA_BAWAAN.subJudulBerita,
       subJudulGaleri: data.sub_judul_galeri || TEMA_BAWAAN.subJudulGaleri,
       subJudulUnduhan: data.sub_judul_unduhan || TEMA_BAWAAN.subJudulUnduhan,
+      lat: data.peta_lintang !== null ? Number(data.peta_lintang) : TEMA_BAWAAN.lat,
+      bujur: data.peta_bujur !== null ? Number(data.peta_bujur) : TEMA_BAWAAN.bujur,
+      zoom: data.peta_zoom !== null ? Number(data.peta_zoom) : TEMA_BAWAAN.zoom,
     };
   } catch {
     return TEMA_BAWAAN;

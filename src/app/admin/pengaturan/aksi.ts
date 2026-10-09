@@ -76,6 +76,8 @@ export async function simpanIdentitas(input: {
   subJudulBerita?: string;
   subJudulGaleri?: string;
   subJudulUnduhan?: string;
+  lat?: string;
+  bujur?: string;
 }): Promise<HasilAksi> {
   try {
     const pengguna = await periksaSuperAdmin();
@@ -107,6 +109,12 @@ export async function simpanIdentitas(input: {
       sub_judul_berita: input.subJudulBerita?.trim() || null,
       sub_judul_galeri: input.subJudulGaleri?.trim() || null,
       sub_judul_unduhan: input.subJudulUnduhan?.trim() || null,
+      peta_lintang: input.lat && !Number.isNaN(Number(input.lat.replace(",", ".")))
+        ? Number(input.lat.replace(",", "."))
+        : null,
+      peta_bujur: input.bujur && !Number.isNaN(Number(input.bujur.replace(",", ".")))
+        ? Number(input.bujur.replace(",", "."))
+        : null,
       diperbarui_pada: new Date().toISOString(),
       diperbarui_oleh: pengguna.id,
     };

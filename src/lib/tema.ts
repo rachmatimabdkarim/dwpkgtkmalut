@@ -20,6 +20,9 @@ export type TemaSitus = {
   subJudulBerita?: string | null;
   subJudulGaleri?: string | null;
   subJudulUnduhan?: string | null;
+  lat?: number | null;
+  bujur?: number | null;
+  zoom?: number | null;
   profilSingkat?: string | null;
   telepon?: string | null;
   email?: string | null;
@@ -43,6 +46,10 @@ export const TEMA_BAWAAN: TemaSitus = {
   subJudulBerita: "Kabar terbaru seputar kegiatan dan program Dharma Wanita Persatuan.",
   subJudulGaleri: "Album dokumentasi visual dari berbagai kegiatan dan program organisasi.",
   subJudulUnduhan: "Dokumen resmi yang dapat diunduh oleh pengurus dan masyarakat umum.",
+  // Koordinat awal: Kantor GTK Malut, Kel. Rum, Tidore Utara
+  lat: 0.7245,
+  bujur: 127.4429,
+  zoom: 15,
   telepon: "(0921) 3123456",
   email: "dwp.gtkmalut@kemdikbud.go.id",
 };

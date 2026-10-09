@@ -45,6 +45,8 @@ export function FormPengaturanTampilan({ temaAwal }: { temaAwal: TemaSitus }) {
     subJudulBerita: temaAwal.subJudulBerita ?? TEMA_BAWAAN.subJudulBerita ?? "",
     subJudulGaleri: temaAwal.subJudulGaleri ?? TEMA_BAWAAN.subJudulGaleri ?? "",
     subJudulUnduhan: temaAwal.subJudulUnduhan ?? TEMA_BAWAAN.subJudulUnduhan ?? "",
+    lat: String(temaAwal.lat ?? TEMA_BAWAAN.lat ?? ""),
+    bujur: String(temaAwal.bujur ?? TEMA_BAWAAN.bujur ?? ""),
   });
   const [sedangIdentitas, setSedangIdentitas] = useState(false);
   const [pesanIdentitas, setPesanIdentitas] = useState<{ jenis: "ok" | "bad"; teks: string } | null>(null);
@@ -54,7 +56,7 @@ export function FormPengaturanTampilan({ temaAwal }: { temaAwal: TemaSitus }) {
     setSedangIdentitas(true);
     setPesanIdentitas(null);
 
-    const hasil = await simpanIdentitas(identitas);
+    const hasil = await simpanIdentitas({ ...identitas, lat: identitas.lat, bujur: identitas.bujur });
     setSedangIdentitas(false);
     setPesanIdentitas({
       jenis: hasil.sukses ? "ok" : "bad",
@@ -503,6 +505,29 @@ export function FormPengaturanTampilan({ temaAwal }: { temaAwal: TemaSitus }) {
                 placeholder="Ceritakan singkat tentang organisasi..."
               />
             </Kolom>
+
+            <div className="grid sm:grid-cols-2 gap-4">
+              <Kolom
+                label="Peta — garis lintang"
+                bantuan="Titik lokasi kantor pada peta. Contoh: 0.7245"
+              >
+                <Isian
+                  value={identitas.lat}
+                  onChange={(e) => setIdentitas({ ...identitas, lat: e.target.value })}
+                  placeholder="0.7245"
+                />
+              </Kolom>
+              <Kolom
+                label="Peta — garis bujur"
+                bantuan="Titik lokasi kantor pada peta. Contoh: 127.4429"
+              >
+                <Isian
+                  value={identitas.bujur}
+                  onChange={(e) => setIdentitas({ ...identitas, bujur: e.target.value })}
+                  placeholder="127.4429"
+                />
+              </Kolom>
+            </div>
 
             {pesanIdentitas && (
               <div

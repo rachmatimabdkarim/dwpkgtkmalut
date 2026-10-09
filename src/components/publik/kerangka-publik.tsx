@@ -167,12 +167,12 @@ export function KerangkaPublik({
                   </Link>
                 </li>
                 <li>
-                  <a
-                    href={`mailto:${tema.email ?? ""}?subject=${encodeURIComponent("Pertanyaan Publik DWP GTK Malut")}`}
+                  <Link
+                    href="/kontak"
                     className="text-n-300 hover:text-n-0 min-h-[44px] inline-flex items-center transition-colors"
                   >
-                    Hubungi Kami (Kontak)
-                  </a>
+                    Kontak
+                  </Link>
                 </li>
                 <li className="pt-2 border-t border-n-800">
                   <Link
