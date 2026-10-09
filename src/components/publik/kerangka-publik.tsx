@@ -1,7 +1,6 @@
 "use client";
 
 import Link from "next/link";
-import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { LambangTeks } from "@/components/ikon";
 import { JudulAplikasi } from "@/components/judul-aplikasi";
@@ -30,12 +29,10 @@ export function KerangkaPublik({
               aria-label="Kembali ke Beranda"
             >
               {tema.logoUrl ? (
-                <Image
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
                   src={tema.logoUrl}
                   alt={`Logo ${tema.namaAplikasi}`}
-                  width={36}
-                  height={36}
-                  unoptimized
                   className="h-9 w-9 object-contain rounded-token shrink-0"
                 />
               ) : (
@@ -109,12 +106,10 @@ export function KerangkaPublik({
             <div className="space-y-3">
               <div className="flex items-center gap-2.5">
                 {tema.logoUrl ? (
-                  <Image
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
                     src={tema.logoUrl}
                     alt={`Logo ${tema.namaAplikasi}`}
-                    width={32}
-                    height={32}
-                    unoptimized
                     className="h-8 w-8 object-contain rounded-token shrink-0"
                   />
                 ) : (

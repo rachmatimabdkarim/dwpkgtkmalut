@@ -3,7 +3,6 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import Image from "next/image";
 import { TombolUtama, Kolom, Isian } from "@/components/dasar";
 import { LambangTeks } from "@/components/ikon";
 import { JudulAplikasi } from "@/components/judul-aplikasi";
@@ -52,12 +51,10 @@ export function FormMasuk({ logoUrl }: { logoUrl?: string | null } = {}) {
       <section className="hidden md:flex flex-col justify-between bg-brand-700 text-brand-contrast p-10">
         <div className="flex items-center gap-3">
           {logo ? (
-            <Image
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
               src={logo}
               alt="Logo DWP"
-              width={40}
-              height={40}
-              unoptimized
               className="h-10 w-10 object-contain rounded-token shrink-0 bg-white/10 p-1"
             />
           ) : (
@@ -84,12 +81,10 @@ export function FormMasuk({ logoUrl }: { logoUrl?: string | null } = {}) {
         <div className="w-full max-w-[380px]">
           <div className="md:hidden flex items-center gap-3 mb-7">
             {logo ? (
-              <Image
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
                 src={logo}
                 alt="Logo DWP"
-                width={40}
-                height={40}
-                unoptimized
                 className="h-10 w-10 object-contain rounded-token shrink-0"
               />
             ) : (

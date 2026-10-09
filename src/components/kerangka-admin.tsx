@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { Ikon, LambangTeks } from "./ikon";
 import { JudulAplikasi } from "./judul-aplikasi";
@@ -64,12 +63,10 @@ export function KerangkaAdmin({
       <aside className="hidden md:flex fixed inset-y-0 left-0 w-[248px] flex-col border-r border-n-200 bg-n-0">
         <div className="flex items-center gap-2.5 px-4 h-16 border-b border-n-200">
           {logo ? (
-            <Image
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
               src={logo}
               alt="Logo DWP"
-              width={36}
-              height={36}
-              unoptimized
               className="h-9 w-9 object-contain rounded-token shrink-0"
             />
           ) : (
@@ -103,13 +100,11 @@ export function KerangkaAdmin({
             <div className="flex items-center justify-between px-4 h-16 border-b border-n-200">
               <div className="flex items-center gap-2.5 min-w-0">
                 {logo ? (
-                  <Image
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
                     src={logo}
                     alt="Logo DWP"
-                    width={32}
-                    height={32}
-                    unoptimized
-                    className="h-8 w-8 object-contain rounded-token shrink-0"
+                    className="h-9 w-9 object-contain rounded-token shrink-0"
                   />
                 ) : (
                   <LambangTeks ukuran={32} />
