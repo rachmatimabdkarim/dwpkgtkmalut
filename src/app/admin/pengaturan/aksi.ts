@@ -203,6 +203,101 @@ export async function simpanWarna(warnaHex: string): Promise<HasilAksi> {
   }
 }
 
+/** Menyimpan seluruh pengaturan warna tema (dasar, aksen, tombol, halaman, teks). */
+export async function simpanWarnaLengkap(palet: {
+  dasar: string;
+  aksen: string;
+  tombol: string;
+  halaman: string;
+  teks: string;
+}): Promise<HasilAksi> {
+  try {
+    const pengguna = await periksaSuperAdmin();
+    const sb = await klienServer();
+
+    // Periksa tiap kode warna
+    const periksaHex = (nilai: string, nama: string): string | null => {
+      const bersih = (nilai ?? "").trim().toLowerCase();
+      if (!/^#([0-9a-f]{3}|[0-9a-f]{6})$/.test(bersih)) {
+        return `Kode warna ${nama} tidak valid (contoh: #1b4a22).`;
+      }
+      return null;
+    };
+
+    const pasangan: [string, string][] = [
+      [palet.dasar, "dasar"],
+      [palet.aksen, "aksen"],
+      [palet.tombol, "tombol"],
+      [palet.halaman, "latar halaman"],
+      [palet.teks, "huruf"],
+    ];
+    for (const [nilai, nama] of pasangan) {
+      const galat = periksaHex(nilai, nama);
+      if (galat) return { sukses: false, pesan: galat };
+    }
+
+    // Huruf utama pada latar halaman harus cukup kontras supaya terbaca
+    const rasioTeks = rasioKontras(palet.teks.trim().toLowerCase(), palet.halaman.trim().toLowerCase());
+    if (rasioTeks < 3.0) {
+      return {
+        sukses: false,
+        pesan: `Huruf terlalu samar di atas latar (kontras ${rasioTeks.toFixed(1)}:1, minimal 3.0:1). Pilih huruf yang lebih gelap atau latar yang lebih terang.`,
+      };
+    }
+
+    // Tombol harus terbaca: teks otomatis dipilih, tetapi pastikan ada pilihan yang cukup kontras
+    const latarTombol = palet.tombol.trim().toLowerCase();
+    const rasioTombol = Math.max(
+      rasioKontras("#ffffff", latarTombol),
+      rasioKontras("#1a1a1a", latarTombol),
+    );
+    if (rasioTombol < 3.0) {
+      return {
+        sukses: false,
+        pesan: `Warna tombol terlalu samar (kontras ${rasioTombol.toFixed(1)}:1, minimal 3.0:1). Pilih warna yang lebih tua atau lebih muda.`,
+      };
+    }
+
+    const { data: lama } = await sb.from("site_settings").select("*").eq("id", 1).maybeSingle();
+
+    const nilaiBaru = {
+      id: 1,
+      warna_dasar: palet.dasar.trim().toLowerCase(),
+      warna_aksen: palet.aksen.trim().toLowerCase(),
+      warna_tombol: palet.tombol.trim().toLowerCase(),
+      warna_halaman: palet.halaman.trim().toLowerCase(),
+      warna_teks: palet.teks.trim().toLowerCase(),
+      // warna utama ikut warna dasar supaya seluruh halaman tetap senada
+      warna_utama: palet.dasar.trim().toLowerCase(),
+      diperbarui_pada: new Date().toISOString(),
+      diperbarui_oleh: pengguna.id,
+    };
+
+    const { error } = await sb.from("site_settings").upsert(nilaiBaru);
+    if (error) return { sukses: false, pesan: "Gagal menyimpan warna: " + error.message };
+
+    await catatAudit(sb, {
+      jenis: "tampilan",
+      aksi: "simpan_warna_lengkap",
+      keterangan: `Mengubah tema warna: dasar ${nilaiBaru.warna_dasar}, aksen ${nilaiBaru.warna_aksen}, tombol ${nilaiBaru.warna_tombol}`,
+      nilaiLama: lama ?? null,
+      nilaiBaru,
+      pelakuId: pengguna.id,
+      pelakuNama: pengguna.nama,
+    });
+
+    bersihkanCacheTema();
+    revalidatePath("/", "layout");
+
+    return { sukses: true, pesan: "Tema warna berhasil disimpan dan langsung berlaku." };
+  } catch (err) {
+    return {
+      sukses: false,
+      pesan: err instanceof Error ? err.message : "Terjadi kesalahan sistem.",
+    };
+  }
+}
+
 /** Menyimpan atau menghapus logo dan favicon */
 export async function simpanBranding(opsi: {
   logoPath?: string | null;

@@ -19,6 +19,7 @@ import { KotakUnggah, RingkasanKompresi, type BerkasTerpilih } from "@/component
 import { TEMA_BAWAAN, rasioKontras, warnaTeksTerbaik, variabelTema, type TemaSitus } from "@/lib/tema";
 import { kompresGambar, buatPersegi, ukuranTerbaca } from "@/lib/berkas-kompres";
 import { klienPeramban } from "@/lib/supabase-peramban";
+import { PengaturWarna } from "./warna-panel";
 import {
   simpanIdentitas,
   simpanWarna,
@@ -554,6 +555,19 @@ export function FormPengaturanTampilan({ temaAwal }: { temaAwal: TemaSitus }) {
           2. SEKSI WARNA
           ============================================================ */}
       <section aria-labelledby="judul-warna">
+        <JudulSeksi>Tema warna website</JudulSeksi>
+        <PengaturWarna
+          temaAwal={{
+            dasar: temaAwal.warnaDasar || temaAwal.warnaUtama || "#1b4a22",
+            aksen: temaAwal.warnaAksen || "#c99a1e",
+            tombol: temaAwal.warnaTombol || "#c99a1e",
+            halaman: temaAwal.warnaHalaman || "#f7f6ef",
+            teks: temaAwal.warnaTeks || "#33382f",
+          }}
+        />
+      </section>
+
+      <section aria-labelledby="judul-warna-lama" hidden>
         <JudulSeksi>Warna utama</JudulSeksi>
         <Kartu className="p-5 flex flex-col gap-5">
           <p className="teks-3 text-n-600">

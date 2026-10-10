@@ -208,7 +208,7 @@ async function pengaturanSitusAsli(): Promise<TemaSitus> {
       // kosong dan tampilan jatuh ke nilai bawaan.
       .from("public_site_settings")
       .select(
-        "nama_aplikasi, nama_unit, nama_organisasi, warna_utama, logo_path, favicon_path, alamat, telepon, email, sambutan, profil_singkat, sub_judul_agenda, sub_judul_berita, sub_judul_galeri, sub_judul_unduhan, peta_lintang, peta_bujur, peta_zoom",
+        "nama_aplikasi, nama_unit, nama_organisasi, warna_utama, warna_dasar, warna_aksen, warna_tombol, warna_halaman, warna_teks, logo_path, favicon_path, alamat, telepon, email, sambutan, profil_singkat, sub_judul_agenda, sub_judul_berita, sub_judul_galeri, sub_judul_unduhan, peta_lintang, peta_bujur, peta_zoom",
       )
       .limit(1)
       .maybeSingle();
@@ -217,6 +217,11 @@ async function pengaturanSitusAsli(): Promise<TemaSitus> {
 
     return {
       warnaUtama: data.warna_utama || TEMA_BAWAAN.warnaUtama,
+      warnaDasar: data.warna_dasar || TEMA_BAWAAN.warnaDasar,
+      warnaAksen: data.warna_aksen || TEMA_BAWAAN.warnaAksen,
+      warnaTombol: data.warna_tombol || TEMA_BAWAAN.warnaTombol,
+      warnaHalaman: data.warna_halaman || TEMA_BAWAAN.warnaHalaman,
+      warnaTeks: data.warna_teks || TEMA_BAWAAN.warnaTeks,
       // Logo/favicon: pakai yang diunggah; kalau belum ada, pakai bawaan
       logoUrl: data.logo_path ? urlPublik(data.logo_path) : TEMA_BAWAAN.logoUrl,
       faviconUrl: data.favicon_path ? urlPublik(data.favicon_path) : TEMA_BAWAAN.faviconUrl,

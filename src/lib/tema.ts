@@ -7,6 +7,16 @@ import { APP_NAME, APP_SUB } from "@/lib/peran";
  */
 export type TemaSitus = {
   warnaUtama: string;
+  /** Warna dasar gelap: menu, footer, judul, blok gelap */
+  warnaDasar?: string | null;
+  /** Warna aksen: garis sorotan, tanda, ikon */
+  warnaAksen?: string | null;
+  /** Warna tombol utama */
+  warnaTombol?: string | null;
+  /** Warna latar lembut antar bagian */
+  warnaHalaman?: string | null;
+  /** Warna huruf utama */
+  warnaTeks?: string | null;
   logoUrl: string | null;
   faviconUrl: string | null;
   namaAplikasi: string;
@@ -29,7 +39,13 @@ export type TemaSitus = {
 };
 
 export const TEMA_BAWAAN: TemaSitus = {
-  warnaUtama: "#0f766e",
+  // Warna khas DWP (dari lambang resmi): hijau tua, emas, merah
+  warnaUtama: "#1b4a22",
+  warnaDasar: "#1b4a22",
+  warnaAksen: "#c99a1e",
+  warnaTombol: "#c99a1e",
+  warnaHalaman: "#f7f6ef",
+  warnaTeks: "#33382f",
   logoUrl: null,
   faviconUrl: null,
   namaAplikasi: APP_NAME,
@@ -125,34 +141,88 @@ export function warnaTeksTerbaik(latar: string, pilihan = ["#ffffff", "#0f172a"]
 }
 
 /**
- * Menurunkan skala warna 50–900 dari satu warna utama.
- * Skala terang dicampur ke putih, skala gelap dicampur ke warna gelap netral.
- */
-export function skalaWarna(utama: string): Record<string, string> {
-  return {
-    "--brand-50": campur(utama, "#ffffff", 0.94),
-    "--brand-100": campur(utama, "#ffffff", 0.86),
-    "--brand-200": campur(utama, "#ffffff", 0.7),
-    "--brand-300": campur(utama, "#ffffff", 0.5),
-    "--brand-400": campur(utama, "#ffffff", 0.26),
-    "--brand-500": campur(utama, "#ffffff", 0.1),
-    "--brand-600": utama,
-    "--brand-700": campur(utama, "#0f172a", 0.16),
-    "--brand-800": campur(utama, "#0f172a", 0.32),
-    "--brand-900": campur(utama, "#0f172a", 0.5),
-  };
-}
+ /** Menurunkan skala warna 50–900 dari satu warna utama.
+  *  Skala terang dicampur ke putih, skala gelap dicampur ke warna gelap netral.
+  */
+ export function skalaWarna(utama: string): Record<string, string> {
+   return {
+     "--brand-50": campur(utama, "#ffffff", 0.94),
+     "--brand-100": campur(utama, "#ffffff", 0.86),
+     "--brand-200": campur(utama, "#ffffff", 0.7),
+     "--brand-300": campur(utama, "#ffffff", 0.5),
+     "--brand-400": campur(utama, "#ffffff", 0.26),
+     "--brand-500": campur(utama, "#ffffff", 0.1),
+     "--brand-600": utama,
+     "--brand-700": campur(utama, "#0f172a", 0.16),
+     "--brand-800": campur(utama, "#0f172a", 0.32),
+     "--brand-900": campur(utama, "#0f172a", 0.5),
+   };
+ }
 
-/** Seluruh CSS variables tema, siap ditempel ke atribut style <html>. */
-export function variabelTema(tema: TemaSitus): Record<string, string> {
-  const skala = skalaWarna(tema.warnaUtama);
-  const latarTombol = skala["--brand-600"];
-  return {
-    ...skala,
-    "--brand-contrast": warnaTeksTerbaik(latarTombol),
-    "--brand-soft": warnaTeksTerbaik(skala["--brand-50"]),
-  };
-}
+ /** Menyusun satu skala lengkap, terang→gelap, dari satu warna. */
+ function skalaPenuh(warna: string): Record<string, string> {
+   return {
+     "50": campur(warna, "#ffffff", 0.94),
+     "100": campur(warna, "#ffffff", 0.86),
+     "200": campur(warna, "#ffffff", 0.68),
+     "300": campur(warna, "#ffffff", 0.46),
+     "400": campur(warna, "#ffffff", 0.24),
+     "500": campur(warna, "#ffffff", 0.08),
+     "600": warna,
+     "700": campur(warna, "#000000", 0.14),
+     "800": campur(warna, "#000000", 0.28),
+     "900": campur(warna, "#000000", 0.44),
+   };
+ }
+
+ /**
+  * Seluruh CSS variables tema dari pengaturan Super Admin.
+  *
+  * `warnaUtama` tetap jadi warna dasar (agar semua halaman lama tetap utuh),
+  * lalu warna-warna baru menimpa bagian tertentu:
+  *   --dasar-*   menu, footer, judul, blok gelap
+  *   --aksen-*   garis sorotan, tanda, ikon
+  *   --tombol-*  tombol ajakan bertindak
+  *   --halaman   latar lembut antar bagian
+  */
+ export function variabelTema(tema: TemaSitus): Record<string, string> {
+   const skala = skalaWarna(tema.warnaUtama);
+   const latarTombol = skala["--brand-600"];
+
+   const dasar = skalaPenuh(tema.warnaDasar || tema.warnaUtama);
+   const aksen = skalaPenuh(tema.warnaAksen || tema.warnaUtama);
+   const tombol = skalaPenuh(tema.warnaTombol || tema.warnaUtama);
+   const halaman = tema.warnaHalaman || campur(tema.warnaUtama, "#ffffff", 0.96);
+   const teks = tema.warnaTeks || "#33382f";
+
+   const hasil: Record<string, string> = {
+     ...skala,
+     "--brand-contrast": warnaTeksTerbaik(latarTombol),
+     "--brand-soft": warnaTeksTerbaik(skala["--brand-50"]),
+     "--halaman": halaman,
+     "--teks-utama": teks,
+   };
+
+   // Skala dasar gelap
+   for (const [tingkat, nilai] of Object.entries(dasar)) {
+     hasil[`--dasar-${tingkat}`] = nilai;
+   }
+   // Skala aksen
+   for (const [tingkat, nilai] of Object.entries(aksen)) {
+     hasil[`--aksen-${tingkat}`] = nilai;
+   }
+   // Skala tombol
+   for (const [tingkat, nilai] of Object.entries(tombol)) {
+     hasil[`--tombol-${tingkat}`] = nilai;
+   }
+
+   // Warna teks di atas tiap blok dihitung otomatis supaya selalu terbaca
+   hasil["--dasar-teks"] = warnaTeksTerbaik(dasar["900"]);
+   hasil["--aksen-teks"] = warnaTeksTerbaik(aksen["600"]);
+   hasil["--tombol-teks"] = warnaTeksTerbaik(tombol["600"]);
+
+   return hasil;
+ }
 
 export function gayaTema(tema: TemaSitus): React.CSSProperties {
   return variabelTema(tema) as unknown as React.CSSProperties;

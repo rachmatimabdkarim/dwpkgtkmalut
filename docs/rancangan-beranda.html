@@ -1,0 +1,418 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body {
+    width:1440px;
+    font-family:"Plus Jakarta Sans","Segoe UI",system-ui,sans-serif;
+    background:#FFFFFF; color:#33382F;
+  }
+
+  /* ============ BILAH ATAS ============ */
+  .bilah-atas {
+    background:#1B4A22; color:#fff;
+    font-size:13px; padding:9px 0;
+  }
+  .bilah-atas .isi { max-width:1180px; margin:0 auto; display:flex; justify-content:space-between; align-items:center; }
+  .bilah-atas .kiri { display:flex; gap:22px; opacity:.9; }
+  .bilah-atas .kanan { display:flex; gap:18px; align-items:center; }
+  .bilah-atas .kanan span { opacity:.9; }
+  .bilah-atas .masuk {
+    background:#A01010; color:#fff; padding:5px 16px; border-radius:999px;
+    font-weight:600; font-size:12.5px;
+  }
+
+  /* ============ MENU UTAMA ============ */
+  .menu {
+    background:#fff; border-bottom:1px solid #E4E4D8;
+    padding:14px 0;
+  }
+  .menu .isi { max-width:1180px; margin:0 auto; display:flex; align-items:center; justify-content:space-between; }
+  .merek { display:flex; align-items:center; gap:14px; }
+  .bulat {
+    width:56px; height:56px; border-radius:50%;
+    background:#F2EFE6; border:2px solid #1B4A22;
+    display:flex; align-items:center; justify-content:center;
+    font-weight:800; color:#1B4A22; font-size:19px; letter-spacing:-.5px;
+  }
+  .merek .teks .baris1 { font-size:18px; font-weight:800; color:#1B4A22; line-height:1.15; }
+  .merek .teks .baris2 { font-size:12.5px; color:#6B7280; margin-top:2px; }
+
+  .menu nav { display:flex; gap:6px; align-items:center; }
+  .menu nav a {
+    font-size:14.5px; color:#33382F; text-decoration:none;
+    padding:9px 15px; border-radius:8px; font-weight:500;
+  }
+  .menu nav a.aktif { color:#1B4A22; font-weight:700; border-bottom:2.5px solid #1B4A22; border-radius:0; }
+
+  /* ============ FOTO BESAR ============ */
+  .hero { position:relative; height:470px; overflow:hidden; background:#1B4A22; }
+  .hero .foto {
+    position:absolute; inset:0;
+    background-image:url("file:///root/projects/dwp-app-baru/docs/hero-uji.jpg");
+    background-size:cover; background-position:center 42%;
+  }
+  .hero .lapis {
+    position:absolute; inset:0;
+    background:linear-gradient(100deg, rgba(18,58,26,.90) 0%, rgba(18,58,26,.72) 42%, rgba(18,58,26,.30) 100%);
+  }
+  .hero .isi {
+    position:relative; max-width:1180px; margin:0 auto;
+    height:100%; display:flex; flex-direction:column; justify-content:center;
+    padding-right:560px;
+  }
+  .hero .kecil {
+    color:#EBD08A; font-size:13.5px; font-weight:700;
+    letter-spacing:1.4px; text-transform:uppercase; margin-bottom:16px;
+  }
+  .hero h1 {
+    color:#fff; font-size:47px; line-height:1.16; font-weight:800;
+    letter-spacing:-.5px; margin-bottom:20px;
+  }
+  .hero h1 .hijau { color:#EBD08A; }
+  .hero p { color:#DCE2D6; font-size:16.5px; line-height:1.65; max-width:600px; margin-bottom:30px; }
+  .hero .tombol { display:flex; gap:14px; }
+  .hero .t1 {
+    background:#C99A1E; color:#2A2410; padding:14px 30px; border-radius:999px;
+    font-size:15px; font-weight:700;
+  }
+  .hero .t2 {
+    border:1.6px solid rgba(255,255,255,.55); color:#fff;
+    padding:14px 30px; border-radius:999px; font-size:15px; font-weight:600;
+  }
+
+  /* ============ SAMBUTAN ============ */
+  .sambutan { background:#F7F6EF; padding:76px 0; }
+  .sambutan .isi { max-width:1180px; margin:0 auto; display:grid; grid-template-columns:1fr 1.25fr; gap:56px; align-items:start; }
+  .label-kecil {
+    color:#2E6B2E; font-size:13px; font-weight:800;
+    letter-spacing:1.4px; text-transform:uppercase; margin-bottom:14px;
+  }
+  .sambutan h2 { font-size:34px; color:#1B4A22; font-weight:800; line-height:1.22; letter-spacing:-.4px; }
+  .sambutan .garis { width:62px; height:4px; background:#C99A1E; border-radius:2px; margin:22px 0 0; }
+  .kutip {
+    background:#fff; border-radius:18px; padding:34px 36px;
+    box-shadow:0 4px 22px rgba(18,58,26,.07);
+    border-left:4px solid #2E6B2E;
+    position:relative;
+  }
+  .kutip .tanda { color:#2E6B2E; font-size:52px; line-height:1; font-family:Georgia,serif; }
+  .kutip p { font-size:16px; line-height:1.85; color:#33382F; margin:6px 0 24px; }
+  .kutip .penanda { display:flex; align-items:center; gap:14px; }
+  .kutip .lingkaran {
+    width:48px; height:48px; border-radius:50%; background:#1B4A22; color:#fff;
+    display:flex; align-items:center; justify-content:center; font-weight:800; font-size:16px;
+  }
+  .kutip .nama { font-weight:800; color:#1B4A22; font-size:15.5px; }
+  .kutip .jabatan { font-size:13px; color:#6B7280; margin-top:2px; }
+
+  /* ============ VISI MISI ============ */
+  .visimisi { padding:76px 0; background:#fff; }
+  .visimisi .kepala { text-align:center; max-width:720px; margin:0 auto 48px; }
+  .visimisi h2 { font-size:34px; color:#1B4A22; font-weight:800; letter-spacing:-.4px; }
+  .visimisi .bawah { color:#6B7280; font-size:15.5px; margin-top:14px; line-height:1.6; }
+  .dua { max-width:1180px; margin:0 auto; display:grid; grid-template-columns:1fr 1fr; gap:26px; }
+  .kotak { border-radius:18px; padding:38px 40px; }
+  .kotak.visi { background:#1B4A22; color:#fff; }
+  .kotak.misi { background:#F7F6EF; border:1px solid #E4E4D8; }
+  .kotak h3 { font-size:22px; font-weight:800; margin-bottom:18px; }
+  .kotak.visi h3 { color:#EBD08A; }
+  .kotak.misi h3 { color:#1B4A22; }
+  .kotak.visi p { font-size:16px; line-height:1.8; color:#E2E7DE; font-style:italic; }
+  .kotak.misi ol { padding-left:22px; }
+  .kotak.misi li { font-size:15.5px; line-height:1.75; color:#33382F; margin-bottom:11px; }
+
+  /* ============ BIDANG ============ */
+  .bidang { background:#F7F6EF; padding:76px 0; }
+  .bidang .kepala { text-align:center; margin-bottom:46px; }
+  .bidang h2 { font-size:34px; color:#1B4A22; font-weight:800; letter-spacing:-.4px; }
+  .tiga { max-width:1180px; margin:0 auto; display:grid; grid-template-columns:repeat(3,1fr); gap:24px; }
+  .kartu {
+    background:#fff; border-radius:18px; padding:36px 32px;
+    box-shadow:0 4px 22px rgba(18,58,26,.07); border-top:4px solid #C99A1E;
+  }
+  .kartu .ikon {
+    width:54px; height:54px; border-radius:14px; background:#F2EFE2; color:#2E6B2E;
+    display:flex; align-items:center; justify-content:center; font-size:25px; margin-bottom:20px;
+  }
+  .kartu h3 { font-size:19px; color:#1B4A22; font-weight:800; margin-bottom:12px; }
+  .kartu p { font-size:14.8px; line-height:1.7; color:#4B5563; }
+
+  /* ============ AGENDA + BERITA ============ */
+  .dua-kolom { padding:76px 0; background:#fff; }
+  .dua-kolom .isi { max-width:1180px; margin:0 auto; display:grid; grid-template-columns:1fr 1fr; gap:52px; }
+  .kolom .atas { display:flex; justify-content:space-between; align-items:flex-end; margin-bottom:26px; }
+  .kolom h2 { font-size:26px; color:#1B4A22; font-weight:800; }
+  .kolom .semua { color:#2E6B2E; font-size:14px; font-weight:700; }
+  .baris-agenda {
+    display:flex; gap:18px; padding:18px 0; border-bottom:1px solid #E6E6DA; align-items:center;
+  }
+  .tanggal {
+    width:62px; height:62px; border-radius:14px; background:#1B4A22; color:#fff;
+    display:flex; flex-direction:column; align-items:center; justify-content:center; flex-shrink:0;
+  }
+  .tanggal .tgl { font-size:22px; font-weight:800; line-height:1; }
+  .tanggal .bln { font-size:11px; opacity:.85; margin-top:2px; text-transform:uppercase; }
+  .baris-agenda .judul { font-size:15.5px; font-weight:700; color:#1B4A22; line-height:1.4; }
+  .baris-agenda .ket { font-size:13px; color:#6B7280; margin-top:4px; }
+
+  .kartu-berita { border-radius:18px; overflow:hidden; background:#F7F6EF; margin-bottom:20px; }
+  .kartu-berita .gambar { height:190px; background:#E2E5DC; background-size:cover; background-position:center; }
+  .kartu-berita .badan { padding:22px 24px; }
+  .kartu-berita .tanggal-kecil { font-size:12.5px; color:#2E6B2E; font-weight:700; margin-bottom:8px; }
+  .kartu-berita h3 { font-size:17px; color:#1B4A22; font-weight:800; line-height:1.4; margin-bottom:8px; }
+  .kartu-berita p { font-size:14.3px; color:#4B5563; line-height:1.65; }
+
+  /* ============ GALERI ============ */
+  .galeri { background:#1B4A22; padding:70px 0; }
+  .galeri .kepala { text-align:center; margin-bottom:40px; }
+  .galeri h2 { font-size:32px; color:#fff; font-weight:800; }
+  .galeri .bawah { color:#B4BBAE; font-size:15px; margin-top:12px; }
+  .potongan { max-width:1180px; margin:0 auto; display:grid; grid-template-columns:repeat(4,1fr); gap:16px; }
+  .potongan div { height:180px; border-radius:14px; background:#1F4E28; display:flex; align-items:center; justify-content:center; color:#7A8570; font-size:13px; }
+
+  /* ============ FOOTER ============ */
+  footer { background:#123016; color:#B4BBAE; padding:64px 0 26px; }
+  footer .isi { max-width:1180px; margin:0 auto; display:grid; grid-template-columns:1.6fr 1fr 1fr; gap:52px; }
+  footer h4 { color:#fff; font-size:16px; font-weight:800; margin-bottom:18px; }
+  footer p { font-size:14.3px; line-height:1.8; }
+  footer ul { list-style:none; }
+  footer li { margin-bottom:11px; font-size:14.3px; }
+  footer .bawah-footer {
+    max-width:1180px; margin:44px auto 0; padding-top:24px;
+    border-top:1px solid #1E4023; font-size:13.2px; display:flex; justify-content:space-between;
+  }
+</style>
+</head>
+<body>
+
+<!-- BILAH ATAS -->
+<div class="bilah-atas">
+  <div class="isi">
+    <div class="kiri">
+      <span>Dharma Wanita Persatuan</span>
+      <span>Kantor GTK Provinsi Maluku Utara</span>
+    </div>
+    <div class="kanan">
+      <span>dwpkgtkmalut@gmail.com</span>
+      <span class="masuk">Masuk Pengurus</span>
+    </div>
+  </div>
+</div>
+
+<!-- MENU -->
+<div class="menu">
+  <div class="isi">
+    <div class="merek">
+      <div class="bulat">DWP</div>
+      <div class="teks">
+        <div class="baris1">Dharma Wanita Persatuan</div>
+        <div class="baris2">Kantor GTK Provinsi Maluku Utara</div>
+      </div>
+    </div>
+    <nav>
+      <a class="aktif">Beranda</a>
+      <a>Profil</a>
+      <a>Agenda</a>
+      <a>Berita</a>
+      <a>Galeri</a>
+    </nav>
+  </div>
+</div>
+
+<!-- FOTO BESAR -->
+<div class="hero">
+  <div class="foto"></div>
+  <div class="lapis"></div>
+  <div class="isi">
+    <div class="kecil">Selamat Datang</div>
+    <h1>Bersama Membangun<br><span class="hijau">Keluarga Sejahtera</span><br>Pendidikan Bermutu</h1>
+    <p>Dharma Wanita Persatuan Kantor GTK Provinsi Maluku Utara memperkuat peran perempuan dalam keluarga, dunia pendidikan, dan pembangunan daerah.</p>
+    <div class="tombol">
+      <div class="t1">Lihat Agenda Kegiatan</div>
+      <div class="t2">Kenali Kami</div>
+    </div>
+  </div>
+</div>
+
+<!-- SAMBUTAN -->
+<div class="sambutan">
+  <div class="isi">
+    <div>
+      <div class="label-kecil">Sambutan Ketua</div>
+      <h2>Membangun Kebersamaan,<br>Menghadirkan Karya Nyata</h2>
+      <div class="garis"></div>
+    </div>
+    <div class="kutip">
+      <div class="tanda">&ldquo;</div>
+      <p>Assalamualaikum warahmatullahi wabarakatuh. Dharma Wanita Persatuan berkomitmen memperkuat peran perempuan dalam keluarga, masyarakat, dan dunia pendidikan. Melalui semangat kebersamaan, kami menghadirkan program yang relevan dan berdampak bagi seluruh anggota serta masyarakat Maluku Utara.</p>
+      <div class="penanda">
+        <div class="lingkaran">WQ</div>
+        <div>
+          <div class="nama">Ny. Washliyatul Qodari</div>
+          <div class="jabatan">Ketua Dharma Wanita Persatuan Kantor GTK Malut</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- VISI MISI -->
+<div class="visimisi">
+  <div class="kepala">
+    <h2>Visi &amp; Misi DWP</h2>
+    <div class="bawah">Arah gerak organisasi dalam memperkuat peran perempuan dan keluarga besar pegawai</div>
+  </div>
+  <div class="dua">
+    <div class="kotak visi">
+      <h3>Visi</h3>
+      <p>Menjadi organisasi istri pegawai Aparatur Sipil Negara yang profesional untuk memperkuat peran serta perempuan dalam pembangunan bangsa.</p>
+    </div>
+    <div class="kotak misi">
+      <h3>Misi</h3>
+      <ol>
+        <li>Mengembangkan sumber daya manusia DWP yang berkualitas dan berwawasan global.</li>
+        <li>Mensejahterakan anggota, keluarga, dan masyarakat melalui Bidang Pendidikan, Ekonomi, dan Sosial Budaya secara demokratis.</li>
+        <li>Meningkatkan kerja sama multipihak dalam pelaksanaan program kerja DWP.</li>
+        <li>Mengembangkan sistem informasi manajemen DWP secara terintegrasi.</li>
+      </ol>
+    </div>
+  </div>
+</div>
+
+<!-- BIDANG -->
+<div class="bidang">
+  <div class="kepala">
+    <h2>Bidang Program Kami</h2>
+  </div>
+  <div class="tiga">
+    <div class="kartu">
+      <div class="ikon">📚</div>
+      <h3>Bidang Pendidikan</h3>
+      <p>Peningkatan kapasitas anggota melalui pelatihan, literasi digital, dan pendampingan belajar keluarga.</p>
+    </div>
+    <div class="kartu">
+      <div class="ikon">🛍️</div>
+      <h3>Bidang Ekonomi</h3>
+      <p>Penguatan usaha anggota melalui bazar, pelatihan kewirausahaan, dan pengembangan produk lokal Maluku Utara.</p>
+    </div>
+    <div class="kartu">
+      <div class="ikon">🤝</div>
+      <h3>Bidang Sosial Budaya</h3>
+      <p>Kegiatan sosial, bakti masyarakat, dan pelestarian budaya untuk mempererat kebersamaan anggota.</p>
+    </div>
+  </div>
+</div>
+
+<!-- AGENDA + BERITA -->
+<div class="dua-kolom">
+  <div class="isi">
+    <div class="kolom">
+      <div class="atas">
+        <h2>Agenda Terdekat</h2>
+        <div class="semua">Semua agenda &rarr;</div>
+      </div>
+
+      <div class="baris-agenda">
+        <div class="tanggal"><div class="tgl">12</div><div class="bln">Nov</div></div>
+        <div>
+          <div class="judul">Pelatihan Literasi Digital Anggota DWP</div>
+          <div class="ket">Aula Kantor GTK Malut, Tidore &middot; 08.00 WIT</div>
+        </div>
+      </div>
+
+      <div class="baris-agenda">
+        <div class="tanggal"><div class="tgl">05</div><div class="bln">Des</div></div>
+        <div>
+          <div class="judul">Bazar Produk Anggota DWP</div>
+          <div class="ket">Halaman Kantor GTK Malut &middot; 07.30 WIT</div>
+        </div>
+      </div>
+
+      <div class="baris-agenda">
+        <div class="tanggal"><div class="tgl">15</div><div class="bln">Des</div></div>
+        <div>
+          <div class="judul">Rapat Evaluasi Program Semester</div>
+          <div class="ket">Aula KGTK Tidore &middot; 09.00 WIT</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="kolom">
+      <div class="atas">
+        <h2>Berita Terbaru</h2>
+        <div class="semua">Semua berita &rarr;</div>
+      </div>
+
+      <div class="kartu-berita">
+        <div class="gambar" style="background-image:url('file:///root/projects/dwp-app-baru/docs/hero-uji.jpg'); background-position:center 45%;"></div>
+        <div class="badan">
+          <div class="tanggal-kecil">9 OKTOBER 2026</div>
+          <h3>Pelatihan dan Pengembangan Kapasitas Anggota DWP</h3>
+          <p>Kegiatan diikuti seluruh pengurus untuk memperkuat kapasitas bidang pendidikan dan ekonomi.</p>
+        </div>
+      </div>
+
+      <div class="baris-agenda">
+        <div class="tanggal"><div class="tgl">28</div><div class="bln">Sep</div></div>
+        <div>
+          <div class="judul">Bazar Produk Anggota Berjalan Lancar</div>
+          <div class="ket">Dihadiri 60 peserta dari berbagai bidang</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- GALERI -->
+<div class="galeri">
+  <div class="kepala">
+    <h2>Galeri Kegiatan</h2>
+    <div class="bawah">Dokumentasi kegiatan Dharma Wanita Persatuan Kantor GTK Malut</div>
+  </div>
+  <div class="potongan">
+    <div>foto kegiatan</div>
+    <div>foto kegiatan</div>
+    <div>foto kegiatan</div>
+    <div>foto kegiatan</div>
+  </div>
+</div>
+
+<!-- FOOTER -->
+<footer>
+  <div class="isi">
+    <div>
+      <h4>Dharma Wanita Persatuan</h4>
+      <p>Kantor GTK Provinsi Maluku Utara<br>
+      Jl. Raya Rum, Kecamatan Tidore Utara<br>
+      Kota Tidore Kepulauan, Maluku Utara</p>
+    </div>
+    <div>
+      <h4>Tautan</h4>
+      <ul>
+        <li>Profil</li>
+        <li>Agenda</li>
+        <li>Berita</li>
+        <li>Galeri</li>
+        <li>Unduhan</li>
+        <li>Kontak</li>
+      </ul>
+    </div>
+    <div>
+      <h4>Hubungi Kami</h4>
+      <ul>
+        <li>dwpkgtkmalut@gmail.com</li>
+        <li>0821 9010 1787</li>
+      </ul>
+    </div>
+  </div>
+  <div class="bawah-footer">
+    <div>&copy; 2026 Dharma Wanita Persatuan Kantor GTK Malut. Hak cipta dilindungi.</div>
+    <div>Dharma Wanita Persatuan Kantor GTK Provinsi Maluku Utara</div>
+  </div>
+</footer>
+
+</body>
+</html>
