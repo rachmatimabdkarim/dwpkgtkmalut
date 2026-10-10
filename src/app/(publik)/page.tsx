@@ -63,7 +63,9 @@ export default async function BerandaPublik() {
   const ketua = pengurus.find((p) => /ketua/i.test(p.jabatan) && !/wakil/i.test(p.jabatan));
 
   return (
-    <div>
+    // Beranda menarik diri keluar dari wadah layout supaya foto besarnya penuh
+    // tepi; isi di bawahnya memakai wadah sendiri.
+    <div className="w-screen relative left-1/2 -translate-x-1/2">
       {/* ============ FOTO BESAR (menyentuh tepi penuh) ============ */}
       <section className="relative w-screen left-1/2 -translate-x-1/2 overflow-hidden">
         <div
@@ -118,7 +120,8 @@ export default async function BerandaPublik() {
         </div>
       </section>
 
-      {/* Isi di bawah foto memakai jarak tepi supaya tidak menempel layar */}
+      {/* Isi di bawah foto memakai jarak tepi supaya tidak menempel layar
+          (beranda punya wadah sendiri karena foto besarnya harus penuh tepi) */}
       <div className="max-w-[1180px] mx-auto px-4 sm:px-6">
       {/* ============ SAMBUTAN ============ */}
       <section className="mt-14 sm:mt-16">

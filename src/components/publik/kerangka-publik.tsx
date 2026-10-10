@@ -58,8 +58,12 @@ export function KerangkaPublik({
         </div>
       </header>
 
-      {/* Konten Halaman */}
-      <main className="flex-1 w-full">{children}</main>
+      {/* Konten Halaman — memakai wadah & jarak tepi yang sama dengan beranda.
+          Beranda menarik dirinya keluar dari wadah ini karena foto besarnya
+          harus menyentuh tepi layar penuh. */}
+      <main className="flex-1 w-full">
+        <div className="max-w-[1180px] mx-auto px-4 sm:px-6 py-8 sm:py-10">{children}</div>
+      </main>
 
       {/* Footer Publik */}
       <footer className="bg-n-900 text-n-300 border-t border-n-800">
