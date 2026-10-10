@@ -99,7 +99,7 @@ async function IsiBerita({
 
       {/* Gambar Utama (Bila ada) */}
       {gambar && (
-        <div className="rounded-token-lg overflow-hidden border border-n-200 bg-n-100 shadow-xs">
+        <div className="rounded-[18px] overflow-hidden border border-n-200 bg-n-100 shadow-xs">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src={gambar}

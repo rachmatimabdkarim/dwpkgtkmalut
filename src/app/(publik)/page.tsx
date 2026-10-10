@@ -181,7 +181,7 @@ export default async function BerandaPublik() {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
             {tema.visi && (
               <div
-                className="rounded-token-lg p-8 sm:p-10"
+                className="rounded-[18px] p-8 sm:p-10"
                 style={{ backgroundColor: "var(--dasar-700)", color: "var(--dasar-teks)" }}
               >
                 <h3 className="text-[21px] font-extrabold mb-4" style={{ color: "var(--aksen-300)" }}>
@@ -193,7 +193,7 @@ export default async function BerandaPublik() {
 
             {misi.length > 0 && (
               <div
-                className="rounded-token-lg p-8 sm:p-10 border"
+                className="rounded-[18px] p-8 sm:p-10 border"
                 style={{ backgroundColor: "var(--halaman)", borderColor: "var(--dasar-100)" }}
               >
                 <h3 className="text-[21px] font-extrabold mb-4" style={{ color: "var(--dasar-700)" }}>
@@ -259,7 +259,7 @@ export default async function BerandaPublik() {
             </div>
 
             {daftarAgenda.length === 0 ? (
-              <div className="rounded-token-lg border border-dashed border-n-300 bg-n-0 p-8 text-center">
+              <div className="rounded-[18px] border border-dashed border-n-300 bg-n-0 p-8 text-center">
                 <p className="text-n-600">Belum ada agenda kegiatan dalam waktu dekat.</p>
               </div>
             ) : (
@@ -303,17 +303,17 @@ export default async function BerandaPublik() {
             </div>
 
             {!beritaUtama ? (
-              <div className="rounded-token-lg border border-dashed border-n-300 bg-n-0 p-8 text-center">
+              <div className="rounded-[18px] border border-dashed border-n-300 bg-n-0 p-8 text-center">
                 <p className="text-n-600">Belum ada berita terbaru yang diterbitkan.</p>
               </div>
             ) : (
               <div>
                 <Link
                   href={`/berita/${beritaUtama.slug}`}
-                  className="block rounded-token-lg overflow-hidden bg-n-0 shadow-xs border border-n-200 hover:border-brand-300 transition-colors group"
+                  className="block rounded-[18px] overflow-hidden bg-n-0 shadow-xs border border-n-200 hover:border-brand-300 transition-colors group"
                 >
                   {urlPublik(beritaUtama.gambar_path) && (
-                    <div className="h-[190px] w-full overflow-hidden bg-n-100">
+                    <div className="h-[190px] w-full overflow-hidden bg-n-100 rounded-t-[18px]">
                       {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img
                         src={urlPublik(beritaUtama.gambar_path) ?? ""}
@@ -385,17 +385,21 @@ export default async function BerandaPublik() {
             {Array.from({ length: Math.max(0, 4 - fotoGaleri.length) }).map((_, i) => (
               <div
                 key={`kosong-${i}`}
-                className="h-[180px] rounded-[14px] flex items-center justify-center text-[13px]"
-                style={{ backgroundColor: "var(--dasar-600)", color: "var(--dasar-300)" }}
+                className="h-[200px] rounded-[18px] flex flex-col items-center justify-center gap-2 text-[13px]"
+                style={{
+                  backgroundColor: "color-mix(in srgb, var(--dasar-600) 55%, #ffffff)",
+                  color: "var(--dasar-900)",
+                }}
               >
-                Belum ada foto
+                <span className="text-[26px]" aria-hidden="true">🖼️</span>
+                <span className="font-medium">Dokumentasi menyusul</span>
               </div>
             ))}
             {fotoGaleri.map((f) => (
               <Link
                 key={f.id}
                 href="/galeri"
-                className="block h-[180px] rounded-token-lg overflow-hidden bg-n-0/5 hover:opacity-90 transition-opacity"
+                className="block h-[200px] rounded-[18px] overflow-hidden bg-n-0/10 hover:opacity-90 transition-opacity"
               >
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
