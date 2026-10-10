@@ -48,6 +48,20 @@ export function FormPengaturanTampilan({ temaAwal }: { temaAwal: TemaSitus }) {
     subJudulUnduhan: temaAwal.subJudulUnduhan ?? TEMA_BAWAAN.subJudulUnduhan ?? "",
     lat: String(temaAwal.lat ?? TEMA_BAWAAN.lat ?? ""),
     bujur: String(temaAwal.bujur ?? TEMA_BAWAAN.bujur ?? ""),
+    // ===== Konten beranda =====
+    heroTakbir: temaAwal.heroTakbir ?? TEMA_BAWAAN.heroTakbir ?? "",
+    heroJudul: temaAwal.heroJudul ?? TEMA_BAWAAN.heroJudul ?? "",
+    heroRingkasan: temaAwal.heroRingkasan ?? TEMA_BAWAAN.heroRingkasan ?? "",
+    heroTombol1: temaAwal.heroTombol1 ?? TEMA_BAWAAN.heroTombol1 ?? "",
+    heroTombol2: temaAwal.heroTombol2 ?? TEMA_BAWAAN.heroTombol2 ?? "",
+    visi: temaAwal.visi ?? TEMA_BAWAAN.visi ?? "",
+    misi: temaAwal.misi ?? TEMA_BAWAAN.misi ?? "",
+    bidang1Nama: temaAwal.bidang1Nama ?? TEMA_BAWAAN.bidang1Nama ?? "",
+    bidang1Isi: temaAwal.bidang1Isi ?? TEMA_BAWAAN.bidang1Isi ?? "",
+    bidang2Nama: temaAwal.bidang2Nama ?? TEMA_BAWAAN.bidang2Nama ?? "",
+    bidang2Isi: temaAwal.bidang2Isi ?? TEMA_BAWAAN.bidang2Isi ?? "",
+    bidang3Nama: temaAwal.bidang3Nama ?? TEMA_BAWAAN.bidang3Nama ?? "",
+    bidang3Isi: temaAwal.bidang3Isi ?? TEMA_BAWAAN.bidang3Isi ?? "",
   });
   const [sedangIdentitas, setSedangIdentitas] = useState(false);
   const [pesanIdentitas, setPesanIdentitas] = useState<{ jenis: "ok" | "bad"; teks: string } | null>(null);
@@ -506,6 +520,115 @@ export function FormPengaturanTampilan({ temaAwal }: { temaAwal: TemaSitus }) {
                 placeholder="Ceritakan singkat tentang organisasi..."
               />
             </Kolom>
+
+            {/* ===== Konten beranda gaya baru ===== */}
+            <div className="border-t border-n-200 pt-6 mt-1">
+              <h3 className="judul-3 text-n-900 mb-1">Konten Beranda</h3>
+              <p className="teks-3 text-n-500 mb-5">
+                Tulisan yang tampil di halaman depan website. Semua kolom di bawah ini langsung
+                terlihat di beranda setelah disimpan.
+              </p>
+
+              <div className="space-y-4">
+                <Kolom
+                  label="Kalimat kecil di atas judul"
+                  bantuan="Contoh: Selamat Datang"
+                >
+                  <Isian
+                    value={identitas.heroTakbir}
+                    onChange={(e) => setIdentitas({ ...identitas, heroTakbir: e.target.value })}
+                    placeholder="Selamat Datang"
+                  />
+                </Kolom>
+
+                <Kolom
+                  label="Judul besar di foto beranda"
+                  bantuan="Kalimat utama yang paling menonjol di halaman depan."
+                >
+                  <AreaTeks
+                    rows={2}
+                    value={identitas.heroJudul}
+                    onChange={(e) => setIdentitas({ ...identitas, heroJudul: e.target.value })}
+                    placeholder="Bersama Membangun Keluarga Sejahtera, Pendidikan Bermutu"
+                  />
+                </Kolom>
+
+                <Kolom
+                  label="Kalimat penjelas di bawah judul"
+                  bantuan="Dua sampai tiga baris saja supaya tetap enak dibaca."
+                >
+                  <AreaTeks
+                    rows={3}
+                    value={identitas.heroRingkasan}
+                    onChange={(e) => setIdentitas({ ...identitas, heroRingkasan: e.target.value })}
+                  />
+                </Kolom>
+
+                <div className="grid sm:grid-cols-2 gap-4">
+                  <Kolom label="Tulisan tombol pertama" bantuan="Mengarah ke halaman Agenda.">
+                    <Isian
+                      value={identitas.heroTombol1}
+                      onChange={(e) => setIdentitas({ ...identitas, heroTombol1: e.target.value })}
+                      placeholder="Lihat Agenda Kegiatan"
+                    />
+                  </Kolom>
+                  <Kolom label="Tulisan tombol kedua" bantuan="Mengarah ke halaman Profil.">
+                    <Isian
+                      value={identitas.heroTombol2}
+                      onChange={(e) => setIdentitas({ ...identitas, heroTombol2: e.target.value })}
+                      placeholder="Kenali Kami"
+                    />
+                  </Kolom>
+                </div>
+
+                <Kolom
+                  label="Visi organisasi"
+                  bantuan="Satu kalimat panjang. Ditampilkan di kotak gelap pada beranda."
+                >
+                  <AreaTeks
+                    rows={3}
+                    value={identitas.visi}
+                    onChange={(e) => setIdentitas({ ...identitas, visi: e.target.value })}
+                  />
+                </Kolom>
+
+                <Kolom
+                  label="Misi organisasi"
+                  bantuan="Satu misi per baris (tekan Enter setiap kali ganti misi)."
+                >
+                  <AreaTeks
+                    rows={6}
+                    value={identitas.misi}
+                    onChange={(e) => setIdentitas({ ...identitas, misi: e.target.value })}
+                  />
+                </Kolom>
+
+                <p className="teks-3 text-n-600 font-medium pt-2">Tiga bidang program</p>
+                {([1, 2, 3] as const).map((n) => (
+                  <div key={n} className="grid sm:grid-cols-[1fr_1.4fr] gap-4">
+                    <Kolom label={`Bidang ${n} — nama`}>
+                      <Isian
+                        value={identitas[`bidang${n}Nama` as keyof typeof identitas] as string}
+                        onChange={(e) =>
+                          setIdentitas({ ...identitas, [`bidang${n}Nama`]: e.target.value })
+                        }
+                        placeholder={n === 1 ? "Bidang Pendidikan" : ""}
+                      />
+                    </Kolom>
+                    <Kolom label={`Bidang ${n} — keterangan`}>
+                      <AreaTeks
+                        rows={3}
+                        value={identitas[`bidang${n}Isi` as keyof typeof identitas] as string}
+                        onChange={(e) =>
+                          setIdentitas({ ...identitas, [`bidang${n}Isi`]: e.target.value })
+                        }
+                        placeholder="Kegiatan yang dijalankan bidang ini..."
+                      />
+                    </Kolom>
+                  </div>
+                ))}
+              </div>
+            </div>
 
             <div className="grid sm:grid-cols-2 gap-4">
               <Kolom

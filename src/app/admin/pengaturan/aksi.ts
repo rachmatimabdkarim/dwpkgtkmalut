@@ -78,6 +78,20 @@ export async function simpanIdentitas(input: {
   subJudulUnduhan?: string;
   lat?: string;
   bujur?: string;
+  // ===== Konten beranda =====
+  heroTakbir?: string;
+  heroJudul?: string;
+  heroRingkasan?: string;
+  heroTombol1?: string;
+  heroTombol2?: string;
+  visi?: string;
+  misi?: string;
+  bidang1Nama?: string;
+  bidang1Isi?: string;
+  bidang2Nama?: string;
+  bidang2Isi?: string;
+  bidang3Nama?: string;
+  bidang3Isi?: string;
 }): Promise<HasilAksi> {
   try {
     const pengguna = await periksaSuperAdmin();
@@ -109,6 +123,19 @@ export async function simpanIdentitas(input: {
       sub_judul_berita: input.subJudulBerita?.trim() || null,
       sub_judul_galeri: input.subJudulGaleri?.trim() || null,
       sub_judul_unduhan: input.subJudulUnduhan?.trim() || null,
+      hero_takbir: input.heroTakbir?.trim() || null,
+      hero_judul: input.heroJudul?.trim() || null,
+      hero_ringkasan: input.heroRingkasan?.trim() || null,
+      hero_tombol1: input.heroTombol1?.trim() || null,
+      hero_tombol2: input.heroTombol2?.trim() || null,
+      visi: input.visi?.trim() || null,
+      misi: input.misi?.trim() || null,
+      bidang_1_nama: input.bidang1Nama?.trim() || null,
+      bidang_1_isi: input.bidang1Isi?.trim() || null,
+      bidang_2_nama: input.bidang2Nama?.trim() || null,
+      bidang_2_isi: input.bidang2Isi?.trim() || null,
+      bidang_3_nama: input.bidang3Nama?.trim() || null,
+      bidang_3_isi: input.bidang3Isi?.trim() || null,
       peta_lintang: input.lat && !Number.isNaN(Number(input.lat.replace(",", ".")))
         ? Number(input.lat.replace(",", "."))
         : null,
