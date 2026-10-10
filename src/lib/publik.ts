@@ -143,8 +143,16 @@ async function daftarBeritaAsli(): Promise<BeritaPublik[]> {
   }
 }
 
+/** Mengambil satu berita berdasarkan slug (versi ber-singgahan) */
+export function beritaSlug(slug: string): Promise<BeritaPublik | null> {
+  return unstable_cache(() => beritaSlugAsli(slug), ["publik", "berita-slug", slug], {
+    revalidate: SEGAR,
+    tags: ["publik"],
+  })();
+}
+
 /** Mengambil satu berita berdasarkan slug */
-export async function beritaSlug(slug: string): Promise<BeritaPublik | null> {
+async function beritaSlugAsli(slug: string): Promise<BeritaPublik | null> {
   try {
     const sb = klienPublik();
     const { data, error } = await sb

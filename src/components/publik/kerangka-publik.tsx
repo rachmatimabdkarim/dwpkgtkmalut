@@ -1,7 +1,8 @@
 "use client";
 
-import Link from "next/link";
+import { Suspense, useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
+import Link from "next/link";
 import { LambangTeks } from "@/components/ikon";
 import { JudulAplikasi } from "@/components/judul-aplikasi";
 import { MENU_PUBLIK } from "@/lib/peran";
@@ -14,7 +15,10 @@ export function KerangkaPublik({
   tema: TemaSitus;
   children: React.ReactNode;
 }) {
-  const pathname = usePathname();
+  // Tahun hak cipta dihitung SETELAH halaman tampil di peramban.
+  // Kalau dihitung saat halaman dibuat, singgahan tidak boleh dipakai.
+  const [tahunIni, setTahunIni] = useState<number | null>(null);
+  useEffect(() => setTahunIni(new Date().getFullYear()), []);
 
   return (
     <div className="min-h-dvh flex flex-col bg-n-50 text-n-800">
@@ -42,56 +46,15 @@ export function KerangkaPublik({
             </Link>
 
             {/* Menu Navigasi Desktop */}
-            <nav className="hidden sm:flex items-center gap-1" aria-label="Navigasi Utama">
-              {MENU_PUBLIK.map((item) => {
-                const aktif =
-                  item.href === "/"
-                    ? pathname === "/"
-                    : pathname.startsWith(item.href);
-
-                return (
-                  <Link
-                    key={item.href}
-                    href={item.href}
-                    className={`inline-flex items-center px-3.5 min-h-[44px] rounded-token text-[14px] transition-colors ${
-                      aktif
-                        ? "bg-brand-50 text-brand-700 font-semibold"
-                        : "text-n-700 hover:text-n-900 hover:bg-n-100 font-medium"
-                    }`}
-                  >
-                    {item.label}
-                  </Link>
-                );
-              })}
-            </nav>
+            <Suspense fallback={<MenuKerangkaDesktop />}>
+              <MenuPilihDesktop />
+            </Suspense>
           </div>
 
           {/* Baris Menu HP: kelima menu dimuat rata, tanpa perlu digeser */}
-          <nav
-            className="sm:hidden grid grid-cols-5 gap-1 py-2 border-t border-n-100"
-            aria-label="Navigasi Ponsel"
-          >
-            {MENU_PUBLIK.map((item) => {
-              const aktif =
-                item.href === "/"
-                  ? pathname === "/"
-                  : pathname.startsWith(item.href);
-
-              return (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  className={`min-w-0 inline-flex items-center justify-center px-1.5 min-h-[44px] rounded-token text-[12.5px] transition-colors ${
-                    aktif
-                      ? "bg-brand-50 text-brand-700 font-semibold border border-brand-200"
-                      : "text-n-700 bg-n-50 border border-n-200 hover:bg-n-100"
-                  }`}
-                >
-                  {item.label}
-                </Link>
-              );
-            })}
-          </nav>
+          <Suspense fallback={<MenuKerangkaHP />}>
+            <MenuPilihHP />
+          </Suspense>
         </div>
       </header>
 
@@ -188,11 +151,97 @@ export function KerangkaPublik({
           </div>
 
           <div className="mt-10 pt-6 border-t border-n-800 flex flex-col sm:flex-row items-center justify-between gap-3 text-center sm:text-left teks-3 text-n-500">
-            <p>© {new Date().getFullYear()} {tema.namaAplikasi} {tema.namaUnit}. Hak cipta dilindungi.</p>
+            <p>© {tahunIni ?? ""} {tema.namaAplikasi} {tema.namaUnit}. Hak cipta dilindungi.</p>
             {tema.namaOrganisasi && <p>{tema.namaOrganisasi}</p>}
           </div>
         </div>
       </footer>
     </div>
+  );
+}
+
+
+/**
+ * Menu navigasi dipisah ke komponen sendiri dan dibungkus batas tunggu.
+ * Alasan: penanda menu aktif memakai alamat halaman (usePathname) yang
+ * membuat halaman tidak boleh disinggahkan. Dengan dipisah, sisa halaman
+ * tetap bisa cepat disinggahkan sementara menu menyusul sekejap.
+ */
+function kelasDesktop(aktif: boolean) {
+  return `inline-flex items-center px-3.5 min-h-[44px] rounded-token text-[14px] transition-colors ${
+    aktif
+      ? "bg-brand-50 text-brand-700 font-semibold"
+      : "text-n-700 hover:text-n-900 hover:bg-n-100 font-medium"
+  }`;
+}
+
+function kelasHP(aktif: boolean) {
+  return `min-w-0 inline-flex items-center justify-center px-1.5 min-h-[44px] rounded-token text-[12.5px] transition-colors ${
+    aktif
+      ? "bg-brand-50 text-brand-700 font-semibold border border-brand-200"
+      : "text-n-700 bg-n-50 border border-n-200 hover:bg-n-100"
+  }`;
+}
+
+/** Tampilan menu sebelum penanda aktif siap — bentuk sama, tanpa penyorotan. */
+function MenuKerangkaDesktop() {
+  return (
+    <nav className="hidden sm:flex items-center gap-1" aria-label="Navigasi Utama">
+      {MENU_PUBLIK.map((item) => (
+        <Link key={item.href} href={item.href} className={kelasDesktop(false)}>
+          {item.label}
+        </Link>
+      ))}
+    </nav>
+  );
+}
+
+function MenuKerangkaHP() {
+  return (
+    <nav
+      className="sm:hidden grid grid-cols-5 gap-1 py-2 border-t border-n-100"
+      aria-label="Navigasi Ponsel"
+    >
+      {MENU_PUBLIK.map((item) => (
+        <Link key={item.href} href={item.href} className={kelasHP(false)}>
+          {item.label}
+        </Link>
+      ))}
+    </nav>
+  );
+}
+
+function MenuPilihDesktop() {
+  const pathname = usePathname() ?? "/";
+  return (
+    <nav className="hidden sm:flex items-center gap-1" aria-label="Navigasi Utama">
+      {MENU_PUBLIK.map((item) => {
+        const aktif = item.href === "/" ? pathname === "/" : pathname.startsWith(item.href);
+        return (
+          <Link key={item.href} href={item.href} className={kelasDesktop(aktif)}>
+            {item.label}
+          </Link>
+        );
+      })}
+    </nav>
+  );
+}
+
+function MenuPilihHP() {
+  const pathname = usePathname() ?? "/";
+  return (
+    <nav
+      className="sm:hidden grid grid-cols-5 gap-1 py-2 border-t border-n-100"
+      aria-label="Navigasi Ponsel"
+    >
+      {MENU_PUBLIK.map((item) => {
+        const aktif = item.href === "/" ? pathname === "/" : pathname.startsWith(item.href);
+        return (
+          <Link key={item.href} href={item.href} className={kelasHP(aktif)}>
+            {item.label}
+          </Link>
+        );
+      })}
+    </nav>
   );
 }

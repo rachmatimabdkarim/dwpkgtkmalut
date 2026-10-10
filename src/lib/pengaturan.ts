@@ -1,4 +1,5 @@
-import { klienServer } from "@/lib/supabase-server";
+import { createClient } from "@supabase/supabase-js";
+import { unstable_cache } from "next/cache";
 import { TEMA_BAWAAN, type TemaSitus } from "@/lib/tema";
 import { urlPublik } from "@/lib/publik";
 
@@ -20,9 +21,16 @@ export async function ambilTema(): Promise<TemaSitus> {
   }
 
   try {
-    // WAJIB membaca view publik: tabel site_settings dilindungi aturan
-    // pengaman sehingga untuk pengunjung publik hasilnya kosong.
-    const sb = await klienServer();
+    // PENTING (kecepatan): memakai klien TANPA data login.
+    // Klien berbasis sesi menyentuh "cookies" sehingga Next.js menganggap
+    // SELURUH situs harus dibuat ulang setiap kali dibuka (singgahan mati).
+    // Padahal tema sama untuk semua pengunjung, jadi cukup dibaca sekali
+    // lalu disinggahkan sebentar.
+    const sb = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      { auth: { persistSession: false, autoRefreshToken: false } },
+    );
     const { data, error } = await sb
       .from("public_site_settings")
       .select("nama_aplikasi, nama_unit, nama_organisasi, warna_utama, logo_path, favicon_path, alamat, telepon, email")
@@ -53,4 +61,16 @@ export async function ambilTema(): Promise<TemaSitus> {
   } catch {
     return TEMA_BAWAAN;
   }
+}
+
+/**
+ * Versi ber-singgahan: hasil disimpan 60 detik.
+ * Perubahan dari panel admin tetap langsung terlihat karena aksi admin
+ * memanggil revalidatePath("/", "layout").
+ */
+export function ambilTemaCepat(): Promise<TemaSitus> {
+  return unstable_cache(() => ambilTema(), ["tema-situs-beranda"], {
+    revalidate: 60,
+    tags: ["tema", "publik"],
+  })();
 }

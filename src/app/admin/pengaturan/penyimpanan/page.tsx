@@ -7,6 +7,9 @@ import { PanelPenyimpanan } from "./panel";
 
 export const metadata = { title: "Pengaturan · Penggunaan Penyimpanan" };
 
+// Halaman ini membaca data login pengguna, jadi memang harus selalu segar.
+export const instant = false;
+
 /**
  * Halaman Pengaturan → Penggunaan Penyimpanan.
  * Hanya dapat dibuka oleh pengguna dengan peran Super Admin.

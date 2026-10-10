@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import { daftarPengurus, pengaturanSitus } from "@/lib/publik";
 
-export const instant = false;
 
 export async function generateMetadata(): Promise<Metadata> {
   const tema = await pengaturanSitus();

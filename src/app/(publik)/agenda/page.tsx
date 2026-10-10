@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 import { formatTanggal } from "@/lib/kegiatan";
 import { daftarAgenda, pengaturanSitus } from "@/lib/publik";
 
-export const instant = false;
 
 export async function generateMetadata(): Promise<Metadata> {
   const tema = await pengaturanSitus();

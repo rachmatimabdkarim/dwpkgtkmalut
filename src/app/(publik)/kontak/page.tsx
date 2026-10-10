@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 import { pengaturanSitus } from "@/lib/publik";
 import { FormKontak } from "./form-kontak";
 
-export const instant = false;
 
 export async function generateMetadata(): Promise<Metadata> {
   const tema = await pengaturanSitus();

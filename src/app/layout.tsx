@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { Plus_Jakarta_Sans } from "next/font/google";
 import "./globals.css";
 import { gayaTema } from "@/lib/tema";
-import { ambilTema } from "@/lib/pengaturan";
+import { ambilTemaCepat } from "@/lib/pengaturan";
 import { PenyediaTema } from "@/components/penyedia-tema";
 
 const fontUtama = Plus_Jakarta_Sans({
@@ -11,15 +11,13 @@ const fontUtama = Plus_Jakarta_Sans({
   variable: "--font-utama",
 });
 
-export const instant = false;
-
 /** Memilih berkas favicon ukuran lain dari jalur yang sama (mis. -192 -> -180). */
 function gantiNamaFavicon(url: string, ukuran: string): string {
   return url.replace(/-\d+\.png$/, `-${ukuran}.png`);
 }
 
 export async function generateMetadata(): Promise<Metadata> {
-  const tema = await ambilTema();
+  const tema = await ambilTemaCepat();
 
   return {
     title: {
@@ -43,7 +41,7 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
-  const tema = await ambilTema();
+  const tema = await ambilTemaCepat();
 
   return (
     <html lang="id" className={fontUtama.variable} style={gayaTema(tema)}>

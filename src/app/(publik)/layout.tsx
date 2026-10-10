@@ -1,7 +1,6 @@
 import { KerangkaPublik } from "@/components/publik/kerangka-publik";
 import { pengaturanSitus } from "@/lib/publik";
 
-export const instant = false;
 
 export default async function LayoutPublik({
   children,

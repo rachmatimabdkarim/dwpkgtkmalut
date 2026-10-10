@@ -1,10 +1,10 @@
+import { Suspense } from "react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { formatTanggal } from "@/lib/kegiatan";
 import { beritaSlug, urlPublik } from "@/lib/publik";
 
-export const instant = false;
 
 export async function generateMetadata({
   params,
@@ -26,7 +26,40 @@ export async function generateMetadata({
   };
 }
 
-export default async function HalamanDetailBerita({
+export default function HalamanDetailBerita({
+  params,
+}: {
+  params: Promise<{ slug: string }>;
+}) {
+  return (
+    <Suspense fallback={<KerangkaBerita />}>
+      <IsiBerita params={params} />
+    </Suspense>
+  );
+}
+
+/**
+ * Cangkang halaman: tampil duluan supaya perpindahan halaman terasa langsung,
+ * isi berita menyusul sekejap kemudian.
+ */
+function KerangkaBerita() {
+  return (
+    <article className="max-w-3xl mx-auto space-y-6" aria-busy="true">
+      <div className="h-[44px]" />
+      <div className="space-y-3 border-b border-n-200 pb-5">
+        <div className="h-4 w-24 rounded-token bg-n-100" />
+        <div className="h-8 w-3/4 rounded-token bg-n-100" />
+      </div>
+      <div className="space-y-2">
+        <div className="h-4 w-full rounded-token bg-n-100" />
+        <div className="h-4 w-5/6 rounded-token bg-n-100" />
+        <div className="h-4 w-2/3 rounded-token bg-n-100" />
+      </div>
+    </article>
+  );
+}
+
+async function IsiBerita({
   params,
 }: {
   params: Promise<{ slug: string }>;
