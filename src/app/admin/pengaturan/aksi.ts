@@ -92,6 +92,7 @@ export async function simpanIdentitas(input: {
   bidang2Isi?: string;
   bidang3Nama?: string;
   bidang3Isi?: string;
+  heroFotoPath?: string | null;
 }): Promise<HasilAksi> {
   try {
     const pengguna = await periksaSuperAdmin();
@@ -136,6 +137,7 @@ export async function simpanIdentitas(input: {
       bidang_2_isi: input.bidang2Isi?.trim() || null,
       bidang_3_nama: input.bidang3Nama?.trim() || null,
       bidang_3_isi: input.bidang3Isi?.trim() || null,
+      hero_foto_path: input.heroFotoPath ?? null,
       peta_lintang: input.lat && !Number.isNaN(Number(input.lat.replace(",", ".")))
         ? Number(input.lat.replace(",", "."))
         : null,

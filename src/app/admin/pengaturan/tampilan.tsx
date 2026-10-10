@@ -71,7 +71,12 @@ export function FormPengaturanTampilan({ temaAwal }: { temaAwal: TemaSitus }) {
     setSedangIdentitas(true);
     setPesanIdentitas(null);
 
-    const hasil = await simpanIdentitas({ ...identitas, lat: identitas.lat, bujur: identitas.bujur });
+    const hasil = await simpanIdentitas({
+      ...identitas,
+      lat: identitas.lat,
+      bujur: identitas.bujur,
+      heroFotoPath: fotoBerandaPath,
+    });
     setSedangIdentitas(false);
     setPesanIdentitas({
       jenis: hasil.sukses ? "ok" : "bad",
@@ -179,6 +184,12 @@ export function FormPengaturanTampilan({ temaAwal }: { temaAwal: TemaSitus }) {
   const [ringkasanLogo, setRingkasanLogo] = useState<BerkasTerpilih[]>([]);
   const [sedangUnggahLogo, setSedangUnggahLogo] = useState(false);
 
+  // Foto besar beranda
+  const [fotoBerandaPath, setFotoBerandaPath] = useState<string | null>(temaAwal.heroFotoPath ?? null);
+  const [fotoBerandaUrl, setFotoBerandaUrl] = useState<string | null>(null);
+  const [ringkasanFotoBeranda, setRingkasanFotoBeranda] = useState<BerkasTerpilih[]>([]);
+  const [sedangUnggahFotoBeranda, setSedangUnggahFotoBeranda] = useState(false);
+
   const [faviconPath, setFaviconPath] = useState<string | null>(temaAwal.faviconPath ?? null);
   const [faviconUrl, setFaviconUrl] = useState<string | null>(temaAwal.faviconUrl ?? null);
   const [ringkasanFavicon, setRingkasanFavicon] = useState<BerkasTerpilih[]>([]);
@@ -186,6 +197,57 @@ export function FormPengaturanTampilan({ temaAwal }: { temaAwal: TemaSitus }) {
 
   const [sedangBranding, setSedangBranding] = useState(false);
   const [pesanBranding, setPesanBranding] = useState<{ jenis: "ok" | "bad"; teks: string } | null>(null);
+
+  /** Mengunggah foto besar beranda (ukuran banner: 1920 px, maksimal 300 KB). */
+  async function handlePilihFotoBeranda(daftar: File[]) {
+    const berkas = daftar[0];
+    if (!berkas) return;
+
+    setSedangUnggahFotoBeranda(true);
+    setPesanBranding(null);
+
+    try {
+      const hasil = await kompresGambar(berkas, "banner");
+
+      const sb = klienPeramban();
+      const ekstensi = hasil.berkas.name.split(".").pop() || "jpg";
+      const pathTujuan = `beranda/hero-${Date.now()}.${ekstensi}`;
+
+      const { error: gagalUnggah } = await sb.storage.from("publik").upload(pathTujuan, hasil.berkas, {
+        upsert: true,
+        contentType: hasil.berkas.type,
+      });
+      if (gagalUnggah) {
+        throw new Error("Gagal mengunggah foto beranda: " + gagalUnggah.message);
+      }
+
+      const urlBaru = sb.storage.from("publik").getPublicUrl(pathTujuan).data.publicUrl;
+
+      setFotoBerandaPath(pathTujuan);
+      setFotoBerandaUrl(urlBaru);
+      setRingkasanFotoBeranda([
+        {
+          id: pathTujuan,
+          nama: berkas.name,
+          ukuranAsli: berkas.size,
+          ukuranHasil: hasil.ukuranHasil,
+          url: urlBaru,
+          bolehPublik: true,
+        },
+      ]);
+      setPesanBranding({
+        jenis: "ok",
+        teks: "Foto beranda siap. Tekan “Simpan identitas” supaya berlaku di website.",
+      });
+    } catch (err) {
+      setPesanBranding({
+        jenis: "bad",
+        teks: err instanceof Error ? err.message : "Gagal memproses foto beranda.",
+      });
+    } finally {
+      setSedangUnggahFotoBeranda(false);
+    }
+  }
 
   async function handlePilihLogo(daftar: File[]) {
     const berkas = daftar[0];
@@ -528,6 +590,35 @@ export function FormPengaturanTampilan({ temaAwal }: { temaAwal: TemaSitus }) {
                 Tulisan yang tampil di halaman depan website. Semua kolom di bawah ini langsung
                 terlihat di beranda setelah disimpan.
               </p>
+
+              {/* Unggah foto besar */}
+              <div className="mb-5 space-y-3">
+                <p className="text-[13.5px] font-medium text-n-700">Foto besar beranda</p>
+                <p className="teks-3 text-n-500">
+                  Foto yang tampil paling atas di halaman depan. Pilih foto kegiatan yang jelas dan
+                  lebar. Gambar diperkecil otomatis supaya website tetap cepat.
+                </p>
+                <KotakUnggah
+                  label="Unggah foto beranda"
+                  keterangan="JPG, PNG, atau WebP · diperkecil ke 1920 px · maksimal 300 KB"
+                  terima="image/png,image/jpeg,image/webp"
+                  sedang={sedangUnggahFotoBeranda}
+                  onPilih={handlePilihFotoBeranda}
+                />
+                <RingkasanKompresi daftar={ringkasanFotoBeranda} />
+
+                {fotoBerandaUrl && (
+                  <div className="rounded-token border border-n-200 bg-n-50 p-3">
+                    <span className="text-[12px] font-medium text-n-600">Pratinjau foto baru:</span>
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={fotoBerandaUrl}
+                      alt="Pratinjau foto beranda"
+                      className="mt-2 w-full h-[150px] object-cover rounded-token border border-n-200"
+                    />
+                  </div>
+                )}
+              </div>
 
               <div className="space-y-4">
                 <Kolom
