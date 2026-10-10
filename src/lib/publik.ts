@@ -208,7 +208,7 @@ async function pengaturanSitusAsli(): Promise<TemaSitus> {
       // kosong dan tampilan jatuh ke nilai bawaan.
       .from("public_site_settings")
       .select(
-        "nama_aplikasi, nama_unit, nama_organisasi, warna_utama, warna_dasar, warna_aksen, warna_tombol, warna_halaman, warna_teks, logo_path, favicon_path, alamat, telepon, email, sambutan, profil_singkat, sub_judul_agenda, sub_judul_berita, sub_judul_galeri, sub_judul_unduhan, peta_lintang, peta_bujur, peta_zoom",
+        "nama_aplikasi, nama_unit, nama_organisasi, warna_utama, warna_dasar, warna_aksen, warna_tombol, warna_halaman, warna_teks, logo_path, favicon_path, alamat, telepon, email, sambutan, profil_singkat, sub_judul_agenda, sub_judul_berita, sub_judul_galeri, sub_judul_unduhan, peta_lintang, peta_bujur, peta_zoom, hero_judul, hero_takbir, hero_ringkasan, hero_tombol1, hero_tombol2, hero_foto_path, visi, misi, bidang_1_nama, bidang_1_isi, bidang_2_nama, bidang_2_isi, bidang_3_nama, bidang_3_isi",
       )
       .limit(1)
       .maybeSingle();
@@ -240,6 +240,20 @@ async function pengaturanSitusAsli(): Promise<TemaSitus> {
       lat: data.peta_lintang !== null ? Number(data.peta_lintang) : TEMA_BAWAAN.lat,
       bujur: data.peta_bujur !== null ? Number(data.peta_bujur) : TEMA_BAWAAN.bujur,
       zoom: data.peta_zoom !== null ? Number(data.peta_zoom) : TEMA_BAWAAN.zoom,
+      heroJudul: data.hero_judul || TEMA_BAWAAN.heroJudul,
+      heroTakbir: data.hero_takbir || TEMA_BAWAAN.heroTakbir,
+      heroRingkasan: data.hero_ringkasan || TEMA_BAWAAN.heroRingkasan,
+      heroTombol1: data.hero_tombol1 || TEMA_BAWAAN.heroTombol1,
+      heroTombol2: data.hero_tombol2 || TEMA_BAWAAN.heroTombol2,
+      heroFotoPath: data.hero_foto_path ?? null,
+      visi: data.visi || TEMA_BAWAAN.visi,
+      misi: data.misi || TEMA_BAWAAN.misi,
+      bidang1Nama: data.bidang_1_nama || TEMA_BAWAAN.bidang1Nama,
+      bidang1Isi: data.bidang_1_isi || TEMA_BAWAAN.bidang1Isi,
+      bidang2Nama: data.bidang_2_nama || TEMA_BAWAAN.bidang2Nama,
+      bidang2Isi: data.bidang_2_isi || TEMA_BAWAAN.bidang2Isi,
+      bidang3Nama: data.bidang_3_nama || TEMA_BAWAAN.bidang3Nama,
+      bidang3Isi: data.bidang_3_isi || TEMA_BAWAAN.bidang3Isi,
     };
   } catch {
     return TEMA_BAWAAN;

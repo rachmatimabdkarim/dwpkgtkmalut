@@ -17,6 +17,22 @@ export type TemaSitus = {
   warnaHalaman?: string | null;
   /** Warna huruf utama */
   warnaTeks?: string | null;
+  /** ===== Konten beranda gaya baru ===== */
+  heroJudul?: string | null;
+  heroTakbir?: string | null;
+  heroRingkasan?: string | null;
+  heroTombol1?: string | null;
+  heroTombol2?: string | null;
+  heroFotoPath?: string | null;
+  visi?: string | null;
+  /** Satu misi per baris */
+  misi?: string | null;
+  bidang1Nama?: string | null;
+  bidang1Isi?: string | null;
+  bidang2Nama?: string | null;
+  bidang2Isi?: string | null;
+  bidang3Nama?: string | null;
+  bidang3Isi?: string | null;
   logoUrl: string | null;
   faviconUrl: string | null;
   namaAplikasi: string;
@@ -66,6 +82,24 @@ export const TEMA_BAWAAN: TemaSitus = {
   lat: 0.7245,
   bujur: 127.4429,
   zoom: 15,
+  heroTakbir: "Selamat Datang",
+  heroJudul: "Bersama Membangun Keluarga Sejahtera, Pendidikan Bermutu",
+  heroRingkasan:
+    "Dharma Wanita Persatuan Kantor GTK Provinsi Maluku Utara memperkuat peran perempuan dalam keluarga, dunia pendidikan, dan pembangunan daerah.",
+  heroTombol1: "Lihat Agenda Kegiatan",
+  heroTombol2: "Kenali Kami",
+  heroFotoPath: null,
+  visi: "Menjadi organisasi istri pegawai Aparatur Sipil Negara yang profesional untuk memperkuat peran serta perempuan dalam pembangunan bangsa.",
+  misi: "Mengembangkan sumber daya manusia DWP yang berkualitas dan berwawasan global.\nMensejahterakan anggota, keluarga, dan masyarakat melalui Bidang Pendidikan, Ekonomi, dan Sosial Budaya secara demokratis.\nMeningkatkan kerja sama multipihak dalam pelaksanaan program kerja DWP.\nMengembangkan sistem informasi manajemen DWP secara terintegrasi.",
+  bidang1Nama: "Bidang Pendidikan",
+  bidang1Isi:
+    "Peningkatan kapasitas anggota melalui pelatihan, literasi digital, dan pendampingan belajar keluarga.",
+  bidang2Nama: "Bidang Ekonomi",
+  bidang2Isi:
+    "Penguatan usaha anggota melalui bazar, pelatihan kewirausahaan, dan pengembangan produk lokal Maluku Utara.",
+  bidang3Nama: "Bidang Sosial Budaya",
+  bidang3Isi:
+    "Kegiatan sosial, bakti masyarakat, dan pelestarian budaya untuk mempererat kebersamaan anggota.",
   telepon: "(0921) 3123456",
   email: "dwp.gtkmalut@kemdikbud.go.id",
 };
