@@ -39,7 +39,7 @@ export default async function HalamanGaleri() {
       </header>
 
       {galeriBersih.length === 0 ? (
-        <div className="rounded-token-lg border border-dashed border-n-300 bg-n-0 p-10 text-center">
+        <div className="rounded-[18px] border border-dashed border-n-300 bg-n-0 p-10 text-center">
           <p className="text-n-600">Belum ada foto dokumentasi di galeri.</p>
         </div>
       ) : (
@@ -47,7 +47,7 @@ export default async function HalamanGaleri() {
           {galeriBersih.map((album, idx) => (
             <section
               key={album.activity_id}
-              className="rounded-token-lg border border-n-200 bg-n-0 p-5 sm:p-6 shadow-xs space-y-4"
+              className="rounded-[18px] border border-n-200 bg-n-0 p-5 sm:p-6 shadow-xs space-y-4"
             >
               <div className="flex items-center justify-between border-b border-n-100 pb-3">
                 <h2 className="judul-2 text-n-800">

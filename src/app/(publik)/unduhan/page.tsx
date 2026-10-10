@@ -26,7 +26,7 @@ export default async function HalamanUnduhan() {
       </header>
 
       {dokumenList.length === 0 ? (
-        <div className="rounded-token-lg border border-dashed border-n-300 bg-n-0 p-10 text-center">
+        <div className="rounded-[18px] border border-dashed border-n-300 bg-n-0 p-10 text-center">
           <p className="text-n-600">Belum ada dokumen publik yang tersedia untuk diunduh.</p>
         </div>
       ) : (
@@ -37,7 +37,7 @@ export default async function HalamanUnduhan() {
             return (
               <div
                 key={doc.id}
-                className="rounded-token-lg border border-n-200 bg-n-0 p-5 sm:p-6 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4 hover:border-brand-300 transition-colors"
+                className="rounded-[18px] border border-n-200 bg-n-0 p-5 sm:p-6 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4 hover:border-brand-300 transition-colors"
               >
                 <div className="space-y-1.5 flex-1 min-w-0">
                   <div className="flex flex-wrap items-center gap-2">

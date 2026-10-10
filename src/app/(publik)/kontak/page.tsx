@@ -35,7 +35,7 @@ export default async function HalamanKontak() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         {/* ---- Kiri: alamat & peta ---- */}
         <div className="space-y-6">
-          <section className="rounded-token-lg border border-n-200 bg-n-0 p-6 shadow-xs space-y-4">
+          <section className="rounded-[18px] border border-n-200 bg-n-0 p-6 shadow-xs space-y-4">
             <h2 className="judul-2 text-n-900">Sekretariat</h2>
 
             <div className="space-y-3 text-[15px] text-n-800">
@@ -66,7 +66,7 @@ export default async function HalamanKontak() {
           </section>
 
           {peta && (
-            <section className="rounded-token-lg border border-n-200 overflow-hidden bg-n-50">
+            <section className="rounded-[18px] border border-n-200 overflow-hidden bg-n-50">
               <iframe
                 title="Peta lokasi kantor"
                 src={peta}
@@ -78,7 +78,7 @@ export default async function HalamanKontak() {
         </div>
 
         {/* ---- Kanan: form pesan ---- */}
-        <section className="rounded-token-lg border border-n-200 bg-n-0 p-6 shadow-xs">
+        <section className="rounded-[18px] border border-n-200 bg-n-0 p-6 shadow-xs">
           <h2 className="judul-2 text-n-900 mb-1">Kirim Pesan</h2>
           <p className="teks-3 text-n-500 mb-5">
             Pesan Anda diterima pengurus dan akan ditindaklanjuti.

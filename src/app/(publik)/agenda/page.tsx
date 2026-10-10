@@ -21,7 +21,7 @@ export default async function HalamanAgenda() {
       </header>
 
       {agendaList.length === 0 ? (
-        <div className="rounded-token-lg border border-dashed border-n-300 bg-n-0 p-10 text-center">
+        <div className="rounded-[18px] border border-dashed border-n-300 bg-n-0 p-10 text-center">
           <p className="text-n-600">Belum ada agenda kegiatan yang tercatat.</p>
         </div>
       ) : (
@@ -35,7 +35,7 @@ export default async function HalamanAgenda() {
             return (
               <div
                 key={agenda.id}
-                className="rounded-token-lg border border-n-200 bg-n-0 p-5 flex flex-col justify-between shadow-xs hover:border-n-300 transition-colors"
+                className="rounded-[18px] border border-n-200 bg-n-0 p-5 flex flex-col justify-between shadow-xs hover:border-n-300 transition-colors"
               >
                 <div>
                   <div className="flex flex-wrap items-center gap-2 mb-3">

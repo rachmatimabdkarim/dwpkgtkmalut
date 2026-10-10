@@ -36,7 +36,7 @@ export default async function HalamanProfil() {
           <p className="teks-3 text-n-600 mt-1.5">Mengenal lebih dekat {tema.namaOrganisasi}.</p>
         </header>
 
-        <div className="rounded-token-lg border border-n-200 bg-n-0 p-6 sm:p-8 shadow-xs space-y-4 text-n-800 text-[15px] sm:text-[16px] leading-relaxed">
+        <div className="rounded-[18px] border border-n-200 bg-n-0 p-6 sm:p-8 shadow-xs space-y-4 text-n-800 text-[15px] sm:text-[16px] leading-relaxed">
           {(tema.profilSingkat ?? "").split("\n").filter(Boolean).map((par, i) => (
             <p key={i}>{par}</p>
           ))}
@@ -53,7 +53,7 @@ export default async function HalamanProfil() {
         </div>
 
         {kelompokBidang.length === 0 ? (
-          <div className="rounded-token-lg border border-dashed border-n-300 bg-n-0 p-8 text-center">
+          <div className="rounded-[18px] border border-dashed border-n-300 bg-n-0 p-8 text-center">
             <p className="text-n-600">Data susunan pengurus belum tersedia.</p>
           </div>
         ) : (
@@ -61,7 +61,7 @@ export default async function HalamanProfil() {
             {kelompokBidang.map(({ bidang, anggota }) => (
               <div
                 key={bidang}
-                className="rounded-token-lg border border-n-200 bg-n-0 overflow-hidden shadow-xs"
+                className="rounded-[18px] border border-n-200 bg-n-0 overflow-hidden shadow-xs"
               >
                 <div className="bg-n-50 border-b border-n-200 px-5 py-3">
                   <h3 className="font-semibold text-n-900 text-[15px]">{bidang}</h3>

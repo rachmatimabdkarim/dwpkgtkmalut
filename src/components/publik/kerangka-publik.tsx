@@ -24,7 +24,7 @@ export function KerangkaPublik({
     <div className="min-h-dvh flex flex-col bg-n-50 text-n-800">
       {/* Header Publik */}
       <header className="sticky top-0 z-40 bg-n-0 border-b border-n-200">
-        <div className="max-w-5xl mx-auto px-4">
+        <div className="max-w-[1180px] mx-auto px-4 sm:px-6">
           <div className="flex items-center justify-between h-16 gap-3">
             {/* Logo & Judul Organisasi */}
             <Link
@@ -59,11 +59,11 @@ export function KerangkaPublik({
       </header>
 
       {/* Konten Halaman */}
-      <main className="flex-1 max-w-5xl w-full mx-auto px-4 py-8">{children}</main>
+      <main className="flex-1 w-full">{children}</main>
 
       {/* Footer Publik */}
       <footer className="bg-n-900 text-n-300 border-t border-n-800">
-        <div className="max-w-5xl mx-auto px-4 py-12">
+        <div className="max-w-[1180px] mx-auto px-4 sm:px-6 py-12">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             {/* Identitas Organisasi */}
             <div className="space-y-3">

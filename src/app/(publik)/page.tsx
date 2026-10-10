@@ -64,10 +64,10 @@ export default async function BerandaPublik() {
 
   return (
     <div>
-      {/* ============ FOTO BESAR ============ */}
-      <section className="relative -mx-4 sm:-mx-6 lg:mx-0 overflow-hidden rounded-none lg:rounded-token-lg">
+      {/* ============ FOTO BESAR (menyentuh tepi penuh) ============ */}
+      <section className="relative w-screen left-1/2 -translate-x-1/2 overflow-hidden">
         <div
-          className="relative min-h-[420px] sm:min-h-[470px] flex items-center"
+          className="relative min-h-[380px] sm:min-h-[420px] flex items-center"
           style={{
             backgroundImage: fotoBeranda ? `url(${fotoBeranda})` : undefined,
             backgroundSize: "cover",
@@ -83,7 +83,7 @@ export default async function BerandaPublik() {
                 "linear-gradient(100deg, color-mix(in srgb, var(--dasar-900) 92%, transparent) 0%, color-mix(in srgb, var(--dasar-900) 74%, transparent) 45%, color-mix(in srgb, var(--dasar-900) 26%, transparent) 100%)",
             }}
           />
-          <div className="relative w-full px-6 sm:px-10 lg:px-14 py-16">
+          <div className="relative w-full max-w-[1180px] mx-auto px-4 sm:px-6 py-14">
             <div className="max-w-[620px]">
               <p
                 className="text-[12.5px] sm:text-[13.5px] font-bold tracking-[0.14em] uppercase mb-4"
@@ -91,7 +91,7 @@ export default async function BerandaPublik() {
               >
                 {tema.heroTakbir}
               </p>
-              <h1 className="text-[32px] sm:text-[42px] lg:text-[47px] font-extrabold leading-[1.15] text-n-0 tracking-tight">
+              <h1 className="text-[30px] sm:text-[38px] lg:text-[42px] font-extrabold leading-[1.18] text-n-0 tracking-tight">
                 {tema.heroJudul}
               </h1>
               <p className="mt-5 text-[15.5px] sm:text-[16.5px] leading-relaxed text-n-200 max-w-[560px]">
@@ -100,14 +100,14 @@ export default async function BerandaPublik() {
               <div className="mt-8 flex flex-wrap gap-3.5">
                 <Link
                   href="/agenda"
-                  className="inline-flex items-center justify-center min-h-[48px] px-7 rounded-full font-bold text-[15px] transition-transform hover:scale-[1.02] select-none"
+                  className="inline-flex items-center justify-center min-h-[44px] px-6 rounded-full font-bold text-[14.5px] transition-transform hover:scale-[1.02] select-none"
                   style={{ backgroundColor: "var(--tombol-600)", color: "var(--tombol-teks)" }}
                 >
                   {tema.heroTombol1}
                 </Link>
                 <Link
                   href="/profil"
-                  className="inline-flex items-center justify-center min-h-[48px] px-7 rounded-full font-semibold text-[15px] text-n-0 border-2 transition-colors hover:bg-n-0/10 select-none"
+                  className="inline-flex items-center justify-center min-h-[44px] px-6 rounded-full font-semibold text-[14.5px] text-n-0 border-2 transition-colors hover:bg-n-0/10 select-none"
                   style={{ borderColor: "color-mix(in srgb, #ffffff 55%, transparent)" }}
                 >
                   {tema.heroTombol2}
@@ -118,6 +118,8 @@ export default async function BerandaPublik() {
         </div>
       </section>
 
+      {/* Isi di bawah foto memakai jarak tepi supaya tidak menempel layar */}
+      <div className="max-w-[1180px] mx-auto px-4 sm:px-6">
       {/* ============ SAMBUTAN ============ */}
       <section className="mt-14 sm:mt-16">
         <div className="grid grid-cols-1 lg:grid-cols-[1fr_1.25fr] gap-8 lg:gap-14 items-start">
@@ -135,7 +137,7 @@ export default async function BerandaPublik() {
           </div>
 
           <div
-            className="rounded-token-lg bg-n-0 p-7 sm:p-9 shadow-xs border-l-4"
+            className="rounded-[18px] bg-n-0 p-7 sm:p-9 shadow-xs border-l-4"
             style={{ borderLeftColor: "var(--aksen-600)" }}
           >
             <p className="text-[42px] leading-none font-serif" style={{ color: "var(--aksen-500)" }} aria-hidden="true">
@@ -222,11 +224,11 @@ export default async function BerandaPublik() {
             {bidang.map((b, i) => (
               <div
                 key={i}
-                className="rounded-token-lg bg-n-0 p-8 shadow-xs border-t-4"
+                className="rounded-[18px] bg-n-0 p-8 shadow-xs border-t-4"
                 style={{ borderTopColor: "var(--aksen-600)" }}
               >
                 <div
-                  className="h-14 w-14 rounded-token-lg flex items-center justify-center text-[24px] mb-5"
+                  className="h-14 w-14 rounded-[14px] flex items-center justify-center text-[24px] mb-5"
                   style={{ backgroundColor: "var(--aksen-50)", color: "var(--aksen-700)" }}
                   aria-hidden="true"
                 >
@@ -267,7 +269,7 @@ export default async function BerandaPublik() {
                   return (
                     <div key={agenda.id} className="flex gap-4 py-4 border-b border-n-100 items-center">
                       <div
-                        className="h-[62px] w-[62px] rounded-token-lg flex flex-col items-center justify-center shrink-0"
+                        className="h-[62px] w-[62px] rounded-[14px] flex flex-col items-center justify-center shrink-0"
                         style={{ backgroundColor: "var(--dasar-700)", color: "var(--dasar-teks)" }}
                       >
                         <span className="text-[21px] font-extrabold leading-none">{tgl.hari}</span>
@@ -344,7 +346,7 @@ export default async function BerandaPublik() {
                         className="flex gap-4 py-4 border-b border-n-100 items-center hover:bg-n-50 transition-colors"
                       >
                         <div
-                          className="h-[62px] w-[62px] rounded-token-lg flex flex-col items-center justify-center shrink-0"
+                          className="h-[62px] w-[62px] rounded-[14px] flex flex-col items-center justify-center shrink-0"
                           style={{ backgroundColor: "var(--dasar-50)", color: "var(--dasar-700)" }}
                         >
                           <span className="text-[15px] font-extrabold leading-none">
@@ -366,9 +368,9 @@ export default async function BerandaPublik() {
       </section>
 
       {/* ============ GALERI ============ */}
-      {fotoGaleri.length >= 3 && (
+      {true && (
         <section
-          className="mt-14 sm:mt-16 -mx-4 sm:-mx-6 lg:mx-0 rounded-none lg:rounded-token-lg px-6 sm:px-10 lg:px-14 py-14"
+          className="mt-14 sm:mt-16 rounded-[18px] px-6 sm:px-10 lg:px-14 py-14"
           style={{ backgroundColor: "var(--dasar-800)" }}
         >
           <div className="text-center mb-9">
@@ -379,6 +381,16 @@ export default async function BerandaPublik() {
           </div>
 
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+            {/* Kotak pelengkap supaya jumlahnya selalu 4 seperti tampilan acuan */}
+            {Array.from({ length: Math.max(0, 4 - fotoGaleri.length) }).map((_, i) => (
+              <div
+                key={`kosong-${i}`}
+                className="h-[180px] rounded-[14px] flex items-center justify-center text-[13px]"
+                style={{ backgroundColor: "var(--dasar-600)", color: "var(--dasar-300)" }}
+              >
+                Belum ada foto
+              </div>
+            ))}
             {fotoGaleri.map((f) => (
               <Link
                 key={f.id}
@@ -407,6 +419,7 @@ export default async function BerandaPublik() {
           </div>
         </section>
       )}
+      </div>
     </div>
   );
 }

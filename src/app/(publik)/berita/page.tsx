@@ -23,7 +23,7 @@ export default async function HalamanBerita() {
       </header>
 
       {beritaList.length === 0 ? (
-        <div className="rounded-token-lg border border-dashed border-n-300 bg-n-0 p-10 text-center">
+        <div className="rounded-[18px] border border-dashed border-n-300 bg-n-0 p-10 text-center">
           <p className="text-n-600">Belum ada berita yang dipublikasikan.</p>
         </div>
       ) : (
@@ -35,7 +35,7 @@ export default async function HalamanBerita() {
               <Link
                 key={berita.id}
                 href={`/berita/${berita.slug}`}
-                className="rounded-token-lg border border-n-200 bg-n-0 overflow-hidden flex flex-col hover:border-brand-300 transition-colors shadow-xs group"
+                className="rounded-[18px] border border-n-200 bg-n-0 overflow-hidden flex flex-col hover:border-brand-300 transition-colors shadow-xs group"
               >
                 {gambar ? (
                   <div className="aspect-video w-full bg-n-100 overflow-hidden">
