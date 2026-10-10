@@ -3,7 +3,6 @@ import Link from "next/link";
 import { formatTanggal } from "@/lib/kegiatan";
 import { daftarBerita, pengaturanSitus, urlPublik } from "@/lib/publik";
 
-
 export async function generateMetadata(): Promise<Metadata> {
   const tema = await pengaturanSitus();
   return {
@@ -15,11 +14,28 @@ export async function generateMetadata(): Promise<Metadata> {
 export default async function HalamanBerita() {
   const [beritaList, tema] = await Promise.all([daftarBerita(), pengaturanSitus()]);
 
+  const utama = beritaList[0] ?? null;
+  const sisanya = beritaList.slice(1);
+
   return (
-    <div className="space-y-6">
-      <header className="border-b border-n-200 pb-5">
-        <h1 className="judul-1 text-n-900">Berita & Informasi</h1>
-        <p className="teks-3 text-n-600 mt-1.5">{tema.subJudulBerita}</p>
+    <div className="space-y-10">
+      {/* ============ KEPALA HALAMAN ============ */}
+      <header
+        className="rounded-[18px] px-6 sm:px-10 py-10 sm:py-12"
+        style={{ backgroundColor: "var(--dasar-700)", color: "var(--dasar-teks)" }}
+      >
+        <p
+          className="text-[12.5px] font-bold tracking-[0.14em] uppercase mb-3"
+          style={{ color: "var(--aksen-300)" }}
+        >
+          Kabar Terbaru
+        </p>
+        <h1 className="text-[30px] sm:text-[38px] font-extrabold leading-tight tracking-tight">
+          Berita &amp; Informasi
+        </h1>
+        <p className="mt-4 text-[15.5px] sm:text-[16.5px] leading-relaxed opacity-90 max-w-[620px]">
+          {tema.subJudulBerita}
+        </p>
       </header>
 
       {beritaList.length === 0 ? (
@@ -27,54 +43,130 @@ export default async function HalamanBerita() {
           <p className="text-n-600">Belum ada berita yang dipublikasikan.</p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-          {beritaList.map((berita) => {
-            const gambar = urlPublik(berita.gambar_path);
-
-            return (
-              <Link
-                key={berita.id}
-                href={`/berita/${berita.slug}`}
-                className="rounded-[18px] border border-n-200 bg-n-0 overflow-hidden flex flex-col hover:border-brand-300 transition-colors shadow-xs group"
-              >
-                {gambar ? (
-                  <div className="aspect-video w-full bg-n-100 overflow-hidden">
+        <>
+          {/* ============ BERITA UTAMA ============ */}
+          {utama && (
+            <Link
+              href={`/berita/${utama.slug}`}
+              className="block rounded-[18px] overflow-hidden bg-n-0 shadow-xs group"
+              style={{ border: "1px solid var(--n-200)" }}
+            >
+              <div className="grid grid-cols-1 lg:grid-cols-2">
+                {urlPublik(utama.gambar_path) ? (
+                  <div className="h-[240px] lg:h-full min-h-[260px] overflow-hidden bg-n-100">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img
-                      src={gambar}
-                      alt={berita.judul}
-                      className="w-full h-full object-cover group-hover:scale-102 transition-transform duration-200"
+                      src={urlPublik(utama.gambar_path) ?? ""}
+                      alt={utama.judul}
+                      className="w-full h-full object-cover group-hover:scale-[1.03] transition-transform duration-300"
                     />
                   </div>
                 ) : (
-                  <div className="aspect-video w-full bg-n-100 flex items-center justify-center text-n-400 teks-3">
+                  <div
+                    className="h-[240px] lg:h-full min-h-[260px] flex items-center justify-center text-[15px]"
+                    style={{ backgroundColor: "var(--halaman)", color: "var(--dasar-600)" }}
+                  >
                     DWP GTK Malut
                   </div>
                 )}
 
-                <div className="p-5 flex-1 flex flex-col justify-between">
-                  <div>
-                    <p className="teks-3 text-n-500 mb-2">
-                      {formatTanggal(berita.terbit_pada)}
+                <div className="p-7 sm:p-9 flex flex-col justify-center">
+                  <span
+                    className="inline-flex w-fit items-center px-3 py-1 rounded-full text-[11.5px] font-bold uppercase tracking-wide mb-4"
+                    style={{ backgroundColor: "var(--aksen-50)", color: "var(--aksen-700)" }}
+                  >
+                    Berita Utama
+                  </span>
+                  <p className="text-[13px] font-semibold mb-2.5" style={{ color: "var(--aksen-700)" }}>
+                    {formatTanggal(utama.terbit_pada)}
+                  </p>
+                  <h2
+                    className="text-[21px] sm:text-[25px] font-extrabold leading-snug"
+                    style={{ color: "var(--dasar-700)" }}
+                  >
+                    {utama.judul}
+                  </h2>
+                  {utama.ringkasan && (
+                    <p className="text-[15px] text-n-600 mt-4 leading-[1.75] line-clamp-4">
+                      {utama.ringkasan}
                     </p>
-                    <h2 className="font-semibold text-n-900 text-[16px] leading-snug group-hover:text-brand-700 transition-colors line-clamp-2">
-                      {berita.judul}
-                    </h2>
-                    {berita.ringkasan && (
-                      <p className="teks-3 text-n-600 mt-2.5 line-clamp-3 leading-relaxed">
-                        {berita.ringkasan}
-                      </p>
-                    )}
-                  </div>
-
-                  <span className="text-brand-700 font-medium text-[13px] mt-4 min-h-[44px] inline-flex items-center gap-1">
+                  )}
+                  <span
+                    className="mt-6 text-[14.5px] font-bold inline-flex items-center gap-1.5"
+                    style={{ color: "var(--aksen-700)" }}
+                  >
                     Baca selengkapnya →
                   </span>
                 </div>
-              </Link>
-            );
-          })}
-        </div>
+              </div>
+            </Link>
+          )}
+
+          {/* ============ DAFTAR BERITA LAIN ============ */}
+          {sisanya.length > 0 && (
+            <section>
+              <h2 className="text-[22px] sm:text-[25px] font-extrabold mb-6" style={{ color: "var(--dasar-700)" }}>
+                Berita Lainnya
+                <span className="ml-2.5 text-[14px] font-semibold text-n-500">({sisanya.length})</span>
+              </h2>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+                {sisanya.map((berita) => {
+                  const gambar = urlPublik(berita.gambar_path);
+                  return (
+                    <Link
+                      key={berita.id}
+                      href={`/berita/${berita.slug}`}
+                      className="rounded-[18px] bg-n-0 overflow-hidden flex flex-col shadow-xs group hover:-translate-y-0.5 transition-transform"
+                      style={{ border: "1px solid var(--n-200)" }}
+                    >
+                      {gambar ? (
+                        <div className="h-[180px] w-full overflow-hidden bg-n-100">
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img
+                            src={gambar}
+                            alt={berita.judul}
+                            className="w-full h-full object-cover group-hover:scale-[1.04] transition-transform duration-300"
+                          />
+                        </div>
+                      ) : (
+                        <div
+                          className="h-[180px] w-full flex items-center justify-center text-[14px]"
+                          style={{ backgroundColor: "var(--halaman)", color: "var(--dasar-600)" }}
+                        >
+                          DWP GTK Malut
+                        </div>
+                      )}
+
+                      <div className="p-6 flex-1 flex flex-col">
+                        <p className="text-[12.5px] font-bold mb-2" style={{ color: "var(--aksen-700)" }}>
+                          {formatTanggal(berita.terbit_pada)}
+                        </p>
+                        <h3
+                          className="font-extrabold text-[16px] leading-snug line-clamp-2"
+                          style={{ color: "var(--dasar-700)" }}
+                        >
+                          {berita.judul}
+                        </h3>
+                        {berita.ringkasan && (
+                          <p className="text-[14px] text-n-600 mt-2.5 line-clamp-3 leading-[1.7]">
+                            {berita.ringkasan}
+                          </p>
+                        )}
+                        <span
+                          className="mt-auto pt-4 text-[13.5px] font-bold inline-flex items-center gap-1.5"
+                          style={{ color: "var(--aksen-700)" }}
+                        >
+                          Baca selengkapnya →
+                        </span>
+                      </div>
+                    </Link>
+                  );
+                })}
+              </div>
+            </section>
+          )}
+        </>
       )}
     </div>
   );

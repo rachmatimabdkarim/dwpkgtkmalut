@@ -150,9 +150,11 @@ export function KerangkaPublik({
             </div>
           </div>
 
-          <div className="mt-10 pt-6 border-t border-n-800 flex flex-col sm:flex-row items-center justify-between gap-3 text-center sm:text-left teks-3 text-n-500">
-            <p>© {tahunIni ?? ""} {tema.namaAplikasi} {tema.namaUnit}. Hak cipta dilindungi.</p>
-            {tema.namaOrganisasi && <p>{tema.namaOrganisasi}</p>}
+          <div className="mt-10 pt-6 border-t border-n-800 flex flex-col sm:flex-row items-center justify-between gap-2 text-center sm:text-left teks-3 text-n-500">
+            <p>
+              © {tahunIni ?? ""} {tema.namaAplikasi} {tema.namaUnit}. Hak cipta dilindungi.
+            </p>
+            <p>Dharma Wanita Persatuan</p>
           </div>
         </div>
       </footer>

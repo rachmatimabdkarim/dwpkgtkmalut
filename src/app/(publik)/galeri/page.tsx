@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import { daftarBerita, daftarGaleri, pengaturanSitus, urlPublik } from "@/lib/publik";
 
-
 export async function generateMetadata(): Promise<Metadata> {
   const tema = await pengaturanSitus();
   return { title: "Galeri", description: tema.subJudulGaleri ?? undefined };
@@ -14,76 +13,95 @@ export default async function HalamanGaleri() {
     pengaturanSitus(),
   ]);
 
-  // Kumpulkan foto yang sudah dipakai di berita agar tidak berulang
+  // Jangan tampilkan berkas uji coba, dan jangan ulangi foto yang sudah ada di berita
   const pathFotoBerita = new Set(
-    beritaList
-      .map((b) => b.gambar_path)
-      .filter((p): p is string => Boolean(p)),
+    beritaList.map((b) => b.gambar_path).filter((p): p is string => Boolean(p)),
   );
 
-  // Saring galeri: jangan mengulang foto yang sudah ada di berita
   const galeriBersih = kelompokGaleri
     .map((album) => ({
       ...album,
-      items: album.items.filter((item) => !pathFotoBerita.has(item.path)),
+      items: album.items.filter(
+        (item) => !pathFotoBerita.has(item.path) && !/foto-uji/i.test(item.path),
+      ),
     }))
     .filter((album) => album.items.length > 0);
 
+  const jumlahFoto = galeriBersih.reduce((n, a) => n + a.items.length, 0);
+
   return (
-    <div className="space-y-8">
-      <header className="border-b border-n-200 pb-5">
-        <h1 className="judul-1 text-n-900">Galeri Foto Kegiatan</h1>
-        <p className="teks-3 text-n-600 mt-1.5">
+    <div className="space-y-10">
+      {/* ============ KEPALA HALAMAN ============ */}
+      <header
+        className="rounded-[18px] px-6 sm:px-10 py-10 sm:py-12"
+        style={{ backgroundColor: "var(--dasar-700)", color: "var(--dasar-teks)" }}
+      >
+        <p
+          className="text-[12.5px] font-bold tracking-[0.14em] uppercase mb-3"
+          style={{ color: "var(--aksen-300)" }}
+        >
+          Dokumentasi
+        </p>
+        <h1 className="text-[30px] sm:text-[38px] font-extrabold leading-tight tracking-tight">
+          Galeri Foto Kegiatan
+        </h1>
+        <p className="mt-4 text-[15.5px] sm:text-[16.5px] leading-relaxed opacity-90 max-w-[620px]">
           {tema.subJudulGaleri}
         </p>
+        {jumlahFoto > 0 && (
+          <p className="mt-5 text-[13.5px] font-semibold" style={{ color: "var(--aksen-300)" }}>
+            {jumlahFoto} foto dalam {galeriBersih.length} album
+          </p>
+        )}
       </header>
 
       {galeriBersih.length === 0 ? (
-        <div className="rounded-[18px] border border-dashed border-n-300 bg-n-0 p-10 text-center">
+        <div className="rounded-[18px] border border-dashed border-n-300 bg-n-0 p-10 text-center space-y-2">
+          <p className="text-[28px]" aria-hidden="true">🖼️</p>
           <p className="text-n-600">Belum ada foto dokumentasi di galeri.</p>
         </div>
       ) : (
         <div className="space-y-10">
           {galeriBersih.map((album, idx) => (
-            <section
-              key={album.activity_id}
-              className="rounded-[18px] border border-n-200 bg-n-0 p-5 sm:p-6 shadow-xs space-y-4"
-            >
-              <div className="flex items-center justify-between border-b border-n-100 pb-3">
-                <h2 className="judul-2 text-n-800">
+            <section key={album.activity_id}>
+              <div className="flex items-end justify-between gap-4 mb-5">
+                <h2 className="text-[21px] sm:text-[24px] font-extrabold" style={{ color: "var(--dasar-700)" }}>
                   Album Kegiatan {idx + 1}
                 </h2>
-                <span className="teks-3 text-n-500">
+                <span className="text-[13.5px] font-semibold text-n-500 shrink-0">
                   {album.items.length} foto
                 </span>
               </div>
 
-              {/* Grid Thumbnail Gambar Kecil */}
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 sm:gap-4">
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
                 {album.items.map((item) => {
                   const url = urlPublik(item.path);
-
                   return (
                     <div
                       key={item.id}
-                      className="group flex flex-col rounded-token overflow-hidden border border-n-200 bg-n-50"
+                      className="group rounded-[18px] overflow-hidden bg-n-0 shadow-xs"
+                      style={{ border: "1px solid var(--n-200)" }}
                     >
-                      <div className="aspect-square w-full overflow-hidden bg-n-100 relative">
+                      <div className="aspect-square w-full overflow-hidden bg-n-100">
                         {url ? (
                           // eslint-disable-next-line @next/next/no-img-element
                           <img
                             src={url}
-                            alt={item.keterangan || "Dokumentasi kegiatan"}
-                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
+                            alt={item.keterangan || "Dokumentasi kegiatan DWP"}
+                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                            loading="lazy"
                           />
                         ) : (
-                          <div className="w-full h-full flex items-center justify-center text-n-400 teks-3">
+                          <div className="w-full h-full flex items-center justify-center text-n-400 text-[13px]">
                             Foto
                           </div>
                         )}
                       </div>
                       {item.keterangan && (
-                        <p className="p-2 teks-3 text-n-700 bg-n-0 border-t border-n-100 line-clamp-2 leading-tight">
+                        <p
+                          className="px-4 py-3 text-[13.5px] leading-snug line-clamp-2"
+                          style={{ color: "var(--dasar-700)", borderTop: "1px solid var(--n-100)" }}
+                        >
                           {item.keterangan}
                         </p>
                       )}
