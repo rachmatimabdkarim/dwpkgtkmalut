@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useEffect, useState } from "react";
+import { Suspense, useSyncExternalStore } from "react";
 import { usePathname } from "next/navigation";
 import Link from "next/link";
 import { LambangTeks } from "@/components/ikon";
@@ -16,9 +16,9 @@ export function KerangkaPublik({
   children: React.ReactNode;
 }) {
   // Tahun hak cipta dihitung SETELAH halaman tampil di peramban.
-  // Kalau dihitung saat halaman dibuat, singgahan tidak boleh dipakai.
-  const [tahunIni, setTahunIni] = useState<number | null>(null);
-  useEffect(() => setTahunIni(new Date().getFullYear()), []);
+  // Kalau dihitung saat halaman dibuat, singgahan tidak boleh dipakai
+  // (dan halaman jadi lambat).
+  const tahunIni = useTahunSekarang();
 
   return (
     <div className="min-h-dvh flex flex-col bg-n-50 text-n-800">
@@ -243,5 +243,19 @@ function MenuPilihHP() {
         );
       })}
     </nav>
+  );
+}
+
+
+/**
+ * Tahun berjalan tanpa mengganggu singgahan.
+ * useSyncExternalStore dipakai supaya nilai hanya diambil di peramban
+ * (server memakai nilai kosong), bukan saat halaman disiapkan.
+ */
+function useTahunSekarang(): number | null {
+  return useSyncExternalStore(
+    () => () => {},
+    () => new Date().getFullYear(),
+    () => null,
   );
 }
