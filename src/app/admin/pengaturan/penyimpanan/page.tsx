@@ -5,7 +5,7 @@ import { ambilTema } from "@/lib/pengaturan";
 import { ambilDataPenyimpanan } from "./aksi";
 import { PanelPenyimpanan } from "./panel";
 
-export const metadata = { title: "Pengaturan · Penggunaan Penyimpanan" };
+export const metadata = { title: "Pengaturan · Penggunaan Penyimpanan · SI-ANGGUN" };
 
 // Halaman ini membaca data login pengguna, jadi memang harus selalu segar.
 export const instant = false;

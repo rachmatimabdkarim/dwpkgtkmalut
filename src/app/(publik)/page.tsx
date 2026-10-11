@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { formatTanggal } from "@/lib/kegiatan";
 import { gradasiOverlay } from "@/lib/tema";
+import { SISTEM_NAME, SISTEM_SUB } from "@/lib/peran";
 import {
   agendaTerdekat,
   beritaTerbaru,
@@ -432,6 +433,82 @@ export default async function BerandaPublik() {
           </div>
         </section>
       )}
+
+      {/* ============ SI-ANGGUN (sistem pengurus) ============ */}
+      <section className="mt-14 sm:mt-16">
+        <div
+          className="rounded-[18px] p-8 sm:p-10 grid grid-cols-1 lg:grid-cols-[1.4fr_1fr] gap-8 items-center"
+          style={{ backgroundColor: "var(--halaman)", border: "1px solid var(--dasar-100)" }}
+        >
+          <div>
+            <span
+              className="inline-flex items-center px-3 py-1 rounded-full text-[11.5px] font-bold uppercase tracking-wide mb-4"
+              style={{ backgroundColor: "var(--aksen-50)", color: "var(--aksen-700)" }}
+            >
+              Sistem Pengurus
+            </span>
+            <h2
+              className="text-[26px] sm:text-[30px] font-extrabold tracking-tight"
+              style={{ color: "var(--dasar-700)" }}
+            >
+              {SISTEM_NAME}
+            </h2>
+            <p className="mt-2 text-[15.5px] font-semibold" style={{ color: "var(--aksen-700)" }}>
+              {SISTEM_SUB}
+            </p>
+            <p className="mt-4 text-[15.5px] leading-[1.8] text-n-700 max-w-[620px]">
+              Seluruh kegiatan organisasi dikelola melalui sistem ini — mulai dari perencanaan,
+              persetujuan berjenjang oleh pengurus, pelaksanaan, hingga pelaporan. Setiap agenda
+              dan berita yang Bapak/Ibu baca di halaman ini berasal langsung dari sistem tersebut,
+              sehingga informasinya selalu terbaru dan dapat dipertanggungjawabkan.
+            </p>
+            <div className="mt-6 flex flex-wrap gap-3">
+              <Link
+                href="/masuk"
+                className="inline-flex items-center justify-center min-h-[46px] px-6 rounded-full font-bold text-[14.5px] transition-transform hover:scale-[1.02]"
+                style={{ backgroundColor: "var(--tombol-600)", color: "var(--tombol-teks)" }}
+              >
+                Masuk SI-ANGGUN
+              </Link>
+              <Link
+                href="/profil"
+                className="inline-flex items-center justify-center min-h-[46px] px-6 rounded-full font-semibold text-[14.5px] border-2"
+                style={{ borderColor: "var(--dasar-300)", color: "var(--dasar-700)" }}
+              >
+                Kenali organisasi
+              </Link>
+            </div>
+          </div>
+
+          <div className="space-y-3">
+            {[
+              { ikon: "1", judul: "Perencanaan kegiatan", isi: "Usulan kegiatan beserta anggaran dan lampirannya" },
+              { ikon: "2", judul: "Persetujuan berjenjang", isi: "Sekretaris, Bendahara, Wakil Ketua, hingga Ketua" },
+              { ikon: "3", judul: "Dokumentasi & laporan", isi: "Foto kegiatan, presensi, realisasi biaya, dan laporan" },
+            ].map((b) => (
+              <div
+                key={b.judul}
+                className="flex gap-3.5 rounded-[14px] bg-n-0 p-4"
+                style={{ border: "1px solid var(--n-200)" }}
+              >
+                <span
+                  className="h-8 w-8 rounded-full flex items-center justify-center text-[13.5px] font-extrabold shrink-0"
+                  style={{ backgroundColor: "var(--aksen-100)", color: "var(--aksen-800)" }}
+                  aria-hidden="true"
+                >
+                  {b.ikon}
+                </span>
+                <div>
+                  <p className="text-[14.5px] font-bold" style={{ color: "var(--dasar-700)" }}>
+                    {b.judul}
+                  </p>
+                  <p className="text-[13.5px] text-n-600 leading-snug mt-0.5">{b.isi}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
       </div>
     </div>
   );

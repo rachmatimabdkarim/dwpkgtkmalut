@@ -1,4 +1,4 @@
-import { APP_NAME, APP_SUB } from "@/lib/peran";
+import { APP_LENGKAP, APP_NAME, APP_SUB } from "@/lib/peran";
 
 /**
  * Menyusun nilai CSS variables dari pengaturan Super Admin.
@@ -76,7 +76,7 @@ export const TEMA_BAWAAN: TemaSitus = {
   faviconUrl: null,
   namaAplikasi: APP_NAME,
   namaUnit: APP_SUB,
-  namaOrganisasi: "Dharma Wanita Persatuan Kantor GTK Provinsi Maluku Utara",
+  namaOrganisasi: APP_LENGKAP,
   logoPath: null,
   faviconPath: null,
   alamat: "Jl. Ki Hajar Dewantara, Kota Ternate, Provinsi Maluku Utara",

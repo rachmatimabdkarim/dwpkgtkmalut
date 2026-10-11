@@ -13,7 +13,7 @@ import {
 } from "./antrean";
 import { PanelUnduhan, type ItemDokumen } from "./dokumen";
 
-export const metadata = { title: "Konten" };
+export const metadata = { title: "Konten · SI-ANGGUN" };
 
 // Halaman panel: selalu dirender saat diminta (bergantung sesi pengguna).
 export const instant = false;

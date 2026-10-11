@@ -3,6 +3,7 @@ import { Plus_Jakarta_Sans } from "next/font/google";
 import "./globals.css";
 import { gayaTema } from "@/lib/tema";
 import { ambilTemaCepat } from "@/lib/pengaturan";
+import { APP_LENGKAP } from "@/lib/peran";
 import { PenyediaTema } from "@/components/penyedia-tema";
 
 const fontUtama = Plus_Jakarta_Sans({
@@ -21,8 +22,8 @@ export async function generateMetadata(): Promise<Metadata> {
 
   return {
     title: {
-      default: `${tema.namaAplikasi} — ${tema.namaUnit}`,
-      template: `%s — ${tema.namaAplikasi} ${tema.namaUnit}`,
+      default: `${APP_LENGKAP}`,
+      template: `%s — ${APP_LENGKAP}`,
     },
     description: tema.namaOrganisasi,
     // Favicon: pakai PNG (bukan WebP) karena banyak peramban — terutama di

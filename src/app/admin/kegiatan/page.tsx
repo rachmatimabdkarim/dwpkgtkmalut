@@ -6,7 +6,7 @@ import { Lencana, Kartu, Kosong } from "@/components/dasar";
 import { labelStatus, formatTanggal } from "@/lib/kegiatan";
 import type { Peran } from "@/lib/kegiatan";
 
-export const metadata = { title: "Kegiatan" };
+export const metadata = { title: "Kegiatan · SI-ANGGUN" };
 
 // Halaman panel: selalu dirender saat diminta (bergantung sesi pengguna).
 export const instant = false;

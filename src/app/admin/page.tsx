@@ -7,7 +7,7 @@ import { labelPeran } from "@/lib/peran";
 import { labelStatus, formatTanggal } from "@/lib/kegiatan";
 import { perluTindakanUntuk } from "@/lib/notifikasi";
 
-export const metadata = { title: "Beranda" };
+export const metadata = { title: "Beranda · SI-ANGGUN" };
 
 // Halaman panel: selalu dirender saat diminta (bergantung sesi pengguna).
 export const instant = false;

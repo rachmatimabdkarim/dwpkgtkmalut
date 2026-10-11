@@ -5,7 +5,7 @@ import { Lencana } from "@/components/dasar";
 import { KelolaPengurus } from "./kelola";
 import { klienServer } from "@/lib/supabase-server";
 
-export const metadata = { title: "Pengurus" };
+export const metadata = { title: "Pengurus · SI-ANGGUN" };
 export const instant = false;
 
 type BarisPengurus = {

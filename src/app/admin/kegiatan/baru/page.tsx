@@ -3,7 +3,7 @@ import { sesiWajib } from "@/lib/sesi-server";
 import { klienServer } from "@/lib/supabase-server";
 import { FormKegiatanBaru } from "./form-kegiatan";
 
-export const metadata = { title: "Kegiatan Baru" };
+export const metadata = { title: "Kegiatan Baru · SI-ANGGUN" };
 export const instant = false;
 
 export default async function HalamanKegiatanBaru() {

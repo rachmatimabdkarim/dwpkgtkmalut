@@ -6,6 +6,7 @@ import Link from "next/link";
 import { TombolUtama, Kolom, Isian } from "@/components/dasar";
 import { LambangTeks } from "@/components/ikon";
 import { JudulAplikasi } from "@/components/judul-aplikasi";
+import { SISTEM_NAME, SISTEM_SUB } from "@/lib/peran";
 import { klienPeramban } from "@/lib/supabase-peramban";
 import { useTema } from "@/components/penyedia-tema";
 
@@ -60,7 +61,7 @@ export function FormMasuk({ logoUrl }: { logoUrl?: string | null } = {}) {
           ) : (
             <LambangTeks ukuran={40} />
           )}
-          <JudulAplikasi terang baris1={tema.namaAplikasi} baris2={tema.namaUnit} />
+          <JudulAplikasi terang baris1={SISTEM_NAME} baris2={SISTEM_SUB} />
         </div>
         <div>
           <h2 className="text-[26px] font-semibold leading-snug max-w-[420px]">
@@ -90,7 +91,7 @@ export function FormMasuk({ logoUrl }: { logoUrl?: string | null } = {}) {
             ) : (
               <LambangTeks ukuran={40} />
             )}
-            <JudulAplikasi baris1={tema.namaAplikasi} baris2={tema.namaUnit} />
+            <JudulAplikasi baris1={SISTEM_NAME} baris2={SISTEM_SUB} />
           </div>
 
           <h1 className="judul-1 text-n-800">Masuk</h1>

@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 import Link from "next/link";
 import { LambangTeks } from "@/components/ikon";
 import { JudulAplikasi } from "@/components/judul-aplikasi";
-import { MENU_PUBLIK } from "@/lib/peran";
+import { MENU_PUBLIK, APP_NAME, APP_SUB, SISTEM_NAME, SISTEM_SUB } from "@/lib/peran";
 import type { TemaSitus } from "@/lib/tema";
 
 export function KerangkaPublik({
@@ -42,7 +42,7 @@ export function KerangkaPublik({
               ) : (
                 <LambangTeks teks="DWP" ukuran={38} />
               )}
-              <JudulAplikasi baris1={tema.namaAplikasi} baris2={tema.namaUnit} />
+              <JudulAplikasi baris1={APP_NAME} baris2={APP_SUB} />
             </Link>
 
             {/* Menu Navigasi Desktop */}
@@ -146,11 +146,26 @@ export function KerangkaPublik({
                     href="/masuk"
                     className="text-[13px] text-n-400 hover:text-n-100 min-h-[44px] inline-flex items-center gap-1.5 transition-colors"
                   >
-                    <span>Masuk pengurus</span>
+                    <span>Masuk pengurus — SI-ANGGUN</span>
                     <span aria-hidden="true">→</span>
                   </Link>
                 </li>
               </ul>
+
+              {/* Keterangan sistem pengurus — supaya masyarakat tahu ada
+                  sistem informasi resmi organisasi yang dikelola pengurus */}
+              <div
+                className="rounded-token px-3.5 py-3 mt-1"
+                style={{ backgroundColor: "rgba(255,255,255,0.06)" }}
+              >
+                <p className="text-[13px] font-semibold" style={{ color: "var(--aksen-300)" }}>
+                  {SISTEM_NAME}
+                </p>
+                <p className="text-[12.5px] text-n-400 leading-snug mt-0.5">{SISTEM_SUB}</p>
+                <p className="text-[12px] text-n-500 leading-snug mt-2">
+                  Dipakai pengurus untuk mengelola anggota, kegiatan, dan publikasi organisasi.
+                </p>
+              </div>
             </div>
           </div>
 

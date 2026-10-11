@@ -4,7 +4,7 @@ import { klienServer } from "@/lib/supabase-server";
 import { PanelKontak, type PesanMasuk, type Penerima } from "./panel";
 import { TEMA_BAWAAN } from "@/lib/tema";
 
-export const metadata = { title: "Pesan Masuk" };
+export const metadata = { title: "Pesan Masuk · SI-ANGGUN" };
 export const instant = false;
 
 export default async function HalamanKontakAdmin() {

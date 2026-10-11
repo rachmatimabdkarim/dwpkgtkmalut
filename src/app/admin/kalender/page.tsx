@@ -5,7 +5,7 @@ import { klienServer } from "@/lib/supabase-server";
 import { Kartu, Lencana, type NadaStatus } from "@/components/dasar";
 import { formatTanggal, labelStatus } from "@/lib/kegiatan";
 
-export const metadata = { title: "Kalender Kegiatan" };
+export const metadata = { title: "Kalender Kegiatan · SI-ANGGUN" };
 export const instant = false;
 
 const NAMA_BULAN = [

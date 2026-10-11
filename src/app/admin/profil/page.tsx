@@ -5,7 +5,7 @@ import { Kartu, JudulSeksi, Lencana } from "@/components/dasar";
 import { FormKataSandi } from "@/components/form-kata-sandi";
 import { labelPeran } from "@/lib/peran";
 
-export const metadata = { title: "Profil" };
+export const metadata = { title: "Profil · SI-ANGGUN" };
 
 // Halaman panel: selalu dirender saat diminta (bergantung sesi pengguna).
 export const instant = false;

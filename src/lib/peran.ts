@@ -1,5 +1,23 @@
-export const APP_NAME = "Sistem Informasi DWP";
-export const APP_SUB = "Kantor GTK Malut";
+/* ============================================================
+   PENAMAAN — dipisah antara web publik dan panel admin.
+
+   Web publik memakai penyebutan resmi organisasi (sesuai nama di
+   spanduk, surat, dan kop resmi). Panel admin memakai akronim sistem
+   supaya singkat dan mudah disebut pengurus.
+   ============================================================ */
+
+/** Nama untuk WEB PUBLIK (halaman yang dilihat masyarakat). */
+export const APP_NAME = "Dharma Wanita Persatuan";
+export const APP_SUB = "Kantor Guru dan Tenaga Kependidikan Provinsi Maluku Utara";
+/** Bentuk singkat untuk tempat sempit (mis. layar HP). */
+export const APP_SINGKAT = "Dharma Wanita Persatuan KGTK Malut";
+/** Nama lengkap satu baris, untuk dokumen resmi dan deskripsi halaman. */
+export const APP_LENGKAP =
+  "Dharma Wanita Persatuan Kantor Guru dan Tenaga Kependidikan Provinsi Maluku Utara";
+
+/** Nama untuk PANEL ADMIN (dashboard pengurus). */
+export const SISTEM_NAME = "SI-ANGGUN";
+export const SISTEM_SUB = "Sistem Informasi Anggota dan Kegiatan Unggulan DWP";
 export const ORG_NAME = "Dharma Wanita Persatuan Kantor GTK Provinsi Maluku Utara";
 
 export type RoleKey =

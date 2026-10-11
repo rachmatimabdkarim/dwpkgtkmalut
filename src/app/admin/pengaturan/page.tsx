@@ -4,7 +4,7 @@ import { sesiWajibPeran } from "@/lib/sesi-server";
 import { ambilTema } from "@/lib/pengaturan";
 import { FormPengaturanTampilan } from "./tampilan";
 
-export const metadata = { title: "Pengaturan · Tampilan" };
+export const metadata = { title: "Pengaturan · Tampilan · SI-ANGGUN" };
 
 // Halaman panel: selalu dirender saat diminta (bergantung sesi pengguna).
 export const instant = false;

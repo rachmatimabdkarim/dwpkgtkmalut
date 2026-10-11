@@ -5,7 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Ikon, LambangTeks } from "./ikon";
 import { JudulAplikasi } from "./judul-aplikasi";
-import { MENU_ADMIN, bolehAkses, type MenuItem, type RoleKey } from "@/lib/peran";
+import { MENU_ADMIN, bolehAkses, type MenuItem, type RoleKey, SISTEM_NAME, SISTEM_SUB } from "@/lib/peran";
 import type { SesiPengguna } from "@/lib/sesi";
 import { useTema } from "@/components/penyedia-tema";
 import { Lonceng } from "./lonceng";
@@ -72,7 +72,7 @@ export function KerangkaAdmin({
           ) : (
             <LambangTeks />
           )}
-          <JudulAplikasi baris1={tema.namaAplikasi} baris2={tema.namaUnit} />
+          <JudulAplikasi baris1={SISTEM_NAME} baris2={SISTEM_SUB} />
         </div>
         {isiSidebar}
         <div className="mt-auto p-3 border-t border-n-200">
@@ -109,7 +109,7 @@ export function KerangkaAdmin({
                 ) : (
                   <LambangTeks ukuran={32} />
                 )}
-                <JudulAplikasi baris1={tema.namaAplikasi} baris2={tema.namaUnit} />
+                <JudulAplikasi baris1={SISTEM_NAME} baris2={SISTEM_SUB} />
               </div>
               <button
                 aria-label="Tutup menu"
