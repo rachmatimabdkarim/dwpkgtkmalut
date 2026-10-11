@@ -45,6 +45,12 @@ export type BeritaPublik = {
 export type GaleriPublik = {
   id: string;
   activity_id: string;
+  /** Judul kegiatan asal foto — dipakai sebagai nama album. */
+  kegiatan_judul?: string | null;
+  /** Kode kegiatan (mis. DWP-2026-002). */
+  kegiatan_kode?: string | null;
+  /** Tanggal kegiatan, untuk pengurutan album. */
+  kegiatan_tanggal?: string | null;
   path: string;
   keterangan: string | null;
   urutan: number;
@@ -52,6 +58,12 @@ export type GaleriPublik = {
 
 export type GaleriKelompok = {
   activity_id: string;
+  /** Nama kegiatan untuk judul album; null bila tidak diketahui. */
+  judul?: string | null;
+  /** Kode kegiatan; null bila tidak diketahui. */
+  kode?: string | null;
+  /** Tanggal kegiatan; null bila tidak diketahui. */
+  tanggal?: string | null;
   items: GaleriPublik[];
 };
 
@@ -174,7 +186,7 @@ async function daftarGaleriAsli(): Promise<GaleriKelompok[]> {
     const sb = klienPublik();
     const { data, error } = await sb
       .from("public_gallery")
-      .select("id, activity_id, path, keterangan, urutan")
+      .select("id, activity_id, kegiatan_judul, kegiatan_kode, kegiatan_tanggal, path, keterangan, urutan")
       .order("urutan", { ascending: true });
 
     if (error || !data) return [];
@@ -190,8 +202,24 @@ async function daftarGaleriAsli(): Promise<GaleriKelompok[]> {
 
     const hasil: GaleriKelompok[] = [];
     for (const [activity_id, items] of peta.entries()) {
-      hasil.push({ activity_id, items });
+      // Nama album diambil dari kegiatan asal fotonya, supaya pengunjung tahu
+      // ini dokumentasi kegiatan yang mana.
+      const contoh = items[0];
+      hasil.push({
+        activity_id,
+        judul: contoh?.kegiatan_judul ?? null,
+        kode: contoh?.kegiatan_kode ?? null,
+        tanggal: contoh?.kegiatan_tanggal ?? null,
+        items,
+      });
     }
+    // Album yang punya nama kegiatan ditampilkan lebih dulu, dan urut menurut
+    // tanggal kegiatan (terbaru di atas).
+    hasil.sort((a, b) => {
+      if (a.judul && !b.judul) return -1;
+      if (!a.judul && b.judul) return 1;
+      return String(b.tanggal ?? "").localeCompare(String(a.tanggal ?? ""));
+    });
     return hasil;
   } catch {
     return [];

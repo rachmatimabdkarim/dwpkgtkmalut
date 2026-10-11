@@ -56,9 +56,21 @@ export default async function BerandaPublik() {
   // Foto galeri untuk dinding galeri (maksimal 8).
   // Hanya foto yang punya keterangan ATAU berada di kegiatan yang sudah disetujui
   // akhir yang layak tampil — sisa berkas uji coba tidak ikut.
+  // Setiap foto dibawa bersama nama kegiatannya, supaya di dinding galeri
+  // keterangannya menyebut kegiatan yang benar (bukan hanya "Foto kegiatan DWP").
   const fotoGaleri = galeri
-    .flatMap((k) => k.items)
-    .filter((f) => f.path && !/foto-uji/i.test(f.path))
+    .flatMap((k) =>
+      k.items.map((f) => ({
+        ...f,
+        judulKegiatan: k.judul ?? null,
+        kodeKegiatan: k.kode ?? null,
+        tanggalKegiatan: k.tanggal ?? null,
+      })),
+    )
+    // Saring dari keterangan (keterangan bertuliskan "uji" berarti berkas uji
+    // coba), bukan dari nama berkas — nama berkas foto kegiatan asli pun bisa
+    // mengandung kata serupa.
+    .filter((f) => f.path && !/\buji\b/i.test(f.keterangan ?? ""))
     .slice(0, 8);
 
   // Ketua untuk blok sambutan
@@ -409,8 +421,23 @@ export default async function BerandaPublik() {
               <Link
                 key={f.id}
                 href="/galeri"
-                className="block h-[200px] rounded-[18px] overflow-hidden bg-n-0/10 hover:opacity-90 transition-opacity"
+                className="block h-[200px] rounded-[18px] overflow-hidden bg-n-0/10 hover:opacity-90 transition-opacity relative group/card"
               >
+                {/* Nama kegiatan tertulis di bawah foto supaya jelas dokumentasi
+                    kegiatan yang mana. */}
+                {f.judulKegiatan && (
+                  <div
+                    className="absolute inset-x-0 bottom-0 px-3 pt-6 pb-2.5 z-10"
+                    style={{
+                      background:
+                        "linear-gradient(to top, rgba(0,0,0,0.86) 0%, rgba(0,0,0,0.55) 55%, rgba(0,0,0,0) 100%)",
+                    }}
+                  >
+                    <p className="text-[12.5px] font-bold text-white leading-snug line-clamp-2">
+                      {f.judulKegiatan}
+                    </p>
+                  </div>
+                )}
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
                   src={urlPublik(f.path) ?? ""}

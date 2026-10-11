@@ -22,7 +22,11 @@ export default async function HalamanGaleri() {
     .map((album) => ({
       ...album,
       items: album.items.filter(
-        (item) => !pathFotoBerita.has(item.path) && !/foto-uji/i.test(item.path),
+        (item) =>
+          !pathFotoBerita.has(item.path) &&
+          // Buang hanya berkas yang benar-benar ditandai uji; jangan menyaring
+          // dari nama berkas, karena foto kegiatan asli bisa bernama demikian.
+          !/\buji\b/i.test(item.keterangan ?? ""),
       ),
     }))
     .filter((album) => album.items.length > 0);
@@ -62,12 +66,38 @@ export default async function HalamanGaleri() {
         </div>
       ) : (
         <div className="space-y-10">
-          {galeriBersih.map((album, idx) => (
+          {galeriBersih.map((album) => (
             <section key={album.activity_id}>
-              <div className="flex items-end justify-between gap-4 mb-5">
-                <h2 className="text-[21px] sm:text-[24px] font-extrabold" style={{ color: "var(--dasar-700)" }}>
-                  Album Kegiatan {idx + 1}
-                </h2>
+              <div className="flex items-start sm:items-end justify-between gap-4 mb-5 flex-wrap">
+                <div className="min-w-0">
+                  {/* Nama album memakai nama kegiatan asalnya, bukan nomor urut,
+                      supaya pengunjung tahu ini dokumentasi kegiatan yang mana. */}
+                  <h2
+                    className="text-[21px] sm:text-[24px] font-extrabold leading-snug"
+                    style={{ color: "var(--dasar-700)" }}
+                  >
+                    {album.judul ?? "Dokumentasi Kegiatan"}
+                  </h2>
+                  <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1">
+                    {album.kode && (
+                      <span
+                        className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[11.5px] font-bold tracking-wide"
+                        style={{ backgroundColor: "var(--aksen-50)", color: "var(--aksen-700)" }}
+                      >
+                        {album.kode}
+                      </span>
+                    )}
+                    {album.tanggal && (
+                      <span className="text-[13px] text-n-500">
+                        {new Date(album.tanggal + "T00:00:00").toLocaleDateString("id-ID", {
+                          day: "numeric",
+                          month: "long",
+                          year: "numeric",
+                        })}
+                      </span>
+                    )}
+                  </div>
+                </div>
                 <span className="text-[13.5px] font-semibold text-n-500 shrink-0">
                   {album.items.length} foto
                 </span>
