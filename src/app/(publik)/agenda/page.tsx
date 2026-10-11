@@ -162,19 +162,37 @@ async function IsiAgenda() {
           </section>
 
           {/* ============ SUDAH BERLANGSUNG ============ */}
-          {sudahLewat.length > 0 && (
-            <section>
-              <h2 className="text-[22px] sm:text-[25px] font-extrabold mb-6" style={{ color: "var(--dasar-700)" }}>
-                Sudah Berlangsung
-                <span className="ml-2.5 text-[14px] font-semibold text-n-500">({sudahLewat.length})</span>
-              </h2>
-              <div className="flex flex-col gap-4">
-                {sudahLewat.map((a) => (
-                  <KartuAgenda key={a.id} agenda={a} lewat={true} />
-                ))}
+          {/* Bagian ini SELALU ditampilkan, walau belum ada isinya — supaya
+              pengunjung tahu arsip kegiatan memang ada di sini, bukan hilang. */}
+          <section>
+            <h2 className="text-[22px] sm:text-[25px] font-extrabold mb-2" style={{ color: "var(--dasar-700)" }}>
+              Sudah Berlangsung
+              <span className="ml-2.5 text-[14px] font-semibold text-n-500">({sudahLewat.length})</span>
+            </h2>
+            <p className="text-[14px] text-n-500 mb-6">
+              Arsip kegiatan yang sudah dilaksanakan.
+            </p>
+
+            {sudahLewat.length === 0 ? (
+              <div className="rounded-[18px] border border-dashed border-n-300 bg-n-0 p-8 text-center">
+                <p className="text-n-600">
+                  Belum ada kegiatan yang sudah dilaksanakan.
+                </p>
+                <p className="text-[13.5px] text-n-500 mt-1.5">
+                  Kegiatan yang selesai akan tercatat di bagian ini.
+                </p>
               </div>
-            </section>
-          )}
+            ) : (
+              <div className="flex flex-col gap-4">
+                {sudahLewat
+                  .slice()
+                  .sort((a, b) => (b.tanggal_mulai ?? "").localeCompare(a.tanggal_mulai ?? ""))
+                  .map((a) => (
+                    <KartuAgenda key={a.id} agenda={a} lewat={true} />
+                  ))}
+              </div>
+            )}
+          </section>
         </>
       )}
     </div>
