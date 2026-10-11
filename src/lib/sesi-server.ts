@@ -14,6 +14,6 @@ export async function sesiWajib(): Promise<SesiPengguna> {
 /** Halaman panel yang hanya boleh dibuka peran tertentu. */
 export async function sesiWajibPeran(diizinkan: SesiPengguna["peran"]): Promise<SesiPengguna> {
   const pengguna = await sesiWajib();
-  if (!pengguna.peran.some((p) => diizinkan.includes(p))) redirect("/admin");
+  if (!pengguna.peran.some((p) => diizinkan.includes(p))) redirect("/admin/tidak-berwenang");
   return pengguna;
 }

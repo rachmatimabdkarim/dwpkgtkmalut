@@ -113,3 +113,22 @@ export function labelPeran(peran: RoleKey[]): string {
     .map((p) => ROLES[p].label)
     .join(" · ");
 }
+
+
+/* ============================================================
+   PERAN_PENGAJU — siapa yang boleh mengajukan kegiatan.
+
+   Dipakai bersama oleh halaman daftar kegiatan, halaman form baru, dan
+   halaman ubah kegiatan. Wajib satu sumber agar tampilan dan pengaman
+   halaman tidak pernah berbeda.
+
+   Anggota dan Editor TIDAK termasuk: mereka hanya melihat.
+   ============================================================ */
+export const PERAN_PENGAJU: RoleKey[] = [
+  "super_admin",
+  "ketua",
+  "wakil_ketua",
+  "sekretaris",
+  "bendahara",
+  "ketua_seksi",
+];

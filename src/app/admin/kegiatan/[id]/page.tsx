@@ -45,6 +45,8 @@ export default async function DetailKegiatan({
   params: Promise<{ id: string }>;
   searchParams: Promise<{ tab?: string }>;
 }) {
+  // Membuka rincian kegiatan boleh siapa saja yang sudah masuk
+  // (anggota perlu melihat), tetapi MENGAJUKAN hanya pengurus inti.
   const pengguna = await sesiWajib();
   const { id } = await params;
   const { tab } = await searchParams;

@@ -4,7 +4,7 @@ import { sesiWajib } from "@/lib/sesi-server";
 import { klienServer } from "@/lib/supabase-server";
 import { Lencana, Kartu, Kosong } from "@/components/dasar";
 import { labelStatus, formatTanggal } from "@/lib/kegiatan";
-import type { Peran } from "@/lib/kegiatan";
+import { PERAN_PENGAJU } from "@/lib/peran";
 
 export const metadata = { title: "Kegiatan · SI-ANGGUN" };
 
@@ -34,14 +34,7 @@ const TAHAP: { label: string; cocok: string[] }[] = [
   },
 ];
 
-const BOLEH_BUAT: Peran[] = [
-  "super_admin",
-  "ketua",
-  "wakil_ketua",
-  "sekretaris",
-  "bendahara",
-  "ketua_seksi",
-];
+
 
 export default async function HalamanKegiatan({
   searchParams,
@@ -62,7 +55,7 @@ export default async function HalamanKegiatan({
   const { data } = await kueri;
   const daftar: Baris[] = data ?? [];
 
-  const bolehBuat = pengguna.peran.some((p) => BOLEH_BUAT.includes(p));
+  const bolehBuat = pengguna.peran.some((p) => PERAN_PENGAJU.includes(p));
 
   return (
     <KerangkaAdmin
