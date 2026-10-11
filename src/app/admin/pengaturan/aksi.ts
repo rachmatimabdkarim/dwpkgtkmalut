@@ -327,6 +327,90 @@ export async function simpanWarnaLengkap(palet: {
   }
 }
 
+/**
+ * Menyimpan lapisan warna & gradasi foto besar beranda.
+ * Hanya Super Admin. Nilai diperiksa dulu supaya tidak ada tampilan yang
+ * tulisannya tidak terbaca.
+ */
+export async function simpanOverlay(nilai: {
+  warna: string;
+  pekat: number;
+  arah: string;
+  bentuk: string;
+}): Promise<HasilAksi> {
+  try {
+    const pengguna = await periksaSuperAdmin();
+    const sb = await klienServer();
+
+    // Periksa kode warna
+    const warna = (nilai.warna ?? "").trim().toLowerCase();
+    if (!/^#([0-9a-f]{3}|[0-9a-f]{6})$/.test(warna)) {
+      return { sukses: false, pesan: "Kode warna lapisan tidak sah (contoh: #1b4a22)." };
+    }
+
+    // Periksa tingkat kegelapan
+    const pekat = Math.round(Number(nilai.pekat));
+    if (!Number.isFinite(pekat) || pekat < 0 || pekat > 100) {
+      return { sukses: false, pesan: "Tingkat kegelapan harus antara 0 sampai 100." };
+    }
+
+    // Periksa arah & bentuk terhadap daftar yang sah
+    const arahSah = ["kiri-ke-kanan", "kanan-ke-kiri", "atas-ke-bawah", "merata"];
+    const bentukSah = ["bertahap", "tajam-di-kiri", "merata"];
+    if (!arahSah.includes(nilai.arah)) {
+      return { sukses: false, pesan: "Arah gradasi tidak dikenal." };
+    }
+    if (!bentukSah.includes(nilai.bentuk)) {
+      return { sukses: false, pesan: "Bentuk gradasi tidak dikenal." };
+    }
+
+    // Peringatan penting: lapisan terlalu bening membuat tulisan putih tidak terbaca
+    if (pekat < 35) {
+      return {
+        sukses: false,
+        pesan:
+          "Lapisan terlalu bening (di bawah 35%). Tulisan putih di atas foto akan sulit terbaca. " +
+          "Naikkan tingkat kegelapan, atau pilih foto yang memang sudah gelap.",
+      };
+    }
+
+    const { data: lama } = await sb.from("site_settings").select("*").eq("id", 1).maybeSingle();
+
+    const nilaiBaru = {
+      id: 1,
+      hero_overlay_warna: warna,
+      hero_overlay_pekat: pekat,
+      hero_overlay_arah: nilai.arah,
+      hero_overlay_bentuk: nilai.bentuk,
+      diperbarui_pada: new Date().toISOString(),
+      diperbarui_oleh: pengguna.id,
+    };
+
+    const { error } = await sb.from("site_settings").upsert(nilaiBaru);
+    if (error) return { sukses: false, pesan: "Gagal menyimpan lapisan: " + error.message };
+
+    await catatAudit(sb, {
+      jenis: "tampilan",
+      aksi: "simpan_overlay_beranda",
+      keterangan: `Mengubah lapisan foto beranda: warna ${warna}, ${pekat}%, arah ${nilai.arah}, bentuk ${nilai.bentuk}`,
+      nilaiLama: lama ?? null,
+      nilaiBaru,
+      pelakuId: pengguna.id,
+      pelakuNama: pengguna.nama,
+    });
+
+    bersihkanCacheTema();
+    revalidatePath("/", "layout");
+
+    return { sukses: true, pesan: "Lapisan foto beranda berhasil disimpan dan langsung berlaku." };
+  } catch (err) {
+    return {
+      sukses: false,
+      pesan: err instanceof Error ? err.message : "Terjadi kesalahan sistem.",
+    };
+  }
+}
+
 /** Menyimpan atau menghapus logo dan favicon */
 export async function simpanBranding(opsi: {
   logoPath?: string | null;

@@ -20,6 +20,7 @@ import { TEMA_BAWAAN, rasioKontras, warnaTeksTerbaik, variabelTema, type TemaSit
 import { kompresGambar, buatPersegi, ukuranTerbaca } from "@/lib/berkas-kompres";
 import { klienPeramban } from "@/lib/supabase-peramban";
 import { PengaturWarna } from "./warna-panel";
+import { PengaturOverlay } from "./overlay-panel";
 import {
   simpanIdentitas,
   simpanWarna,
@@ -618,6 +619,20 @@ export function FormPengaturanTampilan({ temaAwal }: { temaAwal: TemaSitus }) {
                     />
                   </div>
                 )}
+              </div>
+
+              {/* Lapisan & gradasi foto */}
+              <div className="mb-6 mt-5">
+                <PengaturOverlay
+                  fotoUrl={fotoBerandaUrl ?? temaAwal.heroFotoUrl ?? null}
+                  nilaiAwal={{
+                    warna: temaAwal.heroOverlayWarna || "#1b4a22",
+                    pekat: temaAwal.heroOverlayPekat ?? 88,
+                    arah: temaAwal.heroOverlayArah || "kiri-ke-kanan",
+                    bentuk: temaAwal.heroOverlayBentuk || "bertahap",
+                  }}
+                  judulContoh={identitas.heroJudul || "Bersama Membangun Keluarga Sejahtera"}
+                />
               </div>
 
               <div className="space-y-4">

@@ -24,6 +24,8 @@ export type TemaSitus = {
   heroTombol1?: string | null;
   heroTombol2?: string | null;
   heroFotoPath?: string | null;
+  /** URL foto beranda yang sedang dipakai (untuk pratinjau panel) */
+  heroFotoUrl?: string | null;
   visi?: string | null;
   /** Satu misi per baris */
   misi?: string | null;
@@ -33,6 +35,14 @@ export type TemaSitus = {
   bidang2Isi?: string | null;
   bidang3Nama?: string | null;
   bidang3Isi?: string | null;
+  /** Lapisan warna & gradasi di atas foto besar beranda */
+  heroOverlayWarna?: string | null;
+  /** Tingkat kegelapan lapisan, 0–100 */
+  heroOverlayPekat?: number | null;
+  /** Arah gradasi: kiri-ke-kanan | kanan-ke-kiri | atas-ke-bawah | merata */
+  heroOverlayArah?: string | null;
+  /** Bentuk gradasi: bertahap | merata | tajam-di-kiri */
+  heroOverlayBentuk?: string | null;
   logoUrl: string | null;
   faviconUrl: string | null;
   namaAplikasi: string;
@@ -89,6 +99,10 @@ export const TEMA_BAWAAN: TemaSitus = {
   heroTombol1: "Lihat Agenda Kegiatan",
   heroTombol2: "Kenali Kami",
   heroFotoPath: null,
+  heroOverlayWarna: "#1b4a22",
+  heroOverlayPekat: 88,
+  heroOverlayArah: "kiri-ke-kanan",
+  heroOverlayBentuk: "bertahap",
   visi: "Menjadi organisasi istri pegawai Aparatur Sipil Negara yang profesional untuk memperkuat peran serta perempuan dalam pembangunan bangsa.",
   misi: "Mengembangkan sumber daya manusia DWP yang berkualitas dan berwawasan global.\nMensejahterakan anggota, keluarga, dan masyarakat melalui Bidang Pendidikan, Ekonomi, dan Sosial Budaya secara demokratis.\nMeningkatkan kerja sama multipihak dalam pelaksanaan program kerja DWP.\nMengembangkan sistem informasi manajemen DWP secara terintegrasi.",
   bidang1Nama: "Bidang Pendidikan",
@@ -260,4 +274,65 @@ export function warnaTeksTerbaik(latar: string, pilihan = ["#ffffff", "#0f172a"]
 
 export function gayaTema(tema: TemaSitus): React.CSSProperties {
   return variabelTema(tema) as unknown as React.CSSProperties;
+}
+
+
+/**
+ * Menyusun lapisan gradasi di atas foto besar beranda.
+ *
+ * Foto kegiatan punya bagian terang dan gelap yang tidak bisa diduga, jadi
+ * tulisan putih di atasnya perlu jaminan kontras. Lapisan ini diatur Super Admin
+ * lewat Pengaturan → Konten Beranda.
+ *
+ * @param warna   kode heksadesimal lapisan
+ * @param pekat   tingkat kegelapan 0–100
+ * @param arah    kiri-ke-kanan | kanan-ke-kiri | atas-ke-bawah | merata
+ * @param bentuk  bertahap | merata | tajam-di-kiri
+ */
+export function gradasiOverlay(
+  warna?: string | null,
+  pekat?: number | null,
+  arah?: string | null,
+  bentuk?: string | null,
+): string {
+  // Periksa warna; kalau tidak sah, pakai warna dasar tema
+  const bersih = (warna ?? "").trim();
+  const w = /^#([0-9a-f]{3}|[0-9a-f]{6})$/i.test(bersih) ? bersih : "#1b4a22";
+
+  // Batasi tingkat kegelapan 0–100
+  const p = Math.min(100, Math.max(0, typeof pekat === "number" ? pekat : 88)) / 100;
+
+  // Kalau benar-benar bening, tidak perlu lapisan sama sekali
+  if (p <= 0.01) return "none";
+
+  const alfaKe = (nilai: number) =>
+    `color-mix(in srgb, ${w} ${Math.round(Math.min(1, Math.max(0, nilai)) * 100)}%, transparent)`;
+
+  // Bentuk gradasi menentukan bagaimana kegelapan menurun
+  const turunan: Record<string, number[]> = {
+    bertahap: [1, 0.8, 0.3],       // gelap di sisi awal, makin bening
+    merata: [1, 1, 1],             // sama rata
+    "tajam-di-kiri": [1, 0.55, 0.1],
+  };
+  const profil = turunan[bentuk ?? "bertahap"] ?? turunan.bertahap;
+
+  const warna0 = alfaKe(profil[0] * p);
+  const warna1 = alfaKe(profil[1] * p);
+  const warna2 = alfaKe(profil[2] * p);
+
+  // Arah gradasi
+  const sudut: Record<string, string> = {
+    "kiri-ke-kanan": "100deg",
+    "kanan-ke-kiri": "260deg",
+    "atas-ke-bawah": "180deg",
+    merata: "0deg",
+  };
+  const deg = sudut[arah ?? "kiri-ke-kanan"] ?? "100deg";
+
+  // Gradasi merata: satu warna penuh, tanpa peralihan
+  if (arah === "merata" || (bentuk ?? "bertahap") === "merata") {
+    return `linear-gradient(${deg}, ${warna1} 0%, ${warna1} 100%)`;
+  }
+
+  return `linear-gradient(${deg}, ${warna0} 0%, ${warna1} 45%, ${warna2} 100%)`;
 }

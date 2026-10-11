@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { formatTanggal } from "@/lib/kegiatan";
+import { gradasiOverlay } from "@/lib/tema";
 import {
   agendaTerdekat,
   beritaTerbaru,
@@ -81,8 +82,13 @@ export default async function BerandaPublik() {
           <div
             className="absolute inset-0"
             style={{
-              background:
-                "linear-gradient(100deg, color-mix(in srgb, var(--dasar-900) 92%, transparent) 0%, color-mix(in srgb, var(--dasar-900) 74%, transparent) 45%, color-mix(in srgb, var(--dasar-900) 26%, transparent) 100%)",
+              // Lapisan & gradasi diatur dari Pengaturan → Konten Beranda
+              background: gradasiOverlay(
+                tema.heroOverlayWarna,
+                tema.heroOverlayPekat,
+                tema.heroOverlayArah,
+                tema.heroOverlayBentuk,
+              ),
             }}
           />
           <div className="relative w-full max-w-[1180px] mx-auto px-4 sm:px-6 py-14">
