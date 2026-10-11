@@ -617,6 +617,15 @@ export function FormPengaturanTampilan({ temaAwal }: { temaAwal: TemaSitus }) {
                       alt="Pratinjau foto beranda"
                       className="mt-2 w-full h-[150px] object-cover rounded-token border border-n-200"
                     />
+                    {/* Tombol simpan langsung di sini supaya tidak perlu menggulir jauh */}
+                    <div className="mt-3 flex flex-wrap items-center gap-3">
+                      <TombolUtama type="submit" disabled={sedangIdentitas}>
+                        {sedangIdentitas ? "Menyimpan…" : "Simpan Foto Beranda"}
+                      </TombolUtama>
+                      <span className="teks-3 text-n-600">
+                        Wajib ditekan supaya foto tampil di website.
+                      </span>
+                    </div>
                   </div>
                 )}
               </div>
