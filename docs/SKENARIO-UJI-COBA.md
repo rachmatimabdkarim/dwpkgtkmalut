@@ -1,4 +1,7 @@
-# SKENARIO UJI COBA — Sistem Informasi DWP Kantor GTK Malut
+# PANDUAN UJI COBA — SI-ANGGUN
+
+**SI-ANGGUN** — Sistem Informasi Anggota dan Kegiatan Unggulan DWP
+Dharma Wanita Persatuan Kantor Guru dan Tenaga Kependidikan Provinsi Maluku Utara
 
 **Alamat aplikasi:** https://dwpkgtkmalut.vercel.app
 **Waktu yang dibutuhkan:** sekitar 45–60 menit untuk seluruh alur
@@ -12,7 +15,10 @@ Bapak akan berperan bergantian sebagai beberapa orang, karena alur persetujuan
 memang melibatkan beberapa jabatan. **Satu orang tidak boleh menyetujui usulannya
 sendiri** — jadi memang harus berganti akun.
 
-Siapkan 4 akun ini (sandinya ada di daftar rahasia yang saya simpan):
+Siapkan 6 akun ini. **Sandi tiap akun bisa dilihat di panel:** masuk sebagai
+Super Admin → menu **Pengurus** → kolom "Atur ulang sandi". Kalau sandi lupa,
+tekan **Atur ulang sandi** pada orang itu — sandi baru langsung muncul sekali
+untuk dikirim ke yang bersangkutan.
 
 | Peran | Akun | Kegunaan dalam uji coba |
 |---|---|---|
@@ -40,12 +46,15 @@ Buka `https://dwpkgtkmalut.vercel.app`
 
 **Yang harus Bapak lihat:**
 - Logo DWP di pojok kiri atas
-- Menu: Beranda · Profil · Agenda · Berita · Galeri (5 menu, tidak lebih)
+- Menu: Beranda · Profil · Agenda · Berita · Galeri · Unduhan · Kontak
 - Kalimat sambutan dari Ketua
 - Bagian "Agenda Terdekat" berisi kegiatan yang akan datang
 - Bagian berita terbaru dengan gambar
 - Footer berisi alamat, telepon, email, dan tautan Kontak
 - **Ikon di tab peramban** sudah memakai logo DWP (bukan ikon bawaan)
+- Nama resmi tertulis lengkap: Dharma Wanita Persatuan Kantor Guru dan
+  Tenaga Kependidikan Provinsi Maluku Utara
+- Ada bagian khusus **SI-ANGGUN** yang menerangkan sistem pengurus
 
 **Yang harus Bapak TIDAK lihat:** angka anggaran (RAB), catatan persetujuan,
 daftar hadir, atau nama peserta.
@@ -113,7 +122,10 @@ tombol Setuju seharusnya tidak ada untuk pengusul.
 
 1. Lihat **ikon lonceng** → harus ada pemberitahuan kegiatan baru menunggu
 2. Buka menu **Kegiatan** → buka kegiatan "Uji Coba — Rapat Koordinasi Bidang"
-3. Pilih **Setuju** → kegiatan naik ke jenjang berikutnya
+3. Tekan **Setujui** — lalu muncul tombol **Kirim Persetujuan**, tekan itu
+   ⚠️ **Dua langkah:** menekan "Setujui" saja belum menyimpan apa-apa.
+   Persetujuan baru tersimpan setelah **Kirim Persetujuan** ditekan.
+   (Ini supaya salah tekan tidak langsung mengubah data.)
 
 **UJI JUGA SALAH SATU INI pada kegiatan lain:**
 - Pilih **Minta Revisi** + tulis catatan → kegiatan kembali ke pengusul
@@ -126,16 +138,16 @@ tombol Setuju seharusnya tidak ada untuk pengusul.
 
 **Masuk sebagai:** `jumaini@dwpkgtkmalut.com`
 
-1. Buka kegiatan yang sama → **Setuju**
+1. Buka kegiatan yang sama → tekan **Setujui** → tekan **Kirim Persetujuan**
 2. Perhatikan: urutan memang Bendahara setelah Sekretaris
 
 ## Tahap 4 — Wakil Ketua menyetujui (jenjang 3)
 
-**Masuk sebagai:** `wahyuni@dwpkgtkmalut.com` → buka kegiatan → **Setuju**
+**Masuk sebagai:** `wahyuni@dwpkgtkmalut.com` → buka kegiatan → **Setujui** → **Kirim Persetujuan**
 
 ## Tahap 5 — Ketua menyetujui (jenjang akhir)
 
-**Masuk sebagai:** `washliyatul@dwpkgtkmalut.com` → buka kegiatan → **Setuju**
+**Masuk sebagai:** `washliyatul@dwpkgtkmalut.com` → buka kegiatan → **Setujui** → **Kirim Persetujuan**
 
 **Cek penting:** setelah disetujui akhir, kegiatan **muncul otomatis di halaman
 Agenda publik**. Buka `/agenda` di jendela lain dan cari judulnya.
@@ -242,6 +254,52 @@ pengeluaran, dan kendala internal.
 
 ---
 
+## C6. Pengaturan warna tema
+
+1. Masih di menu **Pengaturan** → pilih **Warna tema**
+2. Ada 5 palet siap pakai: tekan salah satu
+3. Atau atur sendiri 5 bagian warna: Dasar, Aksen, Tombol, Halaman, Teks
+4. **Cek:** perubahan **langsung terlihat di pratinjau** dan di web publik
+
+**UJI:** tekan palet, lalu lihat web publik di jendela lain — warnanya harus ikut
+berubah. Kembalikan ke warna asli DWP (hijau tua) setelah selesai mencoba.
+
+## C7. Pengaturan lapisan & gradasi foto beranda
+
+1. Masih di menu **Pengaturan** → pilih **Lapisan & gradasi foto beranda**
+2. Ada 6 gaya siap pakai: Standar (kiri gelap), Kiri gelap pekat, Merata lembut,
+   Bawah gelap, Sangat bening, Hitam netral
+3. Atur sendiri: **kegelapan** (penggeser 0–100%), **warna** lapisan,
+   **arah** gradasi, dan **bentuk** peralihan
+
+**Cek penting:** ada keterangan **"Tulisan putih di sisi tergelap diperkirakan
+terbaca"**. Kalau kegelapan di bawah 35%, aplikasi akan **menolak menyimpan**
+karena tulisan di atas foto jadi sulit dibaca. Coba turunkan di bawah 35% dan
+pastikan penolakannya muncul.
+
+## C8. Foto besar beranda
+
+1. Masih di menu **Pengaturan** → bagian **Konten Beranda**
+2. Pilih **Unggah foto beranda** (foto dikecilkan otomatis; maksimal 1920 px)
+3. Setelah foto terpilih, muncul pratinjau + tombol **"Simpan Foto Beranda"**
+4. **WAJIB tekan tombol itu** — kalau tidak, fotonya terunggah tapi tidak tampil
+5. Balik ke beranda, **muat ulang** → foto baru harus tampil
+
+---
+
+## Membersihkan jejak uji coba (jangan dilewatkan)
+
+Setelah selesai mencoba, kegiatan uji itu **masih tampil di halaman publik**
+(Agenda, Galeri, Berita). Supaya tidak terlihat masyarakat:
+
+1. Buka kegiatan ujinya
+2. Tekan **Sembunyikan dari publik**
+3. Cek halaman Agenda publik — kegiatan itu harus hilang dari daftar
+
+Lakukan untuk **semua** kegiatan uji yang Bapak buat.
+
+---
+
 # LEMBAR CATATAN
 
 Isi selama mencoba. Coret yang tidak perlu.
@@ -271,6 +329,11 @@ Isi selama mencoba. Coret yang tidak perlu.
 | C4 | Ubah identitas situs → tampil di publik | ☐ | ☐ | |
 | C4 | Ganti logo & favicon | ☐ | ☐ | |
 | C5 | Ganti sandi sendiri | ☐ | ☐ | |
+| C6 | Warna tema bisa diganti + tampil di publik | ☐ | ☐ | |
+| C7 | Lapisan foto: 6 gaya & penggeser kegelapan | ☐ | ☐ | |
+| C7 | Kegelapan di bawah 35% ditolak aplikasi | ☐ | ☐ | |
+| C8 | Unggah foto beranda lalu tekan Simpan | ☐ | ☐ | |
+| C8 | Foto beranda tampil setelah dimuat ulang | ☐ | ☐ | |
 | D1 | Pengurus biasa ditolak di Pengaturan | ☐ | ☐ | |
 | D2 | Editor hanya boleh Konten | ☐ | ☐ | |
 | D3 | Tanpa masuk, /admin dialihkan | ☐ | ☐ | |
