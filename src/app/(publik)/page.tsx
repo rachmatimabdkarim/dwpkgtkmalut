@@ -67,10 +67,12 @@ export default async function BerandaPublik() {
         tanggalKegiatan: k.tanggal ?? null,
       })),
     )
-    // Saring dari keterangan (keterangan bertuliskan "uji" berarti berkas uji
-    // coba), bukan dari nama berkas — nama berkas foto kegiatan asli pun bisa
-    // mengandung kata serupa.
-    .filter((f) => f.path && !/\buji\b/i.test(f.keterangan ?? ""))
+    // Saring dari KETERANGAN foto saja, dan hanya bila keterangannya
+    // benar-benar menandai berkas uji. JANGAN menyaring dari nama berkas atau
+    // judul kegiatan: kegiatan nyata bisa bernama "Ujian ..." dan fotonya bisa
+    // bernama "...foto-uji...". Cara menyaring dari judul pernah membuat
+    // kegiatan resmi hilang dari publik.
+    .filter((f) => f.path && !/^\s*uji\b/i.test(f.keterangan ?? ""))
     .slice(0, 8);
 
   // Ketua untuk blok sambutan

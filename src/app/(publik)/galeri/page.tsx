@@ -24,9 +24,11 @@ export default async function HalamanGaleri() {
       items: album.items.filter(
         (item) =>
           !pathFotoBerita.has(item.path) &&
-          // Buang hanya berkas yang benar-benar ditandai uji; jangan menyaring
-          // dari nama berkas, karena foto kegiatan asli bisa bernama demikian.
-          !/\buji\b/i.test(item.keterangan ?? ""),
+          // Saring dari KETERANGAN saja (dan hanya bila benar-benar menandai
+          // berkas uji). JANGAN dari nama berkas atau judul kegiatan — kegiatan
+          // resmi bisa bernama "Ujian ..." dan fotonya bisa bernama
+          // "...foto-uji...".
+          !/^\s*uji\b/i.test(item.keterangan ?? ""),
       ),
     }))
     .filter((album) => album.items.length > 0);
