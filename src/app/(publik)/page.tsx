@@ -402,26 +402,28 @@ export default async function BerandaPublik() {
             </p>
           </div>
 
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-            {/* Kotak pelengkap supaya jumlahnya selalu 4 seperti tampilan acuan */}
-            {Array.from({ length: Math.max(0, 4 - fotoGaleri.length) }).map((_, i) => (
-              <div
-                key={`kosong-${i}`}
-                className="h-[200px] rounded-[18px] flex flex-col items-center justify-center gap-2 text-[13px]"
-                style={{
-                  backgroundColor: "color-mix(in srgb, var(--dasar-600) 55%, #ffffff)",
-                  color: "var(--dasar-900)",
-                }}
-              >
-                <span className="text-[26px]" aria-hidden="true">🖼️</span>
-                <span className="font-medium">Dokumentasi menyusul</span>
-              </div>
-            ))}
+          {/* Jumlah kolom menyesuaikan jumlah foto: 1 foto = lebar penuh,
+              2 foto = dua kolom besar. Jadi tidak ada ruang kosong menganga
+              yang terbaca seperti foto hilang. */}
+          <div
+            className={
+              fotoGaleri.length === 1
+                ? "grid grid-cols-1 gap-4"
+                : fotoGaleri.length === 2
+                  ? "grid grid-cols-1 sm:grid-cols-2 gap-4"
+                  : "grid grid-cols-2 lg:grid-cols-4 gap-4"
+            }
+          >
+            {/* Tampilkan foto apa adanya. Kotak pelengkap "Dokumentasi menyusul"
+                TIDAK dipakai lagi: kotak kosong terbaca seperti foto yang gagal
+                tampil, padahal memang belum ada fotonya. */}
             {fotoGaleri.map((f) => (
               <Link
                 key={f.id}
                 href="/galeri"
-                className="block h-[200px] rounded-[18px] overflow-hidden bg-n-0/10 hover:opacity-90 transition-opacity relative group/card"
+                className={`block rounded-[18px] overflow-hidden bg-n-0/10 hover:opacity-90 transition-opacity relative group/card ${
+                  fotoGaleri.length <= 2 ? "h-[260px] sm:h-[300px]" : "h-[200px]"
+                }`}
               >
                 {/* Nama kegiatan tertulis di bawah foto supaya jelas dokumentasi
                     kegiatan yang mana. */}
