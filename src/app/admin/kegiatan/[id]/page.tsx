@@ -245,6 +245,10 @@ export default async function DetailKegiatan({
       ? peranCocok && bidangCocok && !pengusulSendiri
       : false;
 
+  // PENANDA SEMENTARA — untuk melacak kenapa tombol tidak muncul.
+  // Akan dihapus setelah masalahnya tuntas.
+  const jejak = `peran=${peranSaya.join("+")} | berikut=${berikut ? berikut.peran + "#" + berikut.urutan : "-"} | peranCocok=${peranCocok} | bidangCocok=${bidangCocok} | pengusulSendiri=${pengusulSendiri} | bolehMenilai=${bolehMenilai}`;
+
   const pesanTunggu = berikut
     ? `Menunggu keputusan ${berikut.peran.replace(/_/g, " ")}.`
     : "Tidak ada yang menunggu tindakan saat ini.";
@@ -502,6 +506,7 @@ export default async function DetailKegiatan({
           pesanTunggu={pesanTunggu}
           peranSaya={peranSaya}
         />
+        <p className="mt-4 text-[11px] text-bad-fg">JEJAK: {jejak}</p>
       </div>
 
       <div className="mt-6">
