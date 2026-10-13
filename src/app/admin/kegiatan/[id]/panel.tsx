@@ -40,6 +40,7 @@ export function PanelTindakan({
   bolehMenilai,
   pesanTunggu,
   peranSaya,
+  urutanDilewati,
 }: {
   activityId: string;
   status: string;
@@ -48,6 +49,8 @@ export function PanelTindakan({
   bolehMenilai: boolean;
   pesanTunggu: string;
   peranSaya: string[];
+  /** Urutan tahap yang otomatis dilewati (tidak perlu disetujui). */
+  urutanDilewati?: number[];
 }) {
   const router = useRouter();
   const [sedang, setSedang] = useState(false);
@@ -193,14 +196,20 @@ export function PanelTindakan({
                 <div className="flex flex-col items-center">
                   <span
                     className={`h-6 w-6 rounded-full flex items-center justify-center text-[12px] font-semibold ${
-                      l.sudah === "setuju"
-                        ? "bg-ok-bg text-ok-fg border border-ok-line"
-                        : l.sudah === "revisi" || l.sudah === "tolak"
-                          ? "bg-bad-bg text-bad-fg border border-bad-line"
-                          : "bg-n-100 text-n-500 border border-n-200"
+                      (urutanDilewati ?? []).includes(l.urutan)
+                        ? "bg-n-100 text-n-400 border border-n-200"
+                        : l.sudah === "setuju"
+                          ? "bg-ok-bg text-ok-fg border border-ok-line"
+                          : l.sudah === "revisi" || l.sudah === "tolak"
+                            ? "bg-bad-bg text-bad-fg border border-bad-line"
+                            : "bg-n-100 text-n-500 border border-n-200"
                     }`}
                   >
-                    {l.sudah === "setuju" ? "✓" : l.urutan}
+                    {(urutanDilewati ?? []).includes(l.urutan)
+                      ? "—"
+                      : l.sudah === "setuju"
+                        ? "✓"
+                        : l.urutan}
                   </span>
                   {i < jenjang.length - 1 && <span className="w-px flex-1 bg-n-200 my-1" />}
                 </div>
@@ -212,14 +221,21 @@ export function PanelTindakan({
                     )}
                   </p>
                   <p className="teks-3 text-n-500">
-                    {l.sudah === "setuju"
-                      ? "Disetujui"
-                      : l.sudah === "revisi"
-                        ? "Minta revisi"
-                        : l.sudah === "tolak"
-                          ? "Ditolak"
-                          : "Menunggu"}
+                    {(urutanDilewati ?? []).includes(l.urutan)
+                      ? "Dilewati"
+                      : l.sudah === "setuju"
+                        ? "Disetujui"
+                        : l.sudah === "revisi"
+                          ? "Minta revisi"
+                          : l.sudah === "tolak"
+                            ? "Ditolak"
+                            : "Menunggu"}
                   </p>
+                  {(urutanDilewati ?? []).includes(l.urutan) && (
+                    <p className="teks-3 text-n-400 mt-0.5">
+                      Tidak ada Ketua Bidang yang perlu menyetujui tahap ini.
+                    </p>
+                  )}
                 </div>
               </li>
             ))}

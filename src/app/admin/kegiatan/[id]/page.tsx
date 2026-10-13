@@ -203,7 +203,22 @@ export default async function DetailKegiatan({
   const sudahSetuju = new Set(
     langkah.filter((l) => l.sudah === "setuju").map((l) => l.urutan),
   );
-  const berikut = langkah.find((l) => !sudahSetuju.has(l.urutan));
+
+  // Sebagian tahap otomatis DILEWATI, jadi jangan dianggap menunggu:
+  //  - tahap Ketua Bidang pada kegiatan tanpa bidang (mis. Pengurus Harian)
+  //  - tahap Ketua Bidang bila pengusulnya sendiri Ketua Bidang bidang itu
+  //    (tidak boleh menyetujui usulannya sendiri)
+  // Tanpa ini, kegiatan tersebut menggantung tanpa ada yang bisa menyetujui.
+  const { data: dilewatiData } = await sb.rpc("tahap_dilewati_daftar", {
+    p_activity: id,
+  });
+  const urutanDilewati = new Set<number>(
+    Array.isArray(dilewatiData) ? (dilewatiData as number[]) : [],
+  );
+
+  const berikut = langkah.find(
+    (l) => !sudahSetuju.has(l.urutan) && !urutanDilewati.has(l.urutan),
+  );
   const peranSaya = pengguna.peran as Peran[];
 
   const hariIni = new Date().toISOString().slice(0, 10);
@@ -245,9 +260,6 @@ export default async function DetailKegiatan({
       ? peranCocok && bidangCocok && !pengusulSendiri
       : false;
 
-  // PENANDA SEMENTARA — untuk melacak kenapa tombol tidak muncul.
-  // Akan dihapus setelah masalahnya tuntas.
-  const jejak = `peran=${peranSaya.join("+")} | berikut=${berikut ? berikut.peran + "#" + berikut.urutan : "-"} | peranCocok=${peranCocok} | bidangCocok=${bidangCocok} | pengusulSendiri=${pengusulSendiri} | bolehMenilai=${bolehMenilai}`;
 
   const pesanTunggu = berikut
     ? `Menunggu keputusan ${berikut.peran.replace(/_/g, " ")}.`
@@ -505,8 +517,8 @@ export default async function DetailKegiatan({
           bolehMenilai={bolehMenilai}
           pesanTunggu={pesanTunggu}
           peranSaya={peranSaya}
+          urutanDilewati={[...urutanDilewati]}
         />
-        <p className="mt-4 text-[11px] text-bad-fg">JEJAK: {jejak}</p>
       </div>
 
       <div className="mt-6">

@@ -61,7 +61,21 @@ export async function beriKeputusan(
       .filter((a: { keputusan: string }) => a.keputusan === "setuju")
       .map((a: { step_urutan: number }) => a.step_urutan),
   );
-  const berikut = langkah.find((l) => !sudahSetuju.has(l.urutan));
+
+  // Tahap yang otomatis dilewati (mis. Ketua Bidang saat pengusulnya sendiri
+  // Ketua Bidang bidang itu) tidak boleh dianggap sebagai giliran yang menunggu
+  // — kalau dianggap menunggu, kegiatan menggantung dan tidak ada yang bisa
+  // menyetujui.
+  const { data: dilewatiData } = await sb.rpc("tahap_dilewati_daftar", {
+    p_activity: activityId,
+  });
+  const urutanDilewati = new Set<number>(
+    Array.isArray(dilewatiData) ? (dilewatiData as number[]) : [],
+  );
+
+  const berikut = langkah.find(
+    (l) => !sudahSetuju.has(l.urutan) && !urutanDilewati.has(l.urutan),
+  );
   if (!berikut) return { galat: "Semua jenjang sudah memberi keputusan." };
 
   const bolehDelegasi = await cekDelegasi(sb, berikut.peran, pengguna.peran as Peran[]);
