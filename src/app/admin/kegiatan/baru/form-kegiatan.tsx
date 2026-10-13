@@ -13,9 +13,18 @@ const LANGKAH = ["Data kegiatan", "Anggaran", "Tinjau & kirim"];
 export function FormKegiatanBaru({
   bidang,
   pengurus,
+  bidangSaya,
+  pengurusHarian,
+  sayaSendiri,
 }: {
   bidang: { id: string; nama: string }[];
-  pengurus: { id: string; nama: string; jabatan: string }[];
+  pengurus: { id: string; nama: string; jabatan: string; bidang?: string | null }[];
+  /** Bidang pengguna yang masuk. Kosong = Pengurus Harian (bebas memilih). */
+  bidangSaya: string | null;
+  /** Benar bila pengguna termasuk Pengurus Harian (bebas memilih bidang). */
+  pengurusHarian: boolean;
+  /** Data pengguna yang masuk, untuk batas penanggung jawab. */
+  sayaSendiri: { id: string; nama: string };
 }) {
   const router = useRouter();
   const [langkah, setLangkah] = useState(0);
@@ -28,10 +37,25 @@ export function FormKegiatanBaru({
   const [tanggalMulai, setTanggalMulai] = useState("");
   const [tanggalSelesai, setTanggalSelesai] = useState("");
   const [tempat, setTempat] = useState("");
-  const [sectionId, setSectionId] = useState("");
+  // Bidang terkunci bila pengguna terikat satu bidang (Ketua Bidang/anggota).
+  // Pengurus Harian bebas memilih karena menangani lintas bidang.
+  const bidangTerkunci = !pengurusHarian && !!bidangSaya;
+  const sectionIdAwal = bidangTerkunci
+    ? (bidang.find((b) => b.nama === bidangSaya)?.id ?? "")
+    : "";
+  const [sectionId, setSectionId] = useState(sectionIdAwal);
   const [penanggungJawab, setPenanggungJawab] = useState("");
   const [ringkasan, setRingkasan] = useState("");
   const [rab, setRab] = useState<BarisRab[]>([{ uraian: "", satuan: "", jumlah: 1, hargaSatuan: 0 }]);
+
+  // Penanggung jawab: diri sendiri + anggota bidang yang sama.
+  // Pengurus Harian bebas menunjuk siapa saja.
+  const daftarPenanggungJawab = useMemo(() => {
+    if (pengurusHarian) return pengurus;
+    return pengurus.filter(
+      (p) => p.id === sayaSendiri.id || (!!p.bidang && p.bidang === bidangSaya),
+    );
+  }, [pengurus, pengurusHarian, bidangSaya, sayaSendiri.id]);
 
   const total = useMemo(
     () => rab.reduce((j, b) => j + (b.jumlah || 0) * (b.hargaSatuan || 0), 0),
@@ -64,6 +88,7 @@ export function FormKegiatanBaru({
       tempat,
       sectionId,
       penanggungJawab,
+      namaBidang: bidangSaya ?? bidang.find((b) => b.id === sectionId)?.nama ?? "",
       ringkasan,
       ajukanSekarang,
       anggaran: rab,
@@ -136,24 +161,55 @@ export function FormKegiatanBaru({
               />
             </Kolom>
             <div className="grid sm:grid-cols-2 gap-4">
-              <Kolom label="Bidang pelaksana">
-                <Pilihan value={sectionId} onChange={(e) => setSectionId(e.target.value)}>
-                  <option value="">Pilih bidang</option>
-                  {bidang.map((b) => (
-                    <option key={b.id} value={b.id}>
-                      {b.nama}
-                    </option>
-                  ))}
-                </Pilihan>
+              <Kolom
+                label="Bidang pelaksana"
+                bantuan={
+                  bidangTerkunci
+                    ? "Terisi otomatis dari akun Anda dan tidak dapat diubah."
+                    : "Anda Pengurus Harian — bebas memilih bidang pelaksana."
+                }
+              >
+                {bidangTerkunci ? (
+                  // Terkunci: ditampilkan sebagai keterangan, bukan pilihan,
+                  // supaya tidak bisa diubah dan jelas bukan kolom rusak.
+                  <div
+                    className="min-h-[44px] flex items-center rounded-token border px-3.5 text-[15px] font-medium"
+                    style={{
+                      backgroundColor: "var(--n-100)",
+                      borderColor: "var(--n-200)",
+                      color: "var(--dasar-700)",
+                    }}
+                  >
+                    {bidangSaya}
+                  </div>
+                ) : (
+                  <Pilihan value={sectionId} onChange={(e) => setSectionId(e.target.value)}>
+                    <option value="">Pilih bidang</option>
+                    {bidang.map((b) => (
+                      <option key={b.id} value={b.id}>
+                        {b.nama}
+                      </option>
+                    ))}
+                  </Pilihan>
+                )}
               </Kolom>
-              <Kolom label="Penanggung jawab">
+              <Kolom
+                label="Penanggung jawab"
+                bantuan={
+                  pengurusHarian
+                    ? "Sebagai Pengurus Harian, Anda bebas menunjuk siapa saja."
+                    : "Hanya diri Anda sendiri atau anggota bidang Anda."
+                }
+              >
                 <Pilihan value={penanggungJawab} onChange={(e) => setPenanggungJawab(e.target.value)}>
-                  <option value="">Saya sendiri</option>
-                  {pengurus.map((p) => (
-                    <option key={p.id} value={p.id}>
-                      {p.nama} — {p.jabatan}
-                    </option>
-                  ))}
+                  <option value="">Saya sendiri — {sayaSendiri.nama}</option>
+                  {daftarPenanggungJawab
+                    .filter((p) => p.id !== sayaSendiri.id)
+                    .map((p) => (
+                      <option key={p.id} value={p.id}>
+                        {p.nama} — {p.jabatan}
+                      </option>
+                    ))}
                 </Pilihan>
               </Kolom>
             </div>

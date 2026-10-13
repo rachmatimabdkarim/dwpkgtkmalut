@@ -5,6 +5,12 @@ export type SesiPengguna = {
   id: string;
   nama: string;
   email: string;
+  /**
+   * Bidang pengguna (mis. "Bidang Pendidikan").
+   * Kosong bila ia Pengurus Harian atau tidak terdaftar di susunan pengurus —
+   * dalam hal ini ia bebas memilih bidang saat mengajukan kegiatan.
+   */
+  bidang?: string | null;
   peran: (
     | "super_admin"
     | "ketua"

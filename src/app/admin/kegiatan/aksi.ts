@@ -14,6 +14,8 @@ export async function buatKegiatan(masukan: {
   tempat: string;
   penanggungJawab: string;
   sectionId: string;
+  /** Nama bidang yang dipilih/dikunci — dipakai memeriksa hak pengguna. */
+  namaBidang?: string;
   ringkasan: string;
   ajukanSekarang: boolean;
   anggaran?: { uraian: string; satuan: string; jumlah: number; hargaSatuan: number }[];
@@ -24,6 +26,31 @@ export async function buatKegiatan(masukan: {
   if (!masukan.judul.trim()) return { galat: "Nama kegiatan wajib diisi." };
 
   const sb = await klienServer();
+
+  // ---- Pengaman bidang pelaksana ----
+  // Pengguna yang terikat satu bidang (Ketua Bidang / anggota) hanya boleh
+  // mengajukan untuk bidangnya sendiri. Pengurus Harian dan Super Admin bebas.
+  const { data: bolehBidang } = await sb.rpc("boleh_bidang", {
+    nama_bidang: masukan.namaBidang ?? "",
+  });
+  if (bolehBidang === false) {
+    return {
+      galat: "Bidang pelaksana harus sesuai bidang Anda. Bidang tidak dapat dipilih bebas.",
+    };
+  }
+
+  // ---- Pengaman penanggung jawab ----
+  // Hanya diri sendiri atau anggota bidang yang sama.
+  if (masukan.penanggungJawab) {
+    const { data: bolehPj } = await sb.rpc("boleh_penanggung_jawab", {
+      orang: masukan.penanggungJawab,
+    });
+    if (bolehPj === false) {
+      return {
+        galat: "Penanggung jawab harus diri sendiri atau anggota bidang Anda.",
+      };
+    }
+  }
 
   // nomor kegiatan
   const { data: nomor } = await sb.rpc("nomor_kegiatan");

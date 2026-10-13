@@ -219,13 +219,30 @@ export default async function DetailKegiatan({
     (delegasi ?? []).some((d: { ke_peran: string }) => peranSaya.includes(d.ke_peran as Peran)) ?? false;
 
   const pengusulSendiri = keg.dibuat_oleh === pengguna.id;
+
+  // Peran cocok dengan tahap yang sedang menunggu...
+  const peranCocok = !!berikut && (peranSaya.includes(berikut.peran as Peran) || lewatDelegasi);
+
+  // ...DAN bidangnya juga cocok. Ketua Bidang hanya boleh menilai kegiatan
+  // bidangnya sendiri; Ketua Bidang ekonomi tidak menilai usulan bidang
+  // pendidikan. Pemeriksaannya dilakukan di pusat data supaya tidak bisa
+  // diakali dari tampilan.
+  let bidangCocok = true;
+  if (peranCocok && berikut) {
+    const { data: boleh } = await sb.rpc("boleh_menilai_tahap", {
+      p_activity: keg.id,
+      p_peran: berikut.peran,
+    });
+    bidangCocok = boleh !== false;
+  }
+
   const bolehMenilai =
     keg.status === "diajukan" ||
     keg.status === "dalam_review" ||
     keg.status === "laporan_diajukan" ||
     keg.status === "laporan_dalam_review" ||
     (keg.status === "disetujui" && false)
-      ? !!berikut && (peranSaya.includes(berikut.peran as Peran) || lewatDelegasi) && !pengusulSendiri
+      ? peranCocok && bidangCocok && !pengusulSendiri
       : false;
 
   const pesanTunggu = berikut

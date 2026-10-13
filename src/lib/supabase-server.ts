@@ -43,14 +43,17 @@ async function bacaPenggunaSaatIni(): Promise<SesiPengguna | null> {
   } = await sb.auth.getUser();
   if (!user) return null;
 
-  // Dua permintaan dijalankan BERSAMAAN, bukan berurutan.
-  const [profilHasil, peranHasil] = await Promise.all([
+  // Ketiga permintaan dijalankan BERSAMAAN, bukan berurutan.
+  const [profilHasil, peranHasil, petugasHasil] = await Promise.all([
     sb
       .from("profiles")
       .select("id, nama, email, jabatan")
       .eq("id", user.id)
       .maybeSingle<BarisProfil>(),
     sb.from("user_roles").select("peran").eq("user_id", user.id),
+    // Bidang diambil dari susunan pengurus: dipakai untuk mengunci bidang
+    // pelaksana dan membatasi penanggung jawab kegiatan.
+    sb.from("officers").select("bidang").eq("profile_id", user.id).limit(1),
   ]);
 
   const profil = profilHasil.data;
@@ -63,6 +66,7 @@ async function bacaPenggunaSaatIni(): Promise<SesiPengguna | null> {
     nama: profil?.nama ?? (user.user_metadata?.nama as string) ?? user.email ?? "Pengguna",
     email: profil?.email ?? user.email ?? "",
     jabatan: profil?.jabatan ?? "",
+    bidang: ((petugasHasil.data ?? [])[0] as { bidang?: string } | undefined)?.bidang ?? null,
     peran,
   };
 }
