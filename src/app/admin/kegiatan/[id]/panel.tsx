@@ -6,7 +6,7 @@ import {
   Kartu, JudulSeksi, TombolUtama, TombolSekunder, TombolBahaya, TombolHalus,
   Kolom, AreaTeks, Isian,
 } from "@/components/dasar";
-import { ajukanKegiatan } from "../aksi";
+import { ajukanKegiatan, batalkanAjuan, hapusKegiatan } from "../aksi";
 import { beriKeputusan, ubahTahap, simpanLaporan } from "./aksi";
 
 type BarisRab = {
@@ -41,6 +41,8 @@ export function PanelTindakan({
   pesanTunggu,
   peranSaya,
   urutanDilewati,
+  judul,
+  pengusulSendiri,
 }: {
   activityId: string;
   status: string;
@@ -51,6 +53,10 @@ export function PanelTindakan({
   peranSaya: string[];
   /** Urutan tahap yang otomatis dilewati (tidak perlu disetujui). */
   urutanDilewati?: number[];
+  /** Judul kegiatan — dipakai tombol batalkan/hapus. */
+  judul: string;
+  /** Benar bila pengguna yang masuk adalah pengusul kegiatan ini. */
+  pengusulSendiri: boolean;
 }) {
   const router = useRouter();
   const [sedang, setSedang] = useState(false);
@@ -87,9 +93,25 @@ export function PanelTindakan({
     // Mengajukan KEGIATAN (bukan laporan). Sebelumnya tombol ini tersambung
     // ke fungsi laporan sehingga selalu ditolak dengan pesan "tahap belum
     // memungkinkan".
-    aksiUtama = <TombolAjukanKegiatan activityId={activityId} />;
+    aksiUtama = (
+      <div className="flex flex-col gap-3">
+        <TombolAjukanKegiatan activityId={activityId} />
+        {/* Menghapus hanya boleh untuk draf, dan hanya oleh pengusul. */}
+        {pengusulSendiri && (
+          <div className="pt-1 border-t border-n-100">
+            <TombolHapusKegiatan activityId={activityId} judul={judul} />
+          </div>
+        )}
+      </div>
+    );
   }
-  if (status === "disetujui") {
+  if (status === "diajukan") {
+    // Pengusul dapat menarik ajuannya sendiri selagi belum ada yang menyetujui.
+    // Tombol menilai (bila giliran pengguna) diurus di bagian bawah.
+    aksiUtama = pengusulSendiri ? (
+      <TombolBatalkanAjuan activityId={activityId} judul={judul} />
+    ) : null;
+  } else if (status === "disetujui") {
     aksiUtama = (
       <TombolUtama onClick={() => jalankan("mulai")} disabled={sedang}>
         Mulai Kegiatan
@@ -449,6 +471,159 @@ export function TombolAjukanKegiatan({ activityId }: { activityId: string }) {
       <p className="mt-2 text-[12.5px] text-n-500">
         Kegiatan akan dikirim untuk persetujuan berjenjang.
       </p>
+    </div>
+  );
+}
+
+/**
+ * Tombol "Batalkan Ajuan" — menarik kembali kegiatan yang sedang diajukan
+ * supaya pengusul bisa memperbaikinya. Alasan wajib diisi.
+ *
+ * Hanya muncul bagi pengusul (atau Super Admin) dan hanya selama belum ada
+ * satu pun persetujuan.
+ */
+export function TombolBatalkanAjuan({
+  activityId,
+  judul,
+}: {
+  activityId: string;
+  judul: string;
+}) {
+  const router = useRouter();
+  const [terbuka, setTerbuka] = useState(false);
+  const [alasan, setAlasan] = useState("");
+  const [sedang, setSedang] = useState(false);
+  const [galat, setGalat] = useState("");
+
+  async function kirim() {
+    setGalat("");
+    setSedang(true);
+    const r = await batalkanAjuan(activityId, alasan);
+    setSedang(false);
+    if (r?.galat) return setGalat(r.galat);
+    setTerbuka(false);
+    router.refresh();
+  }
+
+  if (!terbuka) {
+    return (
+      <TombolSekunder onClick={() => setTerbuka(true)}>
+        Batalkan Ajuan
+      </TombolSekunder>
+    );
+  }
+
+  return (
+    <div className="rounded-token border border-n-200 bg-n-50 p-4">
+      {galat && (
+        <p className="mb-3 rounded-token border border-bad-line bg-bad-bg px-3 py-2 text-[13px] text-bad-fg">
+          {galat}
+        </p>
+      )}
+      <p className="text-[14px] text-n-700 mb-3">
+        Ajuan kegiatan <strong>{judul}</strong> akan ditarik kembali dan
+        berstatus draf, supaya Bapak/Ibu dapat memperbaikinya lalu mengajukan ulang.
+      </p>
+      <Kolom label="Alasan penarikan" bantuan="Wajib diisi — tercatat di riwayat kegiatan.">
+        <AreaTeks
+          value={alasan}
+          onChange={(e) => setAlasan(e.target.value)}
+          placeholder="Contoh: tanggal pelaksanaan perlu disesuaikan dengan jadwal kantor."
+        />
+      </Kolom>
+      <div className="mt-3 flex flex-wrap gap-3">
+        <TombolBahaya onClick={kirim} disabled={sedang || alasan.trim().length === 0}>
+          {sedang ? "Menarik…" : "Ya, Tarik Ajuan"}
+        </TombolBahaya>
+        <TombolHalus
+          onClick={() => {
+            setTerbuka(false);
+            setGalat("");
+          }}
+        >
+          Batal
+        </TombolHalus>
+      </div>
+    </div>
+  );
+}
+
+/**
+ * Tombol "Hapus Kegiatan" — hanya untuk kegiatan berstatus DRAF.
+ *
+ * Pengaman: nama kegiatan wajib diketik sama persis, supaya tidak salah hapus.
+ * Kegiatan yang sudah diajukan/disetujui tidak dapat dihapus — itu catatan
+ * resmi organisasi; pakai "Sembunyikan dari publik" bila tidak ingin tampil.
+ */
+export function TombolHapusKegiatan({
+  activityId,
+  judul,
+}: {
+  activityId: string;
+  judul: string;
+}) {
+  const router = useRouter();
+  const [terbuka, setTerbuka] = useState(false);
+  const [ketik, setKetik] = useState("");
+  const [sedang, setSedang] = useState(false);
+  const [galat, setGalat] = useState("");
+
+  async function kirim() {
+    setGalat("");
+    setSedang(true);
+    const r = await hapusKegiatan(activityId, ketik);
+    setSedang(false);
+    if (r?.galat) return setGalat(r.galat);
+    router.push("/admin/kegiatan");
+    router.refresh();
+  }
+
+  if (!terbuka) {
+    return (
+      <TombolHalus onClick={() => setTerbuka(true)}>
+        Hapus Kegiatan
+      </TombolHalus>
+    );
+  }
+
+  return (
+    <div className="rounded-token border border-bad-line bg-bad-bg p-4">
+      {galat && (
+        <p className="mb-3 rounded-token border border-bad-line bg-n-0 px-3 py-2 text-[13px] text-bad-fg">
+          {galat}
+        </p>
+      )}
+      <p className="text-[14px] font-semibold text-bad-fg mb-2">
+        Kegiatan ini akan dihapus permanen.
+      </p>
+      <p className="text-[13.5px] text-n-700 mb-3">
+        Data yang ikut terhapus: anggaran, lampiran, dan catatan persetujuan.
+        Riwayat kegiatan tetap tersimpan sebagai jejak. Tindakan ini tidak dapat
+        dibatalkan.
+      </p>
+      <Kolom
+        label="Ketik nama kegiatan untuk memastikan"
+        bantuan={`Ketik sama persis: ${judul}`}
+      >
+        <Isian value={ketik} onChange={(e) => setKetik(e.target.value)} placeholder={judul} />
+      </Kolom>
+      <div className="mt-3 flex flex-wrap gap-3">
+        <TombolBahaya
+          onClick={kirim}
+          disabled={sedang || ketik.trim() !== judul.trim()}
+        >
+          {sedang ? "Menghapus…" : "Ya, Hapus Permanen"}
+        </TombolBahaya>
+        <TombolHalus
+          onClick={() => {
+            setTerbuka(false);
+            setKetik("");
+            setGalat("");
+          }}
+        >
+          Batal
+        </TombolHalus>
+      </div>
     </div>
   );
 }

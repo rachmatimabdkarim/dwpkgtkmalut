@@ -148,6 +148,136 @@ export async function ajukanKegiatan(activityId: string) {
   return { ok: true };
 }
 
+/**
+ * Menarik kembali ajuan kegiatan supaya bisa diperbaiki pengusul.
+ * Hanya boleh oleh pengusul sendiri (atau Super Admin), dan hanya selama
+ * belum ada satu pun persetujuan — kalau sudah ada yang menyetujui, kegiatannya
+ * harus direvisi lewat mekanisme persetujuan, bukan ditarik diam-diam.
+ */
+export async function batalkanAjuan(activityId: string, alasan: string) {
+  const pengguna = await penggunaSaatIni();
+  if (!pengguna) return { galat: "Sesi Anda sudah berakhir." };
+
+  if (!alasan.trim()) {
+    return { galat: "Alasan wajib diisi supaya jejaknya jelas." };
+  }
+
+  const sb = await klienServer();
+  const { data: keg } = await sb
+    .from("activities")
+    .select("id, status, dibuat_oleh, judul")
+    .eq("id", activityId)
+    .maybeSingle<{ id: string; status: string; dibuat_oleh: string; judul: string }>();
+  if (!keg) return { galat: "Kegiatan tidak ditemukan." };
+
+  if (keg.status !== "diajukan") {
+    return {
+      galat:
+        "Hanya kegiatan yang sedang diajukan dapat ditarik kembali. Kegiatan ini berstatus lain.",
+    };
+  }
+
+  const superAdmin = pengguna.peran.includes("super_admin");
+  if (keg.dibuat_oleh !== pengguna.id && !superAdmin) {
+    return { galat: "Hanya pengusul kegiatan ini yang dapat menarik ajuannya." };
+  }
+
+  // Jangan tarik kalau sudah ada persetujuan — supaya tidak menghapus keputusan
+  // orang lain secara diam-diam.
+  const { data: sudah } = await sb
+    .from("approvals")
+    .select("id")
+    .eq("activity_id", activityId)
+    .limit(1);
+  if ((sudah ?? []).length > 0) {
+    return {
+      galat:
+        "Kegiatan ini sudah ada yang menyetujui, jadi tidak dapat ditarik kembali. Ajukan permintaan revisi kepada penyetuju berikutnya.",
+    };
+  }
+
+  const { error } = await sb.from("activities").update({ status: "draf" }).eq("id", activityId);
+  if (error) return { galat: "Gagal menarik ajuan: " + error.message };
+
+  await sb.from("activity_logs").insert({
+    activity_id: activityId,
+    aksi: "ajuan_dibatalkan",
+    keterangan: `Ajuan ditarik kembali oleh pengusul. Alasan: ${alasan.trim()}`,
+    pelaku_id: pengguna.id,
+    pelaku_nama: pengguna.nama,
+  });
+
+  revalidatePath("/admin/kegiatan");
+  revalidatePath(`/admin/kegiatan/${activityId}`);
+  revalidatePath("/admin");
+  return { ok: true };
+}
+
+/**
+ * Menghapus kegiatan.
+ *
+ * Aturan ketat (pilihan pemilik proyek): HANYA kegiatan berstatus draf yang
+ * dapat dihapus, dan hanya oleh pengusulnya sendiri atau Super Admin.
+ * Kegiatan yang sudah diajukan/disetujui tidak dapat dihapus — bukti
+ * pertanggungjawaban organisasi harus tetap utuh. Untuk kegiatan yang sudah
+ * berjalan, gunakan "Sembunyikan dari publik".
+ *
+ * Nama kegiatan wajib diketik ulang sebagai pengaman salah hapus.
+ */
+export async function hapusKegiatan(activityId: string, namaKonfirmasi: string) {
+  const pengguna = await penggunaSaatIni();
+  if (!pengguna) return { galat: "Sesi Anda sudah berakhir." };
+
+  const sb = await klienServer();
+  const { data: keg } = await sb
+    .from("activities")
+    .select("id, status, dibuat_oleh, judul")
+    .eq("id", activityId)
+    .maybeSingle<{ id: string; status: string; dibuat_oleh: string; judul: string }>();
+  if (!keg) return { galat: "Kegiatan tidak ditemukan." };
+
+  if (keg.status !== "draf") {
+    return {
+      galat:
+        "Hanya kegiatan berstatus draf yang dapat dihapus. Kegiatan yang sudah diajukan atau disetujui harus tetap tersimpan sebagai catatan resmi — pakai Sembunyikan dari publik bila tidak ingin ditampilkan.",
+    };
+  }
+
+  const superAdmin = pengguna.peran.includes("super_admin");
+  if (keg.dibuat_oleh !== pengguna.id && !superAdmin) {
+    return { galat: "Hanya pengusul kegiatan ini yang dapat menghapusnya." };
+  }
+
+  // Pengaman salah hapus: nama kegiatan harus diketik sama persis.
+  if (namaKonfirmasi.trim() !== keg.judul.trim()) {
+    return { galat: "Nama kegiatan yang diketik belum sama persis. Penghapusan dibatalkan." };
+  }
+
+  // Catat lebih dahulu, supaya jejak penghapusan tetap ada walau kegiatannya hilang.
+  await sb.from("audit_logs").insert({
+    jenis: "kegiatan",
+    aksi: "hapus_kegiatan",
+    keterangan: `Menghapus kegiatan draf "${keg.judul}"`,
+    pelaku_id: pengguna.id,
+    pelaku_nama: pengguna.nama,
+  });
+
+  // Bersihkan data turutannya lebih dulu (kalau tidak, penghapusan ditolak
+  // karena masih ada rujukan).
+  await sb.from("budget_items").delete().eq("activity_id", activityId);
+  await sb.from("attachments").delete().eq("entitas_id", activityId);
+  await sb.from("approvals").delete().eq("activity_id", activityId);
+  await sb.from("notifications").delete().eq("activity_id", activityId);
+
+  // Riwayat kegiatan bersifat tambah-saja, jadi kegiatannya saja yang dihapus.
+  const { error } = await sb.from("activities").delete().eq("id", activityId);
+  if (error) return { galat: "Gagal menghapus kegiatan: " + error.message };
+
+  revalidatePath("/admin/kegiatan");
+  revalidatePath("/admin");
+  return { ok: true };
+}
+
 /** Menyembunyikan/menampilkan kegiatan di web publik. */
 export async function aturSembunyi(activityId: string, sembunyi: boolean) {
   const pengguna = await penggunaSaatIni();

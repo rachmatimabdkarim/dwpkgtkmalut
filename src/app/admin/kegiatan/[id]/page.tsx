@@ -518,6 +518,8 @@ export default async function DetailKegiatan({
           pesanTunggu={pesanTunggu}
           peranSaya={peranSaya}
           urutanDilewati={[...urutanDilewati]}
+          judul={keg.judul}
+          pengusulSendiri={pengusulSendiri}
         />
       </div>
 
