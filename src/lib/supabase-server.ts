@@ -50,7 +50,14 @@ async function bacaPenggunaSaatIni(): Promise<SesiPengguna | null> {
       .select("id, nama, email, jabatan")
       .eq("id", user.id)
       .maybeSingle<BarisProfil>(),
-    sb.from("user_roles").select("peran").eq("user_id", user.id),
+    sb
+      .from("user_roles")
+      .select("peran")
+      // WAJIB disaring dengan id pengguna yang sedang masuk. Tanpa saringan ini
+      // hasilnya bergantung pada aturan keamanan tabel, dan pernah
+      // mengembalikan peran SELURUH pengurus sehingga aplikasi salah menilai
+      // siapa yang berhak menyetujui.
+      .eq("user_id", user.id),
     // Bidang diambil dari susunan pengurus: dipakai untuk mengunci bidang
     // pelaksana dan membatasi penanggung jawab kegiatan.
     sb.from("officers").select("bidang").eq("profile_id", user.id).limit(1),
