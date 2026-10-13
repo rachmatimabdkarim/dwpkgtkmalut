@@ -6,6 +6,7 @@ import {
   Kartu, JudulSeksi, TombolUtama, TombolSekunder, TombolBahaya, TombolHalus,
   Kolom, AreaTeks, Isian,
 } from "@/components/dasar";
+import { ajukanKegiatan } from "../aksi";
 import { beriKeputusan, ubahTahap, simpanLaporan } from "./aksi";
 
 type BarisRab = {
@@ -80,11 +81,10 @@ export function PanelTindakan({
   let aksiUtama: React.ReactNode = null;
 
   if (status === "draf" || status === "revisi") {
-    aksiUtama = (
-      <TombolUtama onClick={() => jalankan("ajukan_laporan")} disabled={sedang} className="hidden">
-        Ajukan
-      </TombolUtama>
-    );
+    // Mengajukan KEGIATAN (bukan laporan). Sebelumnya tombol ini tersambung
+    // ke fungsi laporan sehingga selalu ditolak dengan pesan "tahap belum
+    // memungkinkan".
+    aksiUtama = <TombolAjukanKegiatan activityId={activityId} />;
   }
   if (status === "disetujui") {
     aksiUtama = (
@@ -397,6 +397,42 @@ export function TombolUtamaAjukan({ activityId }: { activityId: string }) {
       <TombolUtama onClick={kirim} disabled={sedang}>
         {sedang ? "Mengirim…" : "Ajukan Laporan"}
       </TombolUtama>
+    </div>
+  );
+}
+
+/**
+ * Tombol "Ajukan Kegiatan" untuk draf/revisi.
+ *
+ * Memanggil fungsi pengajuan KEGIATAN (ajukanKegiatan), bukan fungsi laporan.
+ */
+export function TombolAjukanKegiatan({ activityId }: { activityId: string }) {
+  const router = useRouter();
+  const [sedang, setSedang] = useState(false);
+  const [galat, setGalat] = useState("");
+
+  async function kirim() {
+    setGalat("");
+    setSedang(true);
+    const r = await ajukanKegiatan(activityId);
+    setSedang(false);
+    if (r?.galat) return setGalat(r.galat);
+    router.refresh();
+  }
+
+  return (
+    <div>
+      {galat && (
+        <p className="mb-3 rounded-token border border-bad-line bg-bad-bg px-3 py-2 text-[13px] text-bad-fg">
+          {galat}
+        </p>
+      )}
+      <TombolUtama onClick={kirim} disabled={sedang}>
+        {sedang ? "Mengirim…" : "Ajukan Kegiatan"}
+      </TombolUtama>
+      <p className="mt-2 text-[12.5px] text-n-500">
+        Kegiatan akan dikirim untuk persetujuan berjenjang.
+      </p>
     </div>
   );
 }
