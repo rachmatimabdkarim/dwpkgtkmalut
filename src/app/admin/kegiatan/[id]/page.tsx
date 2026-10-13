@@ -216,6 +216,20 @@ export default async function DetailKegiatan({
     Array.isArray(dilewatiData) ? (dilewatiData as number[]) : [],
   );
 
+  // Alasan tiap tahap yang dilewati, supaya linimasa dapat menjelaskan
+  // SEBABNYA — bukan sekadar menulis "dilewati" tanpa keterangan.
+  const alasanDilewati: Record<number, string> = {};
+  for (const l of langkah) {
+    if (!urutanDilewati.has(l.urutan)) continue;
+    const { data: alasan } = await sb.rpc("alasan_tahap_dilewati", {
+      p_activity: id,
+      p_peran: l.peran,
+    });
+    if (typeof alasan === "string" && alasan.length > 0) {
+      alasanDilewati[l.urutan] = alasan;
+    }
+  }
+
   const berikut = langkah.find(
     (l) => !sudahSetuju.has(l.urutan) && !urutanDilewati.has(l.urutan),
   );
@@ -518,6 +532,7 @@ export default async function DetailKegiatan({
           pesanTunggu={pesanTunggu}
           peranSaya={peranSaya}
           urutanDilewati={[...urutanDilewati]}
+          alasanDilewati={alasanDilewati}
           judul={keg.judul}
           pengusulSendiri={pengusulSendiri}
         />

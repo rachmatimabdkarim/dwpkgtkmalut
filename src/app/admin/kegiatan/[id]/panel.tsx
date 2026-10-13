@@ -41,6 +41,7 @@ export function PanelTindakan({
   pesanTunggu,
   peranSaya,
   urutanDilewati,
+  alasanDilewati,
   judul,
   pengusulSendiri,
 }: {
@@ -53,6 +54,8 @@ export function PanelTindakan({
   peranSaya: string[];
   /** Urutan tahap yang otomatis dilewati (tidak perlu disetujui). */
   urutanDilewati?: number[];
+  /** Alasan pelewatan tiap tahap, dipakai sebagai keterangan di linimasa. */
+  alasanDilewati?: Record<number, string>;
   /** Judul kegiatan — dipakai tombol batalkan/hapus. */
   judul: string;
   /** Benar bila pengguna yang masuk adalah pengusul kegiatan ini. */
@@ -254,8 +257,9 @@ export function PanelTindakan({
                             : "Menunggu"}
                   </p>
                   {(urutanDilewati ?? []).includes(l.urutan) && (
-                    <p className="teks-3 text-n-400 mt-0.5">
-                      Tidak ada Ketua Bidang yang perlu menyetujui tahap ini.
+                    <p className="teks-3 text-n-500 mt-0.5 leading-snug">
+                      {alasanDilewati?.[l.urutan] ??
+                        "Tahap ini tidak diperlukan untuk kegiatan ini."}
                     </p>
                   )}
                 </div>
