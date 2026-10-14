@@ -135,13 +135,12 @@ async function IsiAgenda() {
         </p>
       </header>
 
-      {agendaList.length === 0 ? (
-        <div className="rounded-[18px] border border-dashed border-n-300 bg-n-0 p-10 text-center">
-          <p className="text-n-600">Belum ada agenda kegiatan yang tercatat.</p>
-        </div>
-      ) : (
-        <>
-          {/* ============ AKAN DATANG ============ */}
+      {/* Bagian "Akan Datang" dan "Sudah Berlangsung" SELALU ditampilkan, walau
+          belum ada isinya — supaya pengunjung tahu kedua bagian itu memang ada di
+          halaman ini, bukan hilang. Sebelumnya saat benar-benar kosong hanya
+          muncul satu pesan umum, dan kedua bagian itu tidak terlihat sama sekali. */}
+      <>
+        {/* ============ AKAN DATANG ============ */}
           <section>
             <h2 className="text-[22px] sm:text-[25px] font-extrabold mb-6" style={{ color: "var(--dasar-700)" }}>
               Akan Datang
@@ -193,8 +192,7 @@ async function IsiAgenda() {
               </div>
             )}
           </section>
-        </>
-      )}
+      </>
     </div>
   );
 }

@@ -91,10 +91,24 @@ export async function perluTindakanUntuk(userId: string): Promise<TindakanItem[]
           d.dari_peran === berikut.peran && peranSaya.includes(d.ke_peran as Peran),
       );
 
-      const bolehMenilai =
+      let bolehMenilai =
         peranSaya.includes("super_admin") ||
         peranSaya.includes(berikut.peran as Peran) ||
         bolehDelegasi;
+
+      // Peran saja belum cukup: Ketua Bidang hanya berhak atas kegiatan
+      // bidangnya sendiri. Pemeriksaannya memakai aturan yang sama dengan
+      // halaman kegiatan, supaya daftar ini dan tampilan halaman tidak pernah
+      // berbeda. Tanpa ini, semua Ketua Bidang melihat tombol "Tinjau" untuk
+      // kegiatan bidang siapa pun.
+      if (bolehMenilai && berikut.peran === "ketua_seksi") {
+        const admin = klienAdmin();
+        const { data: boleh } = await admin.rpc("boleh_menilai_tahap", {
+          p_activity: keg.id,
+          p_peran: berikut.peran,
+        });
+        if (boleh === false) bolehMenilai = false;
+      }
 
       if (bolehMenilai) {
         hasil.push({
