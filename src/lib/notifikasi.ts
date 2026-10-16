@@ -159,6 +159,241 @@ export async function perluTindakanUntuk(userId: string): Promise<TindakanItem[]
  * Menghitung umur penantian kegiatan dalam hari sejak diajukan (perencanaan)
  * atau sejak laporan diajukan (pelaporan).
  */
+
+/* ============================================================
+   PEMBERITAHUAN LANGSUNG (bukan pengingat berkala)
+
+   Dipanggil tepat saat alur kegiatan bergerak:
+     - kegiatan diajukan        -> penyetuju giliran pertama
+     - keputusan diberikan      -> penyetuju giliran berikutnya
+     - kegiatan selesai diputus -> pengusul (disetujui / revisi / ditolak)
+
+   Sebelumnya tidak ada pemberitahuan seperti ini, sehingga penyetuju hanya tahu
+   kalau kebetulan membuka beranda panel.
+   ============================================================ */
+
+/** Nama peran dalam bahasa manusia, untuk isi pemberitahuan. */
+const NAMA_PERAN_NOTIF: Record<string, string> = {
+  super_admin: "Super Admin",
+  ketua: "Ketua",
+  wakil_ketua: "Wakil Ketua",
+  sekretaris: "Sekretaris",
+  bendahara: "Bendahara",
+  ketua_seksi: "Ketua Bidang",
+  pengurus: "Anggota",
+  editor: "Editor",
+};
+
+/**
+ * Mencari siapa saja yang berhak menilai sebuah kegiatan pada saat ini,
+ * memakai aturan yang sama dengan halaman kegiatan dan beranda panel —
+ * supaya pemberitahuan tidak salah alamat.
+ */
+async function cariPenyetujuGiliran(
+  sb: ReturnType<typeof klienAdmin>,
+  activityId: string,
+  tahap: "perencanaan" | "pelaporan",
+): Promise<{ userIds: string[]; peran: string } | null> {
+  const { data: keg } = await sb
+    .from("activities")
+    .select("id, dibuat_oleh, section_id")
+    .eq("id", activityId)
+    .maybeSingle<{ id: string; dibuat_oleh: string; section_id: string | null }>();
+  if (!keg) return null;
+
+  const { data: flow } = await sb
+    .from("approval_flows")
+    .select("id, approval_steps(urutan, peran)")
+    .eq("nama", tahap)
+    .maybeSingle();
+
+  const steps = ((flow?.approval_steps ?? []) as { urutan: number; peran: string }[])
+    .slice()
+    .sort((a, b) => a.urutan - b.urutan);
+
+  const { data: approvals } = await sb
+    .from("approvals")
+    .select("step_urutan, peran, keputusan")
+    .eq("activity_id", activityId)
+    .eq("tahap", tahap);
+
+  const sudah = new Set(
+    (approvals ?? [])
+      .filter((a: { keputusan: string }) => a.keputusan === "setuju")
+      .map((a: { step_urutan: number }) => a.step_urutan),
+  );
+
+  // Tahap yang otomatis dilewati jangan dianggap giliran.
+  const { data: dilewati } = await sb.rpc("tahap_dilewati_daftar", { p_activity: activityId });
+  const urutanDilewati = new Set<number>(Array.isArray(dilewati) ? dilewati : []);
+
+  const berikut = steps.find((s) => !sudah.has(s.urutan) && !urutanDilewati.has(s.urutan));
+  if (!berikut) return null;
+
+  // Cari pemegang peran tersebut yang masih aktif, kecuali pengusul sendiri.
+  const hariIni = new Date().toISOString().slice(0, 10);
+  const { data: peranBaris } = await sb
+    .from("user_roles")
+    .select("user_id, peran, mulai, selesai");
+
+  const kandidat = (peranBaris ?? []).filter(
+    (r: { peran: string; mulai: string | null; selesai: string | null }) =>
+      r.peran === berikut.peran &&
+      (!r.mulai || r.mulai <= hariIni) &&
+      (!r.selesai || r.selesai >= hariIni),
+  );
+
+  let userIds = Array.from(
+    new Set(kandidat.map((k: { user_id: string }) => k.user_id)),
+  ).filter((uid) => uid !== keg.dibuat_oleh);
+
+  // Khusus tahap Ketua Bidang: hanya Ketua Bidang dari bidang kegiatan itu.
+  if (berikut.peran === "ketua_seksi") {
+    const { data: bolehPerOrang } = await sb
+      .from("officers")
+      .select("profile_id, bidang");
+    const { data: bidangKeg } = await sb
+      .from("sections")
+      .select("nama")
+      .eq("id", keg.section_id ?? "")
+      .maybeSingle<{ nama: string }>();
+    const namaBidang = bidangKeg?.nama ?? null;
+    if (namaBidang) {
+      const pemegangBidang = new Set(
+        ((bolehPerOrang ?? []) as { profile_id: string | null; bidang: string }[])
+          .filter((o) => o.profile_id && o.bidang === namaBidang)
+          .map((o) => o.profile_id as string),
+      );
+      userIds = userIds.filter((uid) => pemegangBidang.has(uid));
+    }
+  }
+
+  if (userIds.length === 0) return null;
+  return { userIds, peran: berikut.peran };
+}
+
+/** Mengirim satu pemberitahuan. Tidak melempar galat agar alur utama tidak terganggu. */
+async function kirimSatu(
+  sb: ReturnType<typeof klienAdmin>,
+  data: { user_id: string; jenis: string; judul: string; pesan: string; tautan: string; activity_id: string },
+) {
+  try {
+    // Jangan menumpuk pemberitahuan sejenis untuk kegiatan yang sama.
+    const { data: ada } = await sb
+      .from("notifications")
+      .select("id")
+      .eq("user_id", data.user_id)
+      .eq("jenis", data.jenis)
+      .eq("activity_id", data.activity_id)
+      .eq("dibaca", false)
+      .limit(1);
+    if ((ada ?? []).length > 0) return;
+
+    await sb.from("notifications").insert({ ...data, dibaca: false });
+  } catch (e) {
+    console.error("Gagal mengirim pemberitahuan:", e);
+  }
+}
+
+/**
+ * A. Dipanggil tepat setelah kegiatan diajukan.
+ * Mengirim pemberitahuan ke penyetuju giliran pertama.
+ */
+export async function beritahuPenyetujuBerikut(
+  activityId: string,
+  tahap: "perencanaan" | "pelaporan" = "perencanaan",
+) {
+  const sb = klienAdmin();
+  const { data: keg } = await sb
+    .from("activities")
+    .select("id, judul")
+    .eq("id", activityId)
+    .maybeSingle<{ id: string; judul: string }>();
+  if (!keg) return;
+
+  const giliran = await cariPenyetujuGiliran(sb, activityId, tahap);
+  if (!giliran) return;
+
+  const namaPeran = NAMA_PERAN_NOTIF[giliran.peran] ?? giliran.peran;
+  for (const uid of giliran.userIds) {
+    await kirimSatu(sb, {
+      user_id: uid,
+      jenis: "persetujuan_menunggu",
+      judul: `Menunggu persetujuan Anda: ${keg.judul}`,
+      pesan: `Kegiatan ini menunggu keputusan Anda sebagai ${namaPeran}. Buka untuk meninjau dan memberi keputusan.`,
+      tautan: `/admin/kegiatan/${activityId}`,
+      activity_id: activityId,
+    });
+  }
+}
+
+/**
+ * C. Dipanggil setelah sebuah keputusan diberikan.
+ * - Bila masih ada tahap berikutnya -> beritahu penyetuju berikutnya (B).
+ * - Bila sudah final (disetujui/revisi/tolak) -> beritahu pengusul.
+ */
+export async function beritahuSetelahKeputusan(
+  activityId: string,
+  keputusan: "setuju" | "revisi" | "tolak",
+  tahap: "perencanaan" | "pelaporan" = "perencanaan",
+) {
+  const sb = klienAdmin();
+  const { data: keg } = await sb
+    .from("activities")
+    .select("id, judul, dibuat_oleh")
+    .eq("id", activityId)
+    .maybeSingle<{ id: string; judul: string; dibuat_oleh: string }>();
+  if (!keg) return;
+
+  if (keputusan === "setuju") {
+    // B. Masih ada tahap berikutnya? Beritahu penyetuju berikutnya.
+    const giliran = await cariPenyetujuGiliran(sb, activityId, tahap);
+    if (giliran) {
+      const namaPeran = NAMA_PERAN_NOTIF[giliran.peran] ?? giliran.peran;
+      for (const uid of giliran.userIds) {
+        await kirimSatu(sb, {
+          user_id: uid,
+          jenis: "persetujuan_menunggu",
+          judul: `Menunggu persetujuan Anda: ${keg.judul}`,
+          pesan: `Kegiatan ini menunggu keputusan Anda sebagai ${namaPeran}. Buka untuk meninjau dan memberi keputusan.`,
+          tautan: `/admin/kegiatan/${activityId}`,
+          activity_id: activityId,
+        });
+      }
+      return;
+    }
+    // Tidak ada tahap berikutnya -> disetujui penuh. Beritahu pengusul.
+    await kirimSatu(sb, {
+      user_id: keg.dibuat_oleh,
+      jenis: "kegiatan_disetujui",
+      judul: `Kegiatan disetujui: ${keg.judul}`,
+      pesan:
+        tahap === "perencanaan"
+          ? "Kegiatan Anda sudah disetujui penuh dan tampil di halaman Agenda publik."
+          : "Laporan kegiatan Anda sudah disetujui penuh dan kegiatan masuk arsip.",
+      tautan: `/admin/kegiatan/${activityId}`,
+      activity_id: activityId,
+    });
+    return;
+  }
+
+  // Revisi atau tolak -> beritahu pengusul.
+  await kirimSatu(sb, {
+    user_id: keg.dibuat_oleh,
+    jenis: keputusan === "revisi" ? "kegiatan_revisi" : "kegiatan_ditolak",
+    judul:
+      keputusan === "revisi"
+        ? `Perlu revisi: ${keg.judul}`
+        : `Kegiatan ditolak: ${keg.judul}`,
+    pesan:
+      keputusan === "revisi"
+        ? "Kegiatan Anda dikembalikan untuk diperbaiki. Buka untuk melihat catatannya."
+        : "Kegiatan Anda ditolak. Buka untuk melihat catatannya.",
+    tautan: `/admin/kegiatan/${activityId}`,
+    activity_id: activityId,
+  });
+}
+
 export async function hariMenunggu(activityId: string): Promise<number> {
   const sb = klienAdmin();
   const { data: keg } = await sb

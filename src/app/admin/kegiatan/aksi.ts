@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { klienServer } from "@/lib/supabase-server";
 import { penggunaSaatIni } from "@/lib/supabase-server";
+import { beritahuPenyetujuBerikut } from "@/lib/notifikasi";
 
 /** Membuat kegiatan baru beserta rincian perencanaannya. */
 export async function buatKegiatan(masukan: {
@@ -141,6 +142,10 @@ export async function ajukanKegiatan(activityId: string) {
     pelaku_id: pengguna.id,
     pelaku_nama: pengguna.nama,
   });
+
+  // A. Beritahu penyetuju yang gilirannya, supaya mereka langsung tahu tanpa
+  //    perlu membuka beranda panel lebih dulu.
+  await beritahuPenyetujuBerikut(activityId, "perencanaan");
 
   revalidatePath("/admin/kegiatan");
   revalidatePath(`/admin/kegiatan/${activityId}`);

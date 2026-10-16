@@ -5,6 +5,7 @@ import { klienServer, penggunaSaatIni } from "@/lib/supabase-server";
 import { klienAdmin } from "@/lib/supabase-admin";
 import type { Peran } from "@/lib/kegiatan";
 import { racikBeritaOtomatis } from "@/lib/publikasi";
+import { beritahuSetelahKeputusan, beritahuPenyetujuBerikut } from "@/lib/notifikasi";
 
 /** Jenjang persetujuan untuk sebuah tahap (diambil dari tabel pengaturan alur). */
 async function jenjang(sb: Awaited<ReturnType<typeof klienServer>>, tahap: "perencanaan" | "pelaporan") {
@@ -138,6 +139,15 @@ export async function beriKeputusan(
     });
   }
 
+  // B & C. Setelah keputusan diberikan:
+  //  - kalau masih ada tahap berikutnya -> beritahu penyetuju berikutnya
+  //  - kalau sudah final -> beritahu pengusul (disetujui / revisi / ditolak)
+  await beritahuSetelahKeputusan(
+    activityId,
+    keputusan as "setuju" | "revisi" | "tolak",
+    tahap as "perencanaan" | "pelaporan",
+  );
+
   revalidatePath(`/admin/kegiatan/${activityId}`);
   revalidatePath("/admin/kegiatan");
   revalidatePath("/admin");
@@ -204,6 +214,12 @@ export async function ubahTahap(
     pelaku_id: pengguna.id,
     pelaku_nama: pengguna.nama,
   });
+
+  // Saat laporan diajukan, beritahu penyetuju pertama untuk LAPORAN — yaitu
+  // Bendahara (urutan laporan berbeda dari urutan kegiatan).
+  if (aksi === "ajukan_laporan") {
+    await beritahuPenyetujuBerikut(activityId, "pelaporan");
+  }
 
   revalidatePath(`/admin/kegiatan/${activityId}`);
   revalidatePath("/admin/kegiatan");
