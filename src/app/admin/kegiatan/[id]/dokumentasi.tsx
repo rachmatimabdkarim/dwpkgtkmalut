@@ -346,15 +346,22 @@ export function PanelDokumentasi({
                   <span className="teks-3 text-n-500 truncate max-w-[180px]">
                     {foto.nama_asli}
                   </span>
-                  <TombolHalus
-                    type="button"
-                    ukuran="kecil"
-                    disabled={isPending}
-                    onClick={() => setFotoDihapus(foto)}
-                    className="text-bad-fg hover:bg-bad-bg min-h-[44px]"
-                  >
-                    Hapus
-                  </TombolHalus>
+                  {/* Hapus hanya untuk yang berhak mengubah — sejalan dengan
+                      sakelar visibilitas di atas. Tanpa pengaman ini, siapa pun
+                      yang bisa membuka tab Dokumentasi melihat tombol Hapus. */}
+                  {bolehUbahPublik ? (
+                    <TombolHalus
+                      type="button"
+                      ukuran="kecil"
+                      disabled={isPending}
+                      onClick={() => setFotoDihapus(foto)}
+                      className="text-bad-fg hover:bg-bad-bg min-h-[44px]"
+                    >
+                      Hapus
+                    </TombolHalus>
+                  ) : (
+                    <span className="teks-3 text-n-400">Hanya pengelola</span>
+                  )}
                 </div>
               </Kartu>
             );
