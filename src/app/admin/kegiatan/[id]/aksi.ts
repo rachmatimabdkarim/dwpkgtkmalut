@@ -206,8 +206,17 @@ export async function ubahTahap(
     return { galat: "Tahap kegiatan saat ini belum memungkinkan langkah tersebut." };
   }
 
-  const { error } = await sb.from("activities").update({ status: aturan.ke }).eq("id", activityId);
-  if (error) return { galat: error.message };
+  // Kunci & arsip lewat fungsi database berpemilik hak: kebijakan UPDATE tabel
+  // activities tidak mengenali pengusul, sehingga pembaruan langsung tidak
+  // mengenai baris mana pun dan layar tidak menampilkan sebabnya. Fungsi ini
+  // memeriksa sendiri pemilik catatan dan status laporannya.
+  if (aksi === "arsipkan") {
+    const { error: galatArsip } = await sb.rpc("arsipkan_kegiatan", { p_activity: activityId });
+    if (galatArsip) return { galat: galatArsip.message };
+  } else {
+    const { error } = await sb.from("activities").update({ status: aturan.ke }).eq("id", activityId);
+    if (error) return { galat: error.message };
+  }
 
   // WAJIB: simpan isian laporan LEBIH DULU, baru ubah status. Tanpa ini,
   // laporan yang diajukan tidak berisi apa pun (tabel activity_reports kosong)
