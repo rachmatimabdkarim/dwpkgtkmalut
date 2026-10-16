@@ -214,6 +214,7 @@ export default async function DetailKegiatan({
   // Tanpa ini, kegiatan tersebut menggantung tanpa ada yang bisa menyetujui.
   const { data: dilewatiData } = await sb.rpc("tahap_dilewati_daftar", {
     p_activity: id,
+    p_alur: namaAlur,
   });
   const urutanDilewati = new Set<number>(
     Array.isArray(dilewatiData) ? (dilewatiData as number[]) : [],

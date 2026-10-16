@@ -69,6 +69,7 @@ export async function beriKeputusan(
   // menyetujui.
   const { data: dilewatiData } = await sb.rpc("tahap_dilewati_daftar", {
     p_activity: activityId,
+    p_alur: tahap,
   });
   const urutanDilewati = new Set<number>(
     Array.isArray(dilewatiData) ? (dilewatiData as number[]) : [],
