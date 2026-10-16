@@ -174,6 +174,7 @@ async function cekDelegasi(
 export async function ubahTahap(
   activityId: string,
   aksi: "mulai" | "selesai" | "ajukan_laporan" | "arsipkan",
+  isiLaporan?: { ringkasan: string; hasil: string; kendala: string; rekomendasi: string; jumlahHadir: number },
 ) {
   const pengguna = await penggunaSaatIni();
   if (!pengguna) return { galat: "Sesi Anda sudah berakhir." };
@@ -206,6 +207,34 @@ export async function ubahTahap(
 
   const { error } = await sb.from("activities").update({ status: aturan.ke }).eq("id", activityId);
   if (error) return { galat: error.message };
+
+  // WAJIB: simpan isian laporan LEBIH DULU, baru ubah status. Tanpa ini,
+  // laporan yang diajukan tidak berisi apa pun (tabel activity_reports kosong)
+  // meski status dan riwayatnya terlihat benar.
+  if (aksi === "ajukan_laporan" && isiLaporan) {
+    const { data: rab } = await sb
+      .from("budget_items")
+      .select("jumlah, harga_satuan")
+      .eq("activity_id", activityId);
+    const total = (rab ?? []).reduce(
+      (j: number, b: { jumlah: number; harga_satuan: number }) => j + b.jumlah * b.harga_satuan,
+      0,
+    );
+    const { error: galatLaporan } = await sb.from("activity_reports").upsert(
+      {
+        activity_id: activityId,
+        ringkasan: isiLaporan.ringkasan,
+        hasil: isiLaporan.hasil,
+        kendala: isiLaporan.kendala,
+        rekomendasi: isiLaporan.rekomendasi,
+        jumlah_hadir: isiLaporan.jumlahHadir,
+        total_anggaran: total,
+        disusun_oleh: pengguna.id,
+      },
+      { onConflict: "activity_id" },
+    );
+    if (galatLaporan) return { galat: "Gagal menyimpan isian laporan: " + galatLaporan.message };
+  }
 
   await sb.from("activity_logs").insert({
     activity_id: activityId,

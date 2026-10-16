@@ -277,6 +277,7 @@ export function PanelLaporan({
   activityId,
   isi,
   bisaUbah,
+  bisaAjukan,
   rab,
 }: {
   activityId: string;
@@ -288,6 +289,7 @@ export function PanelLaporan({
     jumlahHadir: number;
   };
   bisaUbah: boolean;
+  bisaAjukan: boolean;
   rab: BarisRab[];
 }) {
   const router = useRouter();
@@ -297,6 +299,7 @@ export function PanelLaporan({
   const [rekomendasi, setRekomendasi] = useState(isi.rekomendasi);
   const [jumlahHadir, setJumlahHadir] = useState(isi.jumlahHadir);
   const [sedang, setSedang] = useState(false);
+  const [sedangAjukan, setSedangAjukan] = useState(false);
   const [pesan, setPesan] = useState("");
   const [galat, setGalat] = useState("");
 
@@ -311,6 +314,21 @@ export function PanelLaporan({
     setSedang(false);
     if (r.galat) return setGalat(r.galat);
     setPesan("Laporan tersimpan.");
+    router.refresh();
+  }
+
+  // Simpan isian SEKALIGUS ajukan, supaya laporan yang diperiksa penyetuju
+  // tidak pernah kosong.
+  async function ajukan() {
+    setGalat("");
+    setPesan("");
+    setSedangAjukan(true);
+    const r = await ubahTahap(activityId, "ajukan_laporan", {
+      ringkasan, hasil, kendala, rekomendasi, jumlahHadir,
+    });
+    setSedangAjukan(false);
+    if (r.galat) return setGalat(r.galat);
+    setPesan("Laporan tersimpan dan diajukan untuk persetujuan berjenjang.");
     router.refresh();
   }
 
@@ -370,7 +388,18 @@ export function PanelLaporan({
         )}
 
         {bisaUbah && (
-          <div>
+          <div className="flex flex-col gap-3">
+            {bisaAjukan && (
+              <div>
+                <TombolUtama onClick={ajukan} disabled={sedangAjukan}>
+                  {sedangAjukan ? "Mengajukan…" : "Simpan & Ajukan Laporan"}
+                </TombolUtama>
+                <p className="teks-3 text-n-500 mt-2">
+                  Isian laporan ikut tersimpan, lalu masuk pemeriksaan berjenjang:
+                  Bendahara → Sekretaris → Wakil Ketua → Ketua.
+                </p>
+              </div>
+            )}
             <TombolUtama onClick={simpan} disabled={sedang}>
               {sedang ? "Menyimpan…" : "Simpan Laporan"}
             </TombolUtama>

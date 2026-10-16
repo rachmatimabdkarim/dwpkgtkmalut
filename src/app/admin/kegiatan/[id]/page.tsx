@@ -5,7 +5,7 @@ import { sesiWajib } from "@/lib/sesi-server";
 import { klienServer } from "@/lib/supabase-server";
 import { Kartu, JudulSeksi, Lencana, TombolHalus } from "@/components/dasar";
 import { labelStatus, tahapSaatIni, formatTanggal, formatRupiah, type Peran } from "@/lib/kegiatan";
-import { PanelTindakan, PanelLaporan, LinimasaRiwayat, TombolUtamaAjukan } from "./panel";
+import { PanelTindakan, PanelLaporan, LinimasaRiwayat } from "./panel";
 import { SembunyikanToggle } from "./sembunyikan";
 import { PanelPerbaikan } from "./perbaikan";
 import { PanelPanitia, type PanitiaItem, type PengurusOpsi } from "./panitia";
@@ -579,23 +579,18 @@ export default async function DetailKegiatan({
                     ["super_admin", "ketua", "wakil_ketua", "sekretaris", "bendahara", "ketua_seksi"].includes(p),
                   )
                 }
+                bisaAjukan={
+                  keg.status === "selesai" &&
+                  pengguna.peran.some((p) =>
+                    ["super_admin", "ketua", "wakil_ketua", "sekretaris", "bendahara", "ketua_seksi"].includes(p),
+                  )
+                }
                 rab={(rab ?? []) as unknown as {
                   id: string; uraian: string; satuan: string | null; jumlah: number;
                   harga_satuan: number; realisasi: number | null;
                 }[]}
               />
 
-              {/* Setelah isi laporan tersimpan, laporan diajukan untuk persetujuan */}
-              {keg.status === "selesai" && (
-                <Kartu className="p-4">
-                  <JudulSeksi>Ajukan laporan</JudulSeksi>
-                  <p className="teks-3 text-n-500 mb-3">
-                    Pastikan isi laporan sudah benar. Setelah diajukan, laporan masuk pemeriksaan
-                    berjenjang: Bendahara → Sekretaris → Wakil Ketua → Ketua.
-                  </p>
-                  <TombolUtamaAjukan activityId={keg.id} />
-                </Kartu>
-              )}
             </div>
           )}
 
