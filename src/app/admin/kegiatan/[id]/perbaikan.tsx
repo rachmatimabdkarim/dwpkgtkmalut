@@ -63,7 +63,8 @@ export function PanelPerbaikan({
           Perbaiki Data Kegiatan
         </TombolSekunder>
         <p className="mt-2 text-[12.5px] text-n-500">
-          Mengubah tanggal, tempat, atau ringkasan publik secara langsung.
+          Mengubah tanggal, tempat, atau ringkasan publik —{" "}
+          <strong>langsung tersimpan</strong>, tidak perlu persetujuan ulang.
         </p>
       </div>
     );

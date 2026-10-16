@@ -298,6 +298,19 @@ export default async function DetailKegiatan({
     ? `Menunggu keputusan ${berikut.peran.replace(/_/g, " ")}.`
     : "Tidak ada yang menunggu tindakan saat ini.";
 
+  // Jejak terakhir siapa yang mengubah anggaran kegiatan ini.
+  const { data: jejakAnggaran } = await sb
+    .from("activity_logs")
+    .select("keterangan, pelaku_nama, waktu")
+    .eq("activity_id", id)
+    .in("aksi", ["ubah_anggaran", "tambah_anggaran", "hapus_anggaran"])
+    .order("waktu", { ascending: false })
+    .limit(1);
+
+  const ubahAnggaranTerakhir = (jejakAnggaran ?? [])[0] as
+    | { keterangan: string; pelaku_nama: string | null; waktu: string }
+    | undefined;
+
   const total = (rab ?? []).reduce(
     (j: number, b: { jumlah: number; harga_satuan: number }) => j + b.jumlah * b.harga_satuan,
     0,
@@ -463,6 +476,42 @@ export default async function DetailKegiatan({
                   <p className="teks-3 text-n-500 mt-3">
                     RAB tidak pernah ditampilkan di web publik.
                   </p>
+
+                  {/* Keterangan kunci anggaran + jejak perubahan terakhir. */}
+                  <div
+                    className="mt-4 rounded-token px-3.5 py-3"
+                    style={{
+                      backgroundColor: "var(--halaman)",
+                      border: "1px solid var(--n-200)",
+                    }}
+                  >
+                    {keg.status === "draf" || keg.status === "revisi" ? (
+                      <p className="text-[13px] text-n-700">
+                        Anggaran masih dapat diubah karena perencanaannya belum
+                        disetujui.
+                      </p>
+                    ) : (
+                      <p className="text-[13px] text-n-700">
+                        <strong>Anggaran terkunci.</strong> Kegiatan ini sudah
+                        disetujui, jadi angkanya tidak dapat diubah langsung —
+                        gunakan <strong>Ajukan Perubahan</strong> agar disetujui
+                        ulang.
+                      </p>
+                    )}
+                    {ubahAnggaranTerakhir && (
+                      <p className="text-[12.5px] text-n-500 mt-2">
+                        Terakhir diubah: {ubahAnggaranTerakhir.keterangan} — oleh{" "}
+                        {ubahAnggaranTerakhir.pelaku_nama ?? "tidak diketahui"} pada{" "}
+                        {new Date(ubahAnggaranTerakhir.waktu).toLocaleString("id-ID", {
+                          day: "numeric",
+                          month: "long",
+                          year: "numeric",
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        })}
+                      </p>
+                    )}
+                  </div>
                 </>
               )}
             </Kartu>

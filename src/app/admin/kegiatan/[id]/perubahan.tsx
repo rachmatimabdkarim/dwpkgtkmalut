@@ -128,7 +128,7 @@ export function PanelPerubahan({
         <div>
           <JudulSeksi>Pengajuan Perubahan Kegiatan</JudulSeksi>
           <p className="teks-3 text-n-500">
-            Usulan perubahan tanggal, tempat, anggaran, atau rincian lainnya setelah kegiatan disetujui.
+            Untuk hal yang <strong>harus disetujui ulang</strong> — seperti anggaran. Perubahan tanggal, tempat, dan ringkasan publik dipakai tombol &ldquo;Perbaiki Data Kegiatan&rdquo; di atas (langsung tersimpan).
           </p>
         </div>
         {bisaMengajukan && !bukaForm && (
@@ -151,10 +151,11 @@ export function PanelPerubahan({
               value={jenis}
               onChange={(e) => setJenis(e.target.value as ItemPengajuan["jenis"])}
             >
-              <option value="tanggal">Tanggal Pelaksanaan</option>
-              <option value="tempat">Tempat / Lokasi</option>
+              {/* Tanggal dan tempat tidak lagi di sini — sudah ditangani
+                  tombol "Perbaiki Data Kegiatan" yang langsung tersimpan.
+                  Yang tersisa adalah hal yang memang harus disetujui ulang. */}
               <option value="anggaran">Rincian Anggaran (RAB)</option>
-              <option value="lain">Lainnya</option>
+              <option value="lain">Lainnya (hal yang perlu persetujuan ulang)</option>
             </Pilihan>
           </Kolom>
 

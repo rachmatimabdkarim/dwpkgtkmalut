@@ -381,13 +381,49 @@ export async function aturSembunyi(activityId: string, sembunyi: boolean) {
 }
 
 /** Menyimpan satu baris RAB. */
+/** Status saat RAB masih bebas diubah — yaitu selama perencanaan belum disetujui. */
+const STATUS_RAB_TERBUKA = ["draf", "revisi"];
+
+/**
+ * Memastikan RAB masih boleh diubah.
+ *
+ * Sesudah kegiatan disetujui, angka anggaran sudah menjadi bagian dari
+ * persetujuan berjenjang. Kalau bisa diubah diam-diam, keputusan Bendahara dan
+ * penyetuju lain jadi tidak bermakna. Karena itu RAB dikunci dan perubahannya
+ * harus lewat "Ajukan Perubahan".
+ */
+async function periksaRabTerbuka(
+  sb: Awaited<ReturnType<typeof klienServer>>,
+  activityId: string,
+) {
+  const { data: keg } = await sb
+    .from("activities")
+    .select("status, judul")
+    .eq("id", activityId)
+    .maybeSingle<{ status: string; judul: string }>();
+  if (!keg) return { galat: "Kegiatan tidak ditemukan." };
+  if (!STATUS_RAB_TERBUKA.includes(keg.status)) {
+    return {
+      galat:
+        "Anggaran kegiatan ini sudah dikunci karena kegiatannya sudah disetujui. Untuk mengubahnya, gunakan Ajukan Perubahan supaya disetujui ulang.",
+    };
+  }
+  return { ok: true as const };
+}
+
 export async function simpanRab(activityId: string, baris: {
   id?: string; uraian: string; satuan: string; jumlah: number; hargaSatuan: number;
 }) {
   const pengguna = await penggunaSaatIni();
   if (!pengguna) return { galat: "Sesi Anda sudah berakhir." };
   if (!baris.uraian.trim()) return { galat: "Uraian wajib diisi." };
+
   const sb = await klienServer();
+
+  // RAB hanya boleh diubah selama perencanaan belum disetujui.
+  const izin = await periksaRabTerbuka(sb, activityId);
+  if ("galat" in izin) return { galat: izin.galat };
+
   const isi = {
     activity_id: activityId,
     uraian: baris.uraian.trim(),
@@ -399,14 +435,49 @@ export async function simpanRab(activityId: string, baris: {
     ? await sb.from("budget_items").update(isi).eq("id", baris.id)
     : await sb.from("budget_items").insert(isi);
   if (hasil.error) return { galat: hasil.error.message };
+
+  // Catat jejaknya: siapa mengubah apa, dan berapa nilainya.
+  await sb.from("activity_logs").insert({
+    activity_id: activityId,
+    aksi: baris.id ? "ubah_anggaran" : "tambah_anggaran",
+    keterangan: `${baris.id ? "Mengubah" : "Menambah"} rincian anggaran "${baris.uraian.trim()}" — ${baris.jumlah} × Rp${baris.hargaSatuan.toLocaleString("id-ID")}`,
+    pelaku_id: pengguna.id,
+    pelaku_nama: pengguna.nama,
+  });
+
   revalidatePath(`/admin/kegiatan/${activityId}`);
   return { ok: true };
 }
 
 export async function hapusRab(activityId: string, id: string) {
+  const pengguna = await penggunaSaatIni();
+  if (!pengguna) return { galat: "Sesi Anda sudah berakhir." };
+
   const sb = await klienServer();
+
+  // Sebelumnya fungsi ini TIDAK memeriksa apa pun — siapa saja yang sudah masuk
+  // dapat menghapus baris anggaran kegiatan apa pun. Sekarang diperketat.
+  const izin = await periksaRabTerbuka(sb, activityId);
+  if ("galat" in izin) return { galat: izin.galat };
+
+  // Ambil dulu keterangannya untuk jejak, sebelum barisnya hilang.
+  const { data: baris } = await sb
+    .from("budget_items")
+    .select("uraian, jumlah, harga_satuan")
+    .eq("id", id)
+    .maybeSingle<{ uraian: string; jumlah: number; harga_satuan: number }>();
+
   const { error } = await sb.from("budget_items").delete().eq("id", id);
   if (error) return { galat: error.message };
+
+  await sb.from("activity_logs").insert({
+    activity_id: activityId,
+    aksi: "hapus_anggaran",
+    keterangan: `Menghapus rincian anggaran "${baris?.uraian ?? id}"`,
+    pelaku_id: pengguna.id,
+    pelaku_nama: pengguna.nama,
+  });
+
   revalidatePath(`/admin/kegiatan/${activityId}`);
   return { ok: true };
 }
