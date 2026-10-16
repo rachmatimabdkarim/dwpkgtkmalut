@@ -274,25 +274,35 @@ export async function ajukanPerubahan(
   const pengguna = await penggunaSaatIni();
   if (!pengguna) return { galat: "Sesi Anda sudah berakhir." };
 
-  const bolehMengajukan = pengguna.peran.some((p) => PERAN_INTI.includes(p as Peran));
-  if (!bolehMengajukan) {
-    return { galat: "Hanya pengurus inti yang berwenang mengajukan perubahan kegiatan." };
-  }
-
   if (!usulan.trim()) return { galat: "Usulan perubahan wajib diisi." };
   if (!alasan.trim()) return { galat: "Alasan perubahan wajib diisi." };
 
   const sb = await klienServer();
   const { data: keg } = await sb
     .from("activities")
-    .select("id, judul, status")
+    .select("id, judul, status, dibuat_oleh")
     .eq("id", activityId)
-    .maybeSingle<{ id: string; judul: string; status: string }>();
+    .maybeSingle<{ id: string; judul: string; status: string; dibuat_oleh: string }>();
 
   if (!keg) return { galat: "Kegiatan tidak ditemukan." };
+
+  // A. Hanya pengusul kegiatan dan Sekretaris yang berwenang mengajukan
+  //    perubahan. Sebelumnya semua pengurus inti, termasuk Ketua Bidang bidang
+  //    lain yang tidak ada kaitannya dengan kegiatan ini.
+  const pengusul = keg.dibuat_oleh === pengguna.id;
+  const sekretaris = pengguna.peran.includes("sekretaris");
+  const superAdmin = pengguna.peran.includes("super_admin");
+  if (!pengusul && !sekretaris && !superAdmin) {
+    return {
+      galat:
+        "Hanya pengusul kegiatan ini atau Sekretaris yang berwenang mengajukan perubahan.",
+    };
+  }
   // Perubahan boleh diajukan setelah perencanaan disetujui, termasuk ketika
   // kegiatan sudah selesai laporan atau diarsipkan (untuk koreksi data).
   // Daftar ini HARUS sama dengan yang dipakai halaman detail kegiatan.
+  // C. Kegiatan yang sudah DIARSIPKAN tidak dapat diubah lagi — arsip adalah
+  //    catatan final organisasi. Sebelumnya "arsip" masih ikut daftar ini.
   const statusBolehPerubahan = [
     "disetujui",
     "berjalan",
@@ -300,8 +310,13 @@ export async function ajukanPerubahan(
     "laporan_diajukan",
     "laporan_dalam_review",
     "laporan_disetujui",
-    "arsip",
   ];
+  if (keg.status === "arsip") {
+    return {
+      galat:
+        "Kegiatan ini sudah diarsipkan. Arsip adalah catatan final, jadi perubahannya tidak dapat diajukan lagi.",
+    };
+  }
   if (!statusBolehPerubahan.includes(keg.status)) {
     return {
       galat: "Pengajuan perubahan hanya dapat dilakukan setelah tahap perencanaan kegiatan disetujui.",

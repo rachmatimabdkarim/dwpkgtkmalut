@@ -149,6 +149,90 @@ export async function ajukanKegiatan(activityId: string) {
 }
 
 /**
+ * Pengusul memperbaiki data kegiatan secara langsung.
+ *
+ * Aturan: hanya PENGUSUL (atau Super Admin), hanya selama kegiatan belum
+ * diarsipkan dan laporannya belum diajukan. Sesudah itu perbaikan harus lewat
+ * "Ajukan Perubahan" supaya keputusan penyetuju tidak dilangkahi.
+ *
+ * Setiap perbaikan dicatat di riwayat, supaya jejaknya tetap jelas.
+ */
+export async function perbaikiKegiatan(
+  activityId: string,
+  perubahan: { tanggalMulai?: string; tanggalSelesai?: string; tempat?: string; ringkasan?: string },
+) {
+  const pengguna = await penggunaSaatIni();
+  if (!pengguna) return { galat: "Sesi Anda sudah berakhir." };
+
+  const sb = await klienServer();
+  const { data: keg } = await sb
+    .from("activities")
+    .select("id, judul, status, dibuat_oleh, tanggal_mulai, tempat, ringkasan")
+    .eq("id", activityId)
+    .maybeSingle<{
+      id: string; judul: string; status: string; dibuat_oleh: string;
+      tanggal_mulai: string | null; tempat: string | null; ringkasan: string | null;
+    }>();
+  if (!keg) return { galat: "Kegiatan tidak ditemukan." };
+
+  const pengusul = keg.dibuat_oleh === pengguna.id;
+  if (!pengusul && !pengguna.peran.includes("super_admin")) {
+    return { galat: "Hanya pengusul kegiatan ini yang dapat memperbaikinya langsung." };
+  }
+
+  // Sesudah laporan diajukan atau kegiatan diarsipkan, perbaikan harus lewat
+  // pengajuan perubahan resmi.
+  const statusTerkunci = [
+    "laporan_diajukan",
+    "laporan_dalam_review",
+    "laporan_disetujui",
+    "arsip",
+  ];
+  if (statusTerkunci.includes(keg.status)) {
+    return {
+      galat:
+        "Laporannya sudah diajukan, jadi data kegiatan tidak dapat diubah langsung. Silakan ajukan perubahan resmi.",
+    };
+  }
+
+  // Susun hanya kolom yang benar-benar berubah.
+  const baru: Record<string, string | null> = {};
+  const catatanPerubahan: string[] = [];
+  if (perubahan.tanggalMulai && perubahan.tanggalMulai !== keg.tanggal_mulai) {
+    baru.tanggal_mulai = perubahan.tanggalMulai;
+    catatanPerubahan.push(`tanggal: ${keg.tanggal_mulai ?? "—"} → ${perubahan.tanggalMulai}`);
+  }
+  if (perubahan.tempat !== undefined && perubahan.tempat.trim() !== (keg.tempat ?? "")) {
+    baru.tempat = perubahan.tempat.trim() || null;
+    catatanPerubahan.push(`tempat: ${keg.tempat ?? "—"} → ${perubahan.tempat.trim() || "—"}`);
+  }
+  if (perubahan.ringkasan !== undefined && perubahan.ringkasan.trim() !== (keg.ringkasan ?? "")) {
+    baru.ringkasan = perubahan.ringkasan.trim() || null;
+    catatanPerubahan.push("ringkasan untuk publik diperbarui");
+  }
+
+  if (catatanPerubahan.length === 0) {
+    return { galat: "Tidak ada yang berubah, jadi tidak ada yang disimpan." };
+  }
+
+  const { error } = await sb.from("activities").update(baru).eq("id", activityId);
+  if (error) return { galat: "Gagal menyimpan perbaikan: " + error.message };
+
+  await sb.from("activity_logs").insert({
+    activity_id: activityId,
+    aksi: "perbaikan_langsung",
+    keterangan: `Pengusul memperbaiki data kegiatan — ${catatanPerubahan.join("; ")}`,
+    pelaku_id: pengguna.id,
+    pelaku_nama: pengguna.nama,
+  });
+
+  revalidatePath("/admin/kegiatan");
+  revalidatePath(`/admin/kegiatan/${activityId}`);
+  revalidatePath("/agenda");
+  return { ok: true };
+}
+
+/**
  * Menarik kembali ajuan kegiatan supaya bisa diperbaiki pengusul.
  * Hanya boleh oleh pengusul sendiri (atau Super Admin), dan hanya selama
  * belum ada satu pun persetujuan — kalau sudah ada yang menyetujui, kegiatannya

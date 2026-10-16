@@ -7,6 +7,7 @@ import { Kartu, JudulSeksi, Lencana, TombolHalus } from "@/components/dasar";
 import { labelStatus, tahapSaatIni, formatTanggal, formatRupiah, type Peran } from "@/lib/kegiatan";
 import { PanelTindakan, PanelLaporan, LinimasaRiwayat, TombolUtamaAjukan } from "./panel";
 import { SembunyikanToggle } from "./sembunyikan";
+import { PanelPerbaikan } from "./perbaikan";
 import { PanelPanitia, type PanitiaItem, type PengurusOpsi } from "./panitia";
 import { PanelPresensi, type PesertaItem } from "./presensi";
 import { PanelDokumentasi, type FotoItem } from "./dokumentasi";
@@ -119,6 +120,8 @@ export default async function DetailKegiatan({
   // Perubahan hanya masuk akal SETELAH perencanaan disetujui. Kegiatan yang
   // sudah selesai laporan atau diarsipkan pun masih boleh diajukan perubahan
   // (mis. koreksi tanggal/tempat yang tercatat keliru), karena itu ikut dicakup.
+  // C. "arsip" sengaja TIDAK dimasukkan — kegiatan yang sudah diarsipkan adalah
+  // catatan final dan tidak boleh diubah lagi.
   const tampilkanPerubahan = [
     "disetujui",
     "berjalan",
@@ -126,7 +129,6 @@ export default async function DetailKegiatan({
     "laporan_diajukan",
     "laporan_dalam_review",
     "laporan_disetujui",
-    "arsip",
   ].includes(keg.status);
   const { data: dataPerubahan } = tampilkanPerubahan
     ? await sb
@@ -165,6 +167,7 @@ export default async function DetailKegiatan({
   const apakahPengurusInti = pengguna.peran.some((p) =>
     ["super_admin", "ketua", "wakil_ketua", "sekretaris", "bendahara", "ketua_seksi"].includes(p),
   );
+
 
   const bolehUbahPublik =
     pengguna.id === keg.penanggung_jawab ||
@@ -248,6 +251,22 @@ export default async function DetailKegiatan({
     (delegasi ?? []).some((d: { ke_peran: string }) => peranSaya.includes(d.ke_peran as Peran)) ?? false;
 
   const pengusulSendiri = keg.dibuat_oleh === pengguna.id;
+
+  // A. Mengajukan perubahan hanya untuk PENGUSUL kegiatan dan Sekretaris
+  //    (plus Super Admin). Sebelumnya semua pengurus inti — termasuk Ketua
+  //    Bidang bidang lain yang tidak ada kaitannya dengan kegiatan ini.
+  const bolehAjukanPerubahan =
+    pengusulSendiri ||
+    pengguna.peran.includes("sekretaris") ||
+    pengguna.peran.includes("super_admin");
+
+  // B. Perbaikan langsung oleh pengusul — hanya sebelum laporan diajukan.
+  const bolehPerbaikiLangsung =
+    (pengusulSendiri || pengguna.peran.includes("super_admin")) &&
+    !["laporan_diajukan", "laporan_dalam_review", "laporan_disetujui", "arsip"].includes(keg.status);
+
+  // C. Kegiatan yang sudah diarsipkan tidak dapat diubah lagi.
+  const perubahanTertutup = keg.status === "arsip";
 
   // Peran cocok dengan tahap yang sedang menunggu...
   const peranCocok = !!berikut && (peranSaya.includes(berikut.peran as Peran) || lewatDelegasi);
@@ -371,11 +390,25 @@ export default async function DetailKegiatan({
                 </dl>
               </Kartu>
 
-              {tampilkanPerubahan && (
+              {/* B. Pengusul memperbaiki langsung, tanpa alur pengajuan. */}
+              {bolehPerbaikiLangsung && (
+                <div className="mt-4">
+                  <PanelPerbaikan
+                    activityId={keg.id}
+                    tanggalMulai={keg.tanggal_mulai}
+                    tempat={keg.tempat}
+                    ringkasan={keg.ringkasan}
+                  />
+                </div>
+              )}
+
+              {/* A & C. Pengajuan perubahan resmi — untuk hal yang harus
+                  disetujui ulang, dan tertutup untuk kegiatan yang diarsipkan. */}
+              {tampilkanPerubahan && !perubahanTertutup && (
                 <PanelPerubahan
                   activityId={keg.id}
                   daftarPengajuan={daftarPengajuan}
-                  bisaMengajukan={apakahPengurusInti}
+                  bisaMengajukan={bolehAjukanPerubahan}
                   bisaMemutuskan={apakahPengurusInti}
                 />
               )}
