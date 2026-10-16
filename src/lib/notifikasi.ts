@@ -193,7 +193,7 @@ async function cariPenyetujuGiliran(
   sb: ReturnType<typeof klienAdmin>,
   activityId: string,
   tahap: "perencanaan" | "pelaporan",
-): Promise<{ userIds: string[]; peran: string } | null> {
+): Promise<{ userIds: string[]; peran: string; urutan: number } | null> {
   const { data: keg } = await sb
     .from("activities")
     .select("id, dibuat_oleh, section_id")
@@ -294,7 +294,7 @@ async function cariPenyetujuGiliran(
   }
 
   if (userIds.length === 0) return null;
-  return { userIds, peran: berikut.peran };
+  return { userIds, peran: berikut.peran, urutan: berikut.urutan };
 }
 
 /** Mengirim satu pemberitahuan. Tidak melempar galat agar alur utama tidak terganggu. */
@@ -343,7 +343,9 @@ export async function beritahuPenyetujuBerikut(
   for (const uid of giliran.userIds) {
     await kirimSatu(sb, {
       user_id: uid,
-      jenis: "persetujuan_menunggu",
+      // Tahap disertakan di jenis notifikasi: tanpa ini, pemberitahuan tahap
+      // berikutnya dianggap duplikat dan dibuang diam-diam.
+      jenis: `persetujuan_menunggu_${tahap}_${giliran.urutan}`,
       judul: `Menunggu persetujuan Anda: ${keg.judul}`,
       pesan: `Kegiatan ini menunggu keputusan Anda sebagai ${namaPeran}. Buka untuk meninjau dan memberi keputusan.`,
       tautan: `/admin/kegiatan/${activityId}`,
@@ -378,7 +380,7 @@ export async function beritahuSetelahKeputusan(
       for (const uid of giliran.userIds) {
         await kirimSatu(sb, {
           user_id: uid,
-          jenis: "persetujuan_menunggu",
+          jenis: `persetujuan_menunggu_${tahap}_${giliran.urutan}`,
           judul: `Menunggu persetujuan Anda: ${keg.judul}`,
           pesan: `Kegiatan ini menunggu keputusan Anda sebagai ${namaPeran}. Buka untuk meninjau dan memberi keputusan.`,
           tautan: `/admin/kegiatan/${activityId}`,
