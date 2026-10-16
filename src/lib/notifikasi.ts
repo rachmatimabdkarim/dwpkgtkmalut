@@ -224,8 +224,38 @@ async function cariPenyetujuGiliran(
   );
 
   // Tahap yang otomatis dilewati jangan dianggap giliran.
-  const { data: dilewati } = await sb.rpc("tahap_dilewati_daftar", { p_activity: activityId });
-  const urutanDilewati = new Set<number>(Array.isArray(dilewati) ? dilewati : []);
+  //
+  // Perhitungannya dilakukan DI SINI, bukan lewat fungsi ber-sesi di pusat data:
+  // fungsi itu sebagian bergantung pada identitas orang yang sedang masuk,
+  // sedangkan pemanggilan ini terjadi dari sisi server tanpa sesi — akibatnya
+  // hasilnya salah dan notifikasi tidak pernah terkirim.
+  const { data: bidangKegRow } = await sb
+    .from("sections")
+    .select("nama")
+    .eq("id", keg.section_id ?? "")
+    .maybeSingle<{ nama: string }>();
+  const bidangKegiatan = bidangKegRow?.nama ?? null;
+
+  const { data: pengusulPetugas } = await sb
+    .from("officers")
+    .select("jabatan")
+    .eq("profile_id", keg.dibuat_oleh);
+  const pengusulKetuaBidang = (pengusulPetugas ?? []).some(
+    (o: { jabatan: string }) => o.jabatan === "Ketua Bidang",
+  );
+
+  // Tahap Ketua Bidang dilewati bila kegiatan tanpa bidang, atau pengusulnya
+  // sendiri Ketua Bidang bidang tersebut (tidak boleh menyetujui usulannya).
+  const ketuaBidangDilewati =
+    !bidangKegiatan ||
+    bidangKegiatan === "Pengurus Harian" ||
+    pengusulKetuaBidang;
+
+  const urutanDilewati = new Set<number>(
+    ketuaBidangDilewati
+      ? steps.filter((st) => st.peran === "ketua_seksi").map((st) => st.urutan)
+      : [],
+  );
 
   const berikut = steps.find((s) => !sudah.has(s.urutan) && !urutanDilewati.has(s.urutan));
   if (!berikut) return null;
@@ -252,12 +282,7 @@ async function cariPenyetujuGiliran(
     const { data: bolehPerOrang } = await sb
       .from("officers")
       .select("profile_id, bidang");
-    const { data: bidangKeg } = await sb
-      .from("sections")
-      .select("nama")
-      .eq("id", keg.section_id ?? "")
-      .maybeSingle<{ nama: string }>();
-    const namaBidang = bidangKeg?.nama ?? null;
+    const namaBidang = bidangKegiatan;
     if (namaBidang) {
       const pemegangBidang = new Set(
         ((bolehPerOrang ?? []) as { profile_id: string | null; bidang: string }[])
