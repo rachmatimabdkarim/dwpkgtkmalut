@@ -172,7 +172,15 @@ export async function ajukanKegiatan(activityId: string) {
  */
 export async function perbaikiKegiatan(
   activityId: string,
-  perubahan: { tanggalMulai?: string; tanggalSelesai?: string; tempat?: string; ringkasan?: string },
+  perubahan: {
+    judul?: string;
+    tujuan?: string;
+    sasaran?: string;
+    tanggalMulai?: string;
+    tanggalSelesai?: string;
+    tempat?: string;
+    ringkasan?: string;
+  },
 ) {
   const pengguna = await penggunaSaatIni();
   if (!pengguna) return { galat: "Sesi Anda sudah berakhir." };
@@ -180,11 +188,13 @@ export async function perbaikiKegiatan(
   const sb = await klienServer();
   const { data: keg } = await sb
     .from("activities")
-    .select("id, judul, status, dibuat_oleh, tanggal_mulai, tempat, ringkasan")
+    .select("id, judul, status, dibuat_oleh, tujuan, sasaran, tanggal_mulai, tanggal_selesai, tempat, ringkasan")
     .eq("id", activityId)
     .maybeSingle<{
       id: string; judul: string; status: string; dibuat_oleh: string;
-      tanggal_mulai: string | null; tempat: string | null; ringkasan: string | null;
+      tujuan: string | null; sasaran: string | null;
+      tanggal_mulai: string | null; tanggal_selesai: string | null;
+      tempat: string | null; ringkasan: string | null;
     }>();
   if (!keg) return { galat: "Kegiatan tidak ditemukan." };
 
@@ -208,12 +218,41 @@ export async function perbaikiKegiatan(
     };
   }
 
+  // Tanggal selesai tidak boleh lebih awal dari tanggal mulai — kalau tidak,
+  // muncul data tidak logis seperti "selesai sebelum dimulai".
+  const mulaiFinal = perubahan.tanggalMulai ?? keg.tanggal_mulai ?? "";
+  const selesaiFinal = perubahan.tanggalSelesai ?? keg.tanggal_selesai ?? "";
+  if (mulaiFinal && selesaiFinal && selesaiFinal < mulaiFinal) {
+    return {
+      galat:
+        "Tanggal selesai tidak boleh lebih awal dari tanggal mulai. Mohon diperiksa kembali.",
+    };
+  }
+
   // Susun hanya kolom yang benar-benar berubah.
   const baru: Record<string, string | null> = {};
   const catatanPerubahan: string[] = [];
-  if (perubahan.tanggalMulai && perubahan.tanggalMulai !== keg.tanggal_mulai) {
-    baru.tanggal_mulai = perubahan.tanggalMulai;
-    catatanPerubahan.push(`tanggal: ${keg.tanggal_mulai ?? "—"} → ${perubahan.tanggalMulai}`);
+
+  if (perubahan.judul !== undefined && perubahan.judul.trim() !== keg.judul) {
+    if (!perubahan.judul.trim()) return { galat: "Nama kegiatan tidak boleh kosong." };
+    baru.judul = perubahan.judul.trim();
+    catatanPerubahan.push(`nama: "${keg.judul}" → "${perubahan.judul.trim()}"`);
+  }
+  if (perubahan.tujuan !== undefined && perubahan.tujuan.trim() !== (keg.tujuan ?? "")) {
+    baru.tujuan = perubahan.tujuan.trim() || null;
+    catatanPerubahan.push("tujuan diperbarui");
+  }
+  if (perubahan.sasaran !== undefined && perubahan.sasaran.trim() !== (keg.sasaran ?? "")) {
+    baru.sasaran = perubahan.sasaran.trim() || null;
+    catatanPerubahan.push("sasaran peserta diperbarui");
+  }
+  if (perubahan.tanggalMulai !== undefined && perubahan.tanggalMulai !== (keg.tanggal_mulai ?? "")) {
+    baru.tanggal_mulai = perubahan.tanggalMulai || null;
+    catatanPerubahan.push(`tanggal mulai: ${keg.tanggal_mulai ?? "—"} → ${perubahan.tanggalMulai || "—"}`);
+  }
+  if (perubahan.tanggalSelesai !== undefined && perubahan.tanggalSelesai !== (keg.tanggal_selesai ?? "")) {
+    baru.tanggal_selesai = perubahan.tanggalSelesai || null;
+    catatanPerubahan.push(`tanggal selesai: ${keg.tanggal_selesai ?? "—"} → ${perubahan.tanggalSelesai || "—"}`);
   }
   if (perubahan.tempat !== undefined && perubahan.tempat.trim() !== (keg.tempat ?? "")) {
     baru.tempat = perubahan.tempat.trim() || null;

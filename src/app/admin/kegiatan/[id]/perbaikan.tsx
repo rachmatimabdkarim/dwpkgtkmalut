@@ -16,12 +16,20 @@ import { perbaikiKegiatan } from "../aksi";
  */
 export function PanelPerbaikan({
   activityId,
+  judul,
+  tujuan,
+  sasaran,
   tanggalMulai,
+  tanggalSelesai,
   tempat,
   ringkasan,
 }: {
   activityId: string;
+  judul: string;
+  tujuan: string | null;
+  sasaran: string | null;
   tanggalMulai: string | null;
+  tanggalSelesai: string | null;
   tempat: string | null;
   ringkasan: string | null;
 }) {
@@ -31,7 +39,11 @@ export function PanelPerbaikan({
   const [galat, setGalat] = useState("");
   const [berhasil, setBerhasil] = useState(false);
 
+  const [nm, setNm] = useState(judul);
+  const [tj, setTj] = useState(tujuan ?? "");
+  const [ss, setSs] = useState(sasaran ?? "");
   const [tgl, setTgl] = useState(tanggalMulai ?? "");
+  const [tglSelesai, setTglSelesai] = useState(tanggalSelesai ?? "");
   const [tmpt, setTmpt] = useState(tempat ?? "");
   const [ringkas, setRingkas] = useState(ringkasan ?? "");
 
@@ -40,7 +52,11 @@ export function PanelPerbaikan({
     setBerhasil(false);
     setSedang(true);
     const r = await perbaikiKegiatan(activityId, {
+      judul: nm,
+      tujuan: tj,
+      sasaran: ss,
       tanggalMulai: tgl,
+      tanggalSelesai: tglSelesai,
       tempat: tmpt,
       ringkasan: ringkas,
     });
@@ -63,7 +79,8 @@ export function PanelPerbaikan({
           Perbaiki Data Kegiatan
         </TombolSekunder>
         <p className="mt-2 text-[12.5px] text-n-500">
-          Mengubah tanggal, tempat, atau ringkasan publik —{" "}
+          Mengubah <strong>seluruh data kegiatan</strong> — nama, tujuan, sasaran,
+          tanggal, tempat, dan ringkasan publik —{" "}
           <strong>langsung tersimpan</strong>, tidak perlu persetujuan ulang.
         </p>
       </div>
@@ -85,9 +102,39 @@ export function PanelPerbaikan({
       )}
 
       <div className="space-y-4">
-        <Kolom label="Tanggal mulai">
-          <Isian type="date" value={tgl} onChange={(e) => setTgl(e.target.value)} />
+        <Kolom label="Nama kegiatan">
+          <Isian value={nm} onChange={(e) => setNm(e.target.value)} />
         </Kolom>
+        <Kolom label="Tujuan kegiatan" bantuan="Ditulis singkat; dipakai sebagai ringkasan di agenda publik.">
+          <AreaTeks value={tj} onChange={(e) => setTj(e.target.value)} />
+        </Kolom>
+        <Kolom label="Sasaran peserta">
+          <Isian
+            value={ss}
+            onChange={(e) => setSs(e.target.value)}
+            placeholder="Contoh: 30 anggota DWP"
+          />
+        </Kolom>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <Kolom label="Tanggal mulai">
+            <Isian type="date" value={tgl} onChange={(e) => setTgl(e.target.value)} />
+          </Kolom>
+          <Kolom
+            label="Tanggal selesai"
+            bantuan="Kosongkan bila satu hari."
+            galat={
+              tgl && tglSelesai && tglSelesai < tgl
+                ? "Tidak boleh lebih awal dari tanggal mulai."
+                : undefined
+            }
+          >
+            <Isian
+              type="date"
+              value={tglSelesai}
+              onChange={(e) => setTglSelesai(e.target.value)}
+            />
+          </Kolom>
+        </div>
         <Kolom label="Tempat">
           <Isian
             value={tmpt}
@@ -108,7 +155,10 @@ export function PanelPerbaikan({
       </div>
 
       <div className="mt-4 flex flex-wrap gap-3">
-        <TombolUtama onClick={kirim} disabled={sedang}>
+        <TombolUtama
+          onClick={kirim}
+          disabled={sedang || (!!tgl && !!tglSelesai && tglSelesai < tgl) || !nm.trim()}
+        >
           {sedang ? "Menyimpan…" : "Simpan Perbaikan"}
         </TombolUtama>
         <TombolHalus onClick={() => setTerbuka(false)}>Batal</TombolHalus>

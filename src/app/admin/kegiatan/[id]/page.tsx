@@ -408,7 +408,11 @@ export default async function DetailKegiatan({
                 <div className="mt-4">
                   <PanelPerbaikan
                     activityId={keg.id}
+                    judul={keg.judul}
+                    tujuan={keg.tujuan}
+                    sasaran={keg.sasaran}
                     tanggalMulai={keg.tanggal_mulai}
+                    tanggalSelesai={keg.tanggal_selesai}
                     tempat={keg.tempat}
                     ringkasan={keg.ringkasan}
                   />
