@@ -182,9 +182,21 @@ export function PanelTindakan({
 
               {pilihan && (
                 <div className="mt-4 flex flex-wrap gap-3">
-                  <TombolUtama onClick={kirimKeputusan} disabled={sedang}>
+                  {/* Tombol dimatikan saat catatan kosong untuk Revisi/Tolak.
+                      Server memang sudah menolak (catatan wajib), tetapi tombol
+                      yang tetap hidup membuat pengguna menekan sesuatu yang pasti
+                      gagal tanpa tahu sebabnya. */}
+                  <TombolUtama
+                    onClick={kirimKeputusan}
+                    disabled={sedang || (pilihan !== "setuju" && catatan.trim() === "")}
+                  >
                     {sedang ? "Menyimpan…" : pilihan === "setuju" ? "Kirim Persetujuan" : pilihan === "revisi" ? "Kirim Permintaan Revisi" : "Kirim Penolakan"}
                   </TombolUtama>
+                  {pilihan !== "setuju" && catatan.trim() === "" && (
+                    <p className="teks-3 text-n-500 self-center">
+                      Isi catatan di atas dulu agar pengusul tahu apa yang harus diperbaiki.
+                    </p>
+                  )}
                   <TombolHalus
                     onClick={() => {
                       setPilihan(null);
