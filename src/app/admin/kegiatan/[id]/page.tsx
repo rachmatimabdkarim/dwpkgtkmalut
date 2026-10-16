@@ -477,43 +477,47 @@ export default async function DetailKegiatan({
                     RAB tidak pernah ditampilkan di web publik.
                   </p>
 
-                  {/* Keterangan kunci anggaran + jejak perubahan terakhir. */}
-                  <div
-                    className="mt-4 rounded-token px-3.5 py-3"
-                    style={{
-                      backgroundColor: "var(--halaman)",
-                      border: "1px solid var(--n-200)",
-                    }}
-                  >
-                    {keg.status === "draf" || keg.status === "revisi" ? (
-                      <p className="text-[13px] text-n-700">
-                        Anggaran masih dapat diubah karena perencanaannya belum
-                        disetujui.
-                      </p>
-                    ) : (
-                      <p className="text-[13px] text-n-700">
-                        <strong>Anggaran terkunci.</strong> Kegiatan ini sudah
-                        disetujui, jadi angkanya tidak dapat diubah langsung —
-                        gunakan <strong>Ajukan Perubahan</strong> agar disetujui
-                        ulang.
-                      </p>
-                    )}
-                    {ubahAnggaranTerakhir && (
-                      <p className="text-[12.5px] text-n-500 mt-2">
-                        Terakhir diubah: {ubahAnggaranTerakhir.keterangan} — oleh{" "}
-                        {ubahAnggaranTerakhir.pelaku_nama ?? "tidak diketahui"} pada{" "}
-                        {new Date(ubahAnggaranTerakhir.waktu).toLocaleString("id-ID", {
-                          day: "numeric",
-                          month: "long",
-                          year: "numeric",
-                          hour: "2-digit",
-                          minute: "2-digit",
-                        })}
-                      </p>
-                    )}
-                  </div>
                 </>
               )}
+
+              {/* Keterangan kunci anggaran + jejak perubahan terakhir.
+                  Diletakkan di LUAR cabang "ada RAB" supaya tetap tampil walau
+                  rinciannya masih kosong — sebelumnya kegiatan tanpa RAB tidak
+                  mendapat keterangan apa pun. */}
+              <div
+                className="mt-4 rounded-token px-3.5 py-3"
+                style={{
+                  backgroundColor: "var(--halaman)",
+                  border: "1px solid var(--n-200)",
+                }}
+              >
+                {keg.status === "draf" || keg.status === "revisi" ? (
+                  <p className="text-[13px] text-n-700">
+                    Anggaran masih dapat diubah karena perencanaannya belum
+                    disetujui.
+                  </p>
+                ) : (
+                  <p className="text-[13px] text-n-700">
+                    <strong>Anggaran terkunci.</strong> Kegiatan ini sudah
+                    disetujui, jadi angkanya tidak dapat diubah langsung —
+                    gunakan <strong>Ajukan Perubahan</strong> agar disetujui
+                    ulang.
+                  </p>
+                )}
+                {ubahAnggaranTerakhir && (
+                  <p className="text-[12.5px] text-n-500 mt-2">
+                    Terakhir diubah: {ubahAnggaranTerakhir.keterangan} — oleh{" "}
+                    {ubahAnggaranTerakhir.pelaku_nama ?? "tidak diketahui"} pada{" "}
+                    {new Date(ubahAnggaranTerakhir.waktu).toLocaleString("id-ID", {
+                      day: "numeric",
+                      month: "long",
+                      year: "numeric",
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    })}
+                  </p>
+                )}
+              </div>
             </Kartu>
           )}
 
