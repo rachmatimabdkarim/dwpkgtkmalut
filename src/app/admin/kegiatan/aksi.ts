@@ -108,6 +108,14 @@ export async function buatKegiatan(masukan: {
     pelaku_nama: pengguna.nama,
   });
 
+  // A. Kalau langsung diajukan (tidak disimpan sebagai draf), beritahu penyetuju
+  //    yang gilirannya. Sebelumnya pemberitahuan hanya dipasang di fungsi
+  //    "ajukan kegiatan", padahal form baru memakai fungsi INI — sehingga
+  //    pengajuan lewat form baru tidak pernah mengirim pemberitahuan.
+  if (masukan.ajukanSekarang) {
+    await beritahuPenyetujuBerikut(data.id as string, "perencanaan");
+  }
+
   revalidatePath("/admin/kegiatan");
   revalidatePath("/admin");
   return { ok: true, id: data.id as string, kode: data.kode as string };
