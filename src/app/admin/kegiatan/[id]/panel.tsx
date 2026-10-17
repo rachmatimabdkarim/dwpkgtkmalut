@@ -102,16 +102,23 @@ export function PanelTindakan({
     // Mengajukan KEGIATAN (bukan laporan). Sebelumnya tombol ini tersambung
     // ke fungsi laporan sehingga selalu ditolak dengan pesan "tahap belum
     // memungkinkan".
-    aksiUtama = (
+    //
+    // WAJIB dibatasi pengusul: pada status revisi, penyetuju yang baru meminta
+    // revisi juga membuka halaman ini — dan tanpa pemeriksaan ini ia melihat
+    // tombol "Ajukan Kegiatan" milik pengusul, yang membingungkan dan tidak
+    // boleh dipakainya.
+    aksiUtama = pengusulSendiri ? (
       <div className="flex flex-col gap-3">
         <TombolAjukanKegiatan activityId={activityId} />
-        {/* Menghapus hanya boleh untuk draf, dan hanya oleh pengusul. */}
-        {pengusulSendiri && (
-          <div className="pt-1 border-t border-n-100">
-            <TombolHapusKegiatan activityId={activityId} judul={judul} />
-          </div>
-        )}
+        <div className="pt-1 border-t border-n-100">
+          <TombolHapusKegiatan activityId={activityId} judul={judul} />
+        </div>
       </div>
+    ) : (
+      <p className="teks-3 text-n-600">
+        Kegiatan ini sedang diperbaiki oleh pengusul. Anda akan menerima pemberitahuan
+        bila sudah diajukan ulang.
+      </p>
     );
   }
 
