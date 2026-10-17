@@ -356,9 +356,15 @@ export default async function DetailKegiatan({
         <SembunyikanToggle
           activityId={keg.id}
           tersembunyi={keg.is_hidden}
-          boleh={pengguna.peran.some((p) =>
-            ["super_admin", "ketua", "wakil_ketua", "sekretaris"].includes(p),
-          )}
+          boleh={
+            // Hanya untuk kegiatan yang MEMANG bisa tampil di publik. Draf,
+            // revisi, dan ditolak tidak pernah tampil di Agenda/Galeri, jadi
+            // tombol sembunyikan di situ tidak ada gunanya dan menyesatkan.
+            !["draf", "revisi", "ditolak"].includes(keg.status) &&
+            pengguna.peran.some((p) =>
+              ["super_admin", "ketua", "wakil_ketua", "sekretaris"].includes(p),
+            )
+          }
         />
       }
     >
