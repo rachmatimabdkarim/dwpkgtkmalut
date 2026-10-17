@@ -4,7 +4,7 @@ import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Kartu, JudulSeksi, Lencana, TombolUtama, TombolSekunder, TombolHalus, Kolom, Isian, AreaTeks, Pilihan } from "@/components/dasar";
 import { labelStatus, formatRupiah } from "@/lib/kegiatan";
-import { buatKegiatan } from "../aksi";
+import { buatKegiatan, ubahKegiatan } from "../aksi";
 
 type BarisRab = { uraian: string; satuan: string; jumlah: number; hargaSatuan: number };
 
@@ -16,6 +16,7 @@ export function FormKegiatanBaru({
   bidangSaya,
   pengurusHarian,
   sayaSendiri,
+  kegiatan,
 }: {
   bidang: { id: string; nama: string }[];
   pengurus: { id: string; nama: string; jabatan: string; bidang?: string | null }[];
@@ -25,18 +26,31 @@ export function FormKegiatanBaru({
   pengurusHarian: boolean;
   /** Data pengguna yang masuk, untuk batas penanggung jawab. */
   sayaSendiri: { id: string; nama: string };
+  /** Bila diisi -> mode UBAH kegiatan yang sudah ada (termasuk RAB). */
+  kegiatan?: {
+    id: string;
+    judul: string;
+    tujuan: string | null;
+    sasaran: string | null;
+    tanggalMulai: string | null;
+    tanggalSelesai: string | null;
+    tempat: string | null;
+    ringkasan: string | null;
+    anggaran: { uraian: string; satuan: string | null; jumlah: number; hargaSatuan: number }[];
+  };
 }) {
   const router = useRouter();
   const [langkah, setLangkah] = useState(0);
   const [sedang, setSedang] = useState(false);
   const [galat, setGalat] = useState("");
 
-  const [judul, setJudul] = useState("");
-  const [tujuan, setTujuan] = useState("");
-  const [sasaran, setSasaran] = useState("");
-  const [tanggalMulai, setTanggalMulai] = useState("");
-  const [tanggalSelesai, setTanggalSelesai] = useState("");
-  const [tempat, setTempat] = useState("");
+  const modeUbah = !!kegiatan;
+  const [judul, setJudul] = useState(kegiatan?.judul ?? "");
+  const [tujuan, setTujuan] = useState(kegiatan?.tujuan ?? "");
+  const [sasaran, setSasaran] = useState(kegiatan?.sasaran ?? "");
+  const [tanggalMulai, setTanggalMulai] = useState(kegiatan?.tanggalMulai ?? "");
+  const [tanggalSelesai, setTanggalSelesai] = useState(kegiatan?.tanggalSelesai ?? "");
+  const [tempat, setTempat] = useState(kegiatan?.tempat ?? "");
   // Bidang terkunci bila pengguna terikat satu bidang (Ketua Bidang/anggota).
   // Pengurus Harian bebas memilih karena menangani lintas bidang.
   const bidangTerkunci = !pengurusHarian && !!bidangSaya;
@@ -45,8 +59,17 @@ export function FormKegiatanBaru({
     : "";
   const [sectionId, setSectionId] = useState(sectionIdAwal);
   const [penanggungJawab, setPenanggungJawab] = useState("");
-  const [ringkasan, setRingkasan] = useState("");
-  const [rab, setRab] = useState<BarisRab[]>([{ uraian: "", satuan: "", jumlah: 1, hargaSatuan: 0 }]);
+  const [ringkasan, setRingkasan] = useState(kegiatan?.ringkasan ?? "");
+  const [rab, setRab] = useState<BarisRab[]>(
+    kegiatan && kegiatan.anggaran.length > 0
+      ? kegiatan.anggaran.map((b) => ({
+          uraian: b.uraian,
+          satuan: b.satuan ?? "",
+          jumlah: b.jumlah,
+          hargaSatuan: b.hargaSatuan,
+        }))
+      : [{ uraian: "", satuan: "", jumlah: 1, hargaSatuan: 0 }],
+  );
 
   // Penanggung jawab: diri sendiri + anggota bidang yang sama.
   // Pengurus Harian bebas menunjuk siapa saja.
@@ -79,6 +102,21 @@ export function FormKegiatanBaru({
   async function kirim(ajukanSekarang: boolean) {
     setGalat("");
     setSedang(true);
+
+    // MODE UBAH: simpan data + RAB, lalu kembali ke halaman kegiatan.
+    // Tidak ada "ajukan sekarang" — pengajuan tetap lewat tombolnya sendiri,
+    // supaya perubahan data dan pengajuan tidak tercampur.
+    if (kegiatan) {
+      const r = await ubahKegiatan(kegiatan.id, {
+        judul, tujuan, sasaran, tanggalMulai, tanggalSelesai, tempat, ringkasan, anggaran: rab,
+      });
+      setSedang(false);
+      if (r.galat) return setGalat(r.galat);
+      router.push(`/admin/kegiatan/${kegiatan.id}`);
+      router.refresh();
+      return;
+    }
+
     const hasil = await buatKegiatan({
       judul,
       tujuan,
@@ -123,7 +161,7 @@ export function FormKegiatanBaru({
       <Kartu className="p-4 sm:p-5">
         {langkah === 0 && (
           <div className="flex flex-col gap-4">
-            <JudulSeksi>Data kegiatan</JudulSeksi>
+            <JudulSeksi>{modeUbah ? "Ubah data kegiatan" : "Data kegiatan"}</JudulSeksi>
             <Kolom label="Nama kegiatan" galat={galat && !judul.trim() ? galat : undefined}>
               <Isian
                 value={judul}
@@ -149,7 +187,7 @@ export function FormKegiatanBaru({
               <Kolom label="Tanggal mulai">
                 <Isian type="date" value={tanggalMulai} onChange={(e) => setTanggalMulai(e.target.value)} />
               </Kolom>
-              <Kolom label="Tanggal selesai" bantuan="Kosongkan bila satu hari.">
+              <Kolom label="Tanggal selesai" bantuan="Isi tanggal yang sama bila kegiatan hanya satu hari.">
                 <Isian type="date" value={tanggalSelesai} onChange={(e) => setTanggalSelesai(e.target.value)} />
               </Kolom>
             </div>
@@ -336,6 +374,12 @@ export function FormKegiatanBaru({
         {langkah < LANGKAH.length - 1 ? (
           <TombolUtama onClick={lanjut} disabled={sedang}>
             Lanjut
+          </TombolUtama>
+        ) : modeUbah ? (
+          // MODE UBAH: satu tombol saja. Pengajuan tetap lewat tombolnya
+          // sendiri di halaman kegiatan, supaya simpan & ajukan tidak tercampur.
+          <TombolUtama onClick={() => kirim(false)} disabled={sedang}>
+            {sedang ? "Menyimpan…" : "Simpan Perubahan"}
           </TombolUtama>
         ) : (
           <>

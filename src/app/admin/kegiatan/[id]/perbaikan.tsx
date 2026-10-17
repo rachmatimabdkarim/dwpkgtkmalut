@@ -121,7 +121,7 @@ export function PanelPerbaikan({
           </Kolom>
           <Kolom
             label="Tanggal selesai"
-            bantuan="Kosongkan bila satu hari."
+            bantuan="Isi tanggal yang sama bila kegiatan hanya satu hari."
             galat={
               tgl && tglSelesai && tglSelesai < tgl
                 ? "Tidak boleh lebih awal dari tanggal mulai."

@@ -187,6 +187,112 @@ export async function ajukanKegiatan(activityId: string) {
  *
  * Setiap perbaikan dicatat di riwayat, supaya jejaknya tetap jelas.
  */
+/**
+ * MENGUBAH kegiatan yang sudah ada (draf / revisi) — termasuk rincian anggaran.
+ *
+ * Dipakai form kegiatan yang sama dengan "kegiatan baru", supaya pengguna tidak
+ * perlu mempelajari dua formulir berbeda dan RAB ikut bisa diperbaiki.
+ *
+ * Aturan (keputusan pemilik):
+ *   - hanya pengusul atau super admin;
+ *   - hanya saat draf atau revisi. Sesudah diajukan, perubahan WAJIB lewat
+ *     revisi berjenjang dan disetujui ulang seluruh jenjang;
+ *   - tanggal mulai & selesai wajib terisi, selesai tidak mendahului mulai;
+ *   - judul & sasaran tidak boleh kosong.
+ */
+export async function ubahKegiatan(
+  activityId: string,
+  masukan: {
+    judul: string;
+    tujuan: string;
+    sasaran: string;
+    tanggalMulai: string;
+    tanggalSelesai: string;
+    tempat: string;
+    ringkasan: string;
+    anggaran?: { uraian: string; satuan: string; jumlah: number; hargaSatuan: number }[];
+  },
+) {
+  const pengguna = await penggunaSaatIni();
+  if (!pengguna) return { galat: "Sesi Anda sudah berakhir." };
+  const sb = await klienServer();
+
+  const { data: keg } = await sb
+    .from("activities")
+    .select("id, status, dibuat_oleh")
+    .eq("id", activityId)
+    .maybeSingle<{ id: string; status: string; dibuat_oleh: string }>();
+  if (!keg) return { galat: "Kegiatan tidak ditemukan." };
+
+  if (keg.dibuat_oleh !== pengguna.id && !pengguna.peran.includes("super_admin")) {
+    return { galat: "Hanya pengusul kegiatan ini yang dapat mengubahnya." };
+  }
+  if (!["draf", "revisi"].includes(keg.status)) {
+    return {
+      galat:
+        "Kegiatan ini sudah diajukan, jadi datanya tidak dapat diubah langsung. " +
+        "Perubahan harus lewat revisi berjenjang: penyetuju memilih \"Minta Revisi\", " +
+        "lalu kegiatan diajukan ulang dan disetujui ulang oleh seluruh jenjang.",
+    };
+  }
+
+  const judul = masukan.judul.trim();
+  const sasaran = masukan.sasaran.trim();
+  const mulai = masukan.tanggalMulai.trim();
+  const selesai = masukan.tanggalSelesai.trim();
+  if (!judul) return { galat: "Nama kegiatan wajib diisi." };
+  if (!sasaran) return { galat: "Sasaran peserta wajib diisi." };
+  if (!mulai || !selesai) return { galat: "Tanggal mulai dan tanggal selesai wajib diisi." };
+  if (selesai < mulai) {
+    return { galat: "Tanggal selesai tidak boleh lebih awal dari tanggal mulai." };
+  }
+
+  const { error } = await sb
+    .from("activities")
+    .update({
+      judul,
+      tujuan: masukan.tujuan.trim() || null,
+      sasaran,
+      tanggal_mulai: mulai,
+      tanggal_selesai: selesai,
+      tempat: masukan.tempat.trim() || null,
+      ringkasan: masukan.ringkasan.trim() || null,
+    })
+    .eq("id", activityId);
+  if (error) return { galat: "Gagal menyimpan: " + error.message };
+
+  // RAB: ganti seluruh baris (paling sederhana & tidak menyisakan baris lama).
+  if (masukan.anggaran) {
+    await sb.from("budget_items").delete().eq("activity_id", activityId);
+    const baris = masukan.anggaran
+      .filter((b) => b.uraian.trim())
+      .map((b) => ({
+        activity_id: activityId,
+        uraian: b.uraian.trim(),
+        satuan: b.satuan.trim() || null,
+        jumlah: Number(b.jumlah) || 0,
+        harga_satuan: Number(b.hargaSatuan) || 0,
+      }));
+    if (baris.length > 0) {
+      const { error: galatRab } = await sb.from("budget_items").insert(baris);
+      if (galatRab) return { galat: "Gagal menyimpan anggaran: " + galatRab.message };
+    }
+  }
+
+  await sb.from("activity_logs").insert({
+    activity_id: activityId,
+    aksi: "perbaikan_langsung",
+    keterangan: "Pengusul mengubah data kegiatan dan rincian anggaran",
+    pelaku_id: pengguna.id,
+    pelaku_nama: pengguna.nama,
+  });
+
+  revalidatePath("/admin/kegiatan");
+  revalidatePath(`/admin/kegiatan/${activityId}`);
+  revalidatePath("/admin");
+  return { ok: true };
+}
+
 export async function perbaikiKegiatan(
   activityId: string,
   perubahan: {

@@ -7,7 +7,6 @@ import { Kartu, JudulSeksi, Lencana, TombolHalus } from "@/components/dasar";
 import { labelStatus, tahapSaatIni, formatTanggal, formatRupiah, type Peran } from "@/lib/kegiatan";
 import { PanelTindakan, PanelLaporan, LinimasaRiwayat } from "./panel";
 import { SembunyikanToggle } from "./sembunyikan";
-import { PanelPerbaikan } from "./perbaikan";
 import { PanelPanitia, type PanitiaItem, type PengurusOpsi } from "./panitia";
 import { PanelPresensi, type PesertaItem } from "./presensi";
 import { PanelDokumentasi, type FotoItem } from "./dokumentasi";
@@ -428,19 +427,23 @@ export default async function DetailKegiatan({
                 </dl>
               </Kartu>
 
-              {/* B. Pengusul memperbaiki langsung, tanpa alur pengajuan. */}
+              {/* B. Pengusul memperbaiki langsung — memakai FORM KEGIATAN yang
+                  sama dengan kegiatan baru, LENGKAP dengan tab Anggaran (RAB).
+                  Sebelumnya ada form terpisah yang tidak memuat RAB sehingga
+                  rincian anggaran tidak bisa diperbaiki sama sekali. */}
               {bolehPerbaikiLangsung && (
-                <div className="mt-4">
-                  <PanelPerbaikan
-                    activityId={keg.id}
-                    judul={keg.judul}
-                    tujuan={keg.tujuan}
-                    sasaran={keg.sasaran}
-                    tanggalMulai={keg.tanggal_mulai}
-                    tanggalSelesai={keg.tanggal_selesai}
-                    tempat={keg.tempat}
-                    ringkasan={keg.ringkasan}
-                  />
+                <div className="mt-4 rounded-token border border-n-200 bg-n-50 p-4">
+                  <p className="text-[14px] text-n-800 font-medium">Perbaiki data kegiatan</p>
+                  <p className="teks-3 text-n-600 mt-1">
+                    Mengubah nama, tujuan, sasaran, tanggal, tempat, ringkasan publik, dan
+                    rincian anggaran (RAB). Perubahan langsung tersimpan dan tercatat di riwayat.
+                  </p>
+                  <Link
+                    href={`/admin/kegiatan/${keg.id}/ubah`}
+                    className="inline-flex h-11 items-center mt-3 rounded-token bg-brand-600 px-4 text-[14px] font-medium text-brand-contrast hover:bg-brand-700"
+                  >
+                    Perbaiki Data Kegiatan
+                  </Link>
                 </div>
               )}
 
