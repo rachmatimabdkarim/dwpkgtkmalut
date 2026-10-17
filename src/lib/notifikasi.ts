@@ -546,7 +546,39 @@ export async function periksaDanBuatNotifikasi(): Promise<{
         .map((a: { step_urutan: number }) => a.step_urutan),
     );
 
-    const berikut = steps.find((s) => !approvedSteps.has(s.urutan));
+    // Jenjang yang DILEWATI tidak boleh dianggap sebagai giliran. Tanpa ini,
+    // pengingat dikirim ke seluruh Ketua Bidang padahal jenjang itu dilewati,
+    // sementara orang yang benar-benar ditunggu (mis. Sekretaris) tidak diberi tahu.
+    const bidangKegRow2 = await sb
+      .from("sections")
+      .select("nama")
+      .eq("id", (keg as { section_id?: string | null }).section_id ?? "")
+      .maybeSingle<{ nama: string }>();
+    const bidangKeg2 = bidangKegRow2.data?.nama ?? null;
+
+    const petugasPengusul = await sb
+      .from("officers")
+      .select("jabatan, bidang")
+      .eq("profile_id", keg.dibuat_oleh);
+    const pengusulKetuaBidang2 = (petugasPengusul.data ?? []).some(
+      (o: { jabatan: string; bidang: string | null }) =>
+        o.jabatan === "Ketua Bidang" && (!bidangKeg2 || o.bidang === bidangKeg2),
+    );
+
+    const dilewatiDaftar = new Set<number>();
+    if (namaTahap === "perencanaan") {
+      // Aturan sama dengan tahap_terlewati: hanya jenjang ketua_seksi yang
+      // dapat dilewati, yaitu bila kegiatan tanpa bidang atau pengusulnya
+      // sendiri Ketua Bidang bidang tersebut.
+      const langkahKetua = steps.find((s) => s.peran === "ketua_seksi");
+      if (langkahKetua && (!bidangKeg2 || bidangKeg2 === "Pengurus Harian" || pengusulKetuaBidang2)) {
+        dilewatiDaftar.add(langkahKetua.urutan);
+      }
+    }
+
+    const berikut = steps.find(
+      (s) => !approvedSteps.has(s.urutan) && !dilewatiDaftar.has(s.urutan),
+    );
     if (!berikut) continue;
 
     const peranDibutuhkan = berikut.peran;

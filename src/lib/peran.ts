@@ -41,7 +41,7 @@ export const ROLES: Record<RoleKey, { label: string; urutan: number }> = {
   editor: { label: "Editor Konten", urutan: 7 },
 };
 
-export type MenuKey = "beranda" | "kegiatan" | "konten" | "pengurus" | "pengaturan" | "profil";
+export type MenuKey = "beranda" | "kegiatan" | "konten" | "pengurus" | "pesan" | "pengaturan" | "profil";
 
 export type MenuItem = {
   key: MenuKey;
@@ -50,6 +50,7 @@ export type MenuItem = {
   ikon:
     | "beranda"
     | "kegiatan"
+    | "pesan"
     | "konten"
     | "pengurus"
     | "pengaturan"
@@ -79,6 +80,15 @@ export const MENU_ADMIN: MenuItem[] = [
     label: "Pengurus",
     href: "/admin/pengurus",
     ikon: "pengurus",
+    peran: ["super_admin", "ketua", "wakil_ketua", "sekretaris"],
+  },
+  {
+    // Pesan dari masyarakat tidak boleh terkubur di dalam halaman Pengurus:
+    // tanpa menu ini, pesan warga bisa tidak pernah dibaca pengurus.
+    key: "pesan",
+    label: "Pesan Masuk",
+    href: "/admin/kontak",
+    ikon: "pesan",
     peran: ["super_admin", "ketua", "wakil_ketua", "sekretaris"],
   },
   {

@@ -69,7 +69,9 @@ export default async function HalamanKegiatan({
           >
             Kalender
           </Link>
-          {bolehBuat ? (
+          {/* Saat daftar KOSONG, tombol sudah tampil di dalam kotak kosong —
+              menampilkannya lagi di sini membuat dua tombol kembar di satu layar. */}
+          {bolehBuat && daftar.length > 0 ? (
             <Link
               href="/admin/kegiatan/baru"
               className="inline-flex h-11 items-center rounded-token bg-brand-600 px-4 text-[15px] font-medium text-brand-contrast hover:bg-brand-700"
@@ -90,7 +92,7 @@ export default async function HalamanKegiatan({
                 ? "/admin/kegiatan"
                 : `/admin/kegiatan?tahap=${t.label.toLowerCase()}`
             }
-            className={`shrink-0 inline-flex h-9 items-center rounded-full border px-3.5 text-[13px] ${
+            className={`shrink-0 inline-flex h-11 items-center rounded-full border px-4 text-[13px] ${
               t.label === aktif.label
                 ? "border-brand-600 bg-brand-600 text-brand-contrast font-medium"
                 : "border-n-300 bg-n-0 text-n-600"
