@@ -273,10 +273,14 @@ export default async function DetailKegiatan({
     pengguna.peran.includes("sekretaris") ||
     pengguna.peran.includes("super_admin");
 
-  // B. Perbaikan langsung oleh pengusul — hanya sebelum laporan diajukan.
+  // B. Perbaikan langsung oleh pengusul — HANYA selama belum ada persetujuan
+  //    yang berlaku (draf / revisi / ditolak). Sesudah diajukan, perubahan data
+  //    wajib lewat revisi berjenjang dan disetujui ulang oleh seluruh jenjang.
+  //    Tanpa batas ini, angka yang sudah disetujui (mis. sasaran 30 orang)
+  //    dapat diubah diam-diam menjadi 20 tanpa sepengetahuan penyetuju.
   const bolehPerbaikiLangsung =
     (pengusulSendiri || pengguna.peran.includes("super_admin")) &&
-    !["laporan_diajukan", "laporan_dalam_review", "laporan_disetujui", "arsip"].includes(keg.status);
+    ["draf", "revisi", "ditolak"].includes(keg.status);
 
   // C. Kegiatan yang sudah diarsipkan tidak dapat diubah lagi.
   const perubahanTertutup = keg.status === "arsip";

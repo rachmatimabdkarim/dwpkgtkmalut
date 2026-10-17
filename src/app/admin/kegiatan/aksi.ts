@@ -137,6 +137,15 @@ export async function ajukanKegiatan(activityId: string) {
     return { galat: "Kegiatan ini sudah diajukan atau sedang diproses." };
   }
 
+  // Saat kegiatan REVISI diajukan ulang, keputusan lama HARUS dibersihkan.
+  // Tanpa ini, jenjang yang dulu sudah menyetujui dianggap masih sah padahal
+  // datanya sudah berubah — persetujuan lama "menempel" pada data baru.
+  // Pemilik memutuskan: wajib disetujui ulang oleh SELURUH jenjang dari awal.
+  const diajukanUlang = keg.status === "revisi";
+  if (diajukanUlang) {
+    await sb.from("approvals").delete().eq("activity_id", activityId);
+  }
+
   const { error } = await sb
     .from("activities")
     .update({ status: "diajukan" })
@@ -146,7 +155,9 @@ export async function ajukanKegiatan(activityId: string) {
   await sb.from("activity_logs").insert({
     activity_id: activityId,
     aksi: "diajukan",
-    keterangan: "Perencanaan diajukan untuk persetujuan berjenjang",
+    keterangan: diajukanUlang
+      ? "Perencanaan diajukan ULANG setelah revisi — persetujuan dimulai dari jenjang pertama"
+      : "Perencanaan diajukan untuk persetujuan berjenjang",
     pelaku_id: pengguna.id,
     pelaku_nama: pengguna.nama,
   });
@@ -203,18 +214,24 @@ export async function perbaikiKegiatan(
     return { galat: "Hanya pengusul kegiatan ini yang dapat memperbaikinya langsung." };
   }
 
-  // Sesudah laporan diajukan atau kegiatan diarsipkan, perbaikan harus lewat
-  // pengajuan perubahan resmi.
-  const statusTerkunci = [
-    "laporan_diajukan",
-    "laporan_dalam_review",
-    "laporan_disetujui",
-    "arsip",
-  ];
-  if (statusTerkunci.includes(keg.status)) {
+  // Perbaikan langsung HANYA selama belum ada persetujuan yang berlaku.
+  //
+  // Sebelumnya pengusul bebas mengubah judul/tujuan/sasaran/tanggal/tempat
+  // sepanjang status belum masuk tahap pelaporan — termasuk SETELAH jenjang
+  // menyetujui. Akibatnya angka yang disetujui (mis. sasaran 30 orang) bisa
+  // diubah diam-diam menjadi 20 tanpa sepengetahuan penyetuju, dan
+  // persetujuannya menjadi tidak bermakna.
+  //
+  // Aturan sekarang: begitu kegiatan DIAJUKAN, satu-satunya jalan mengubah data
+  // adalah lewat revisi berjenjang (penyetuju memilih "Minta Revisi"), lalu
+  // diajukan ulang dan disetujui ulang oleh SELURUH jenjang dari awal.
+  const bolehDiubahLangsung = ["draf", "revisi", "ditolak"];
+  if (!bolehDiubahLangsung.includes(keg.status)) {
     return {
       galat:
-        "Laporannya sudah diajukan, jadi data kegiatan tidak dapat diubah langsung. Silakan ajukan perubahan resmi.",
+        "Kegiatan ini sudah diajukan, jadi datanya tidak dapat diubah langsung. " +
+        "Perubahan harus lewat revisi berjenjang: penyetuju memilih \"Minta Revisi\", " +
+        "lalu kegiatan diajukan ulang dan disetujui ulang oleh seluruh jenjang.",
     };
   }
 
