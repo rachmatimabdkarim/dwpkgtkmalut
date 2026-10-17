@@ -183,11 +183,15 @@ export default async function DetailKegiatan({
     .eq("nama", namaAlur)
     .maybeSingle();
 
+  // `catatan` WAJIB ikut diambil: di sinilah penyetuju menuliskan ALASAN revisi
+  // atau penolakan. Tanpa kolom ini, pengusul hanya melihat lencana "Perlu revisi"
+  // tanpa tahu apa yang harus diperbaiki.
   const { data: approvals } = await sb
     .from("approvals")
-    .select("step_urutan, peran, keputusan")
+    .select("step_urutan, peran, keputusan, catatan, oleh, dibuat_pada")
     .eq("activity_id", id)
-    .eq("tahap", namaAlur);
+    .eq("tahap", namaAlur)
+    .order("dibuat_pada", { ascending: true });
 
   const langkah = ((alur?.approval_steps ?? []) as { urutan: number; peran: string }[])
     .slice()
@@ -200,6 +204,11 @@ export default async function DetailKegiatan({
           (a: { step_urutan: number; keputusan: string; peran: string }) =>
             a.step_urutan === l.urutan && a.peran === l.peran,
         )?.keputusan as "setuju" | "revisi" | "tolak" | undefined) ?? null,
+      catatan:
+        ((approvals ?? []).find(
+          (a: { step_urutan: number; keputusan: string; peran: string }) =>
+            a.step_urutan === l.urutan && a.peran === l.peran,
+        )?.catatan as string | null | undefined) ?? null,
     }));
 
   // siapa yang sedang ditunggu, dan apakah pengguna ini berhak menilai

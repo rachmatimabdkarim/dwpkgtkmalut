@@ -18,7 +18,13 @@ type BarisRab = {
   realisasi: number | null;
 };
 
-type LangkahPersetujuan = { urutan: number; peran: string; sudah: "setuju" | "revisi" | "tolak" | null };
+type LangkahPersetujuan = {
+  urutan: number;
+  peran: string;
+  sudah: "setuju" | "revisi" | "tolak" | null;
+  /** Catatan penyetuju saat Minta Revisi / Tolak — sebabnya harus terbaca pengusul. */
+  catatan?: string | null;
+};
 type Riwayat = { id: number; aksi: string; keterangan: string | null; pelaku_nama: string | null; waktu: string };
 
 const NAMA_PERAN: Record<string, string> = {
@@ -273,6 +279,18 @@ export function PanelTindakan({
                       {alasanDilewati?.[l.urutan] ??
                         "Tahap ini tidak diperlukan untuk kegiatan ini."}
                     </p>
+                  )}
+                  {/* Catatan penyetuju: sebab revisi/penolakan. Tanpa ini pengusul
+                      hanya tahu "perlu revisi" tanpa tahu apa yang harus diperbaiki. */}
+                  {l.catatan && (l.sudah === "revisi" || l.sudah === "tolak") && (
+                    <div className="mt-1.5 rounded-token border border-warn-line bg-warn-bg px-2.5 py-2">
+                      <p className="teks-3 text-warn-fg font-medium mb-0.5">
+                        {l.sudah === "tolak" ? "Alasan ditolak" : "Catatan perbaikan"}
+                      </p>
+                      <p className="text-[13px] text-n-800 leading-snug whitespace-pre-wrap">
+                        {l.catatan}
+                      </p>
+                    </div>
                   )}
                 </div>
               </li>
