@@ -231,13 +231,18 @@ export async function perbaikiKegiatan(
   // Aturan sekarang: begitu kegiatan DIAJUKAN, satu-satunya jalan mengubah data
   // adalah lewat revisi berjenjang (penyetuju memilih "Minta Revisi"), lalu
   // diajukan ulang dan disetujui ulang oleh SELURUH jenjang dari awal.
-  const bolehDiubahLangsung = ["draf", "revisi", "ditolak"];
+  // "ditolak" SENGAJA tidak termasuk: penolakan berarti selesai. Kegiatan yang
+  // ditolak tidak punya jalan diajukan kembali, jadi memperbaikinya sia-sia.
+  // Bila ingin diperbaiki, penyetuju seharusnya memilih "Minta Revisi".
+  const bolehDiubahLangsung = ["draf", "revisi"];
   if (!bolehDiubahLangsung.includes(keg.status)) {
     return {
       galat:
-        "Kegiatan ini sudah diajukan, jadi datanya tidak dapat diubah langsung. " +
-        "Perubahan harus lewat revisi berjenjang: penyetuju memilih \"Minta Revisi\", " +
-        "lalu kegiatan diajukan ulang dan disetujui ulang oleh seluruh jenjang.",
+        keg.status === "ditolak"
+          ? "Kegiatan ini sudah ditolak, jadi tidak dapat diperbaiki lagi. Bila ingin dijalankan, buat kegiatan baru dari awal."
+          : "Kegiatan ini sudah diajukan, jadi datanya tidak dapat diubah langsung. " +
+            "Perubahan harus lewat revisi berjenjang: penyetuju memilih \"Minta Revisi\", " +
+            "lalu kegiatan diajukan ulang dan disetujui ulang oleh seluruh jenjang.",
     };
   }
 
@@ -408,10 +413,13 @@ export async function hapusKegiatan(activityId: string, namaKonfirmasi: string) 
     .maybeSingle<{ id: string; status: string; dibuat_oleh: string; judul: string }>();
   if (!keg) return { galat: "Kegiatan tidak ditemukan." };
 
-  if (keg.status !== "draf") {
+  // Draf = belum pernah diajukan; Ditolak = sudah selesai dan tidak berguna lagi.
+  // Keduanya boleh dihapus oleh pengusulnya. Kegiatan yang sedang berjalan atau
+  // sudah disetujui tetap tersimpan sebagai catatan resmi organisasi.
+  if (!["draf", "ditolak"].includes(keg.status)) {
     return {
       galat:
-        "Hanya kegiatan berstatus draf yang dapat dihapus. Kegiatan yang sudah diajukan atau disetujui harus tetap tersimpan sebagai catatan resmi — pakai Sembunyikan dari publik bila tidak ingin ditampilkan.",
+        "Hanya kegiatan berstatus draf atau ditolak yang dapat dihapus. Kegiatan yang sudah diajukan atau disetujui harus tetap tersimpan sebagai catatan resmi — pakai Sembunyikan dari publik bila tidak ingin ditampilkan.",
     };
   }
 

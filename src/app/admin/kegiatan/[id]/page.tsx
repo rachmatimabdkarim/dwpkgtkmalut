@@ -278,9 +278,11 @@ export default async function DetailKegiatan({
   //    wajib lewat revisi berjenjang dan disetujui ulang oleh seluruh jenjang.
   //    Tanpa batas ini, angka yang sudah disetujui (mis. sasaran 30 orang)
   //    dapat diubah diam-diam menjadi 20 tanpa sepengetahuan penyetuju.
+  // "ditolak" sengaja TIDAK termasuk — penolakan berarti selesai dan tidak ada
+  // jalan mengajukan kembali, sehingga perbaikan data tidak ada gunanya.
   const bolehPerbaikiLangsung =
     (pengusulSendiri || pengguna.peran.includes("super_admin")) &&
-    ["draf", "revisi", "ditolak"].includes(keg.status);
+    ["draf", "revisi"].includes(keg.status);
 
   // C. Kegiatan yang sudah diarsipkan tidak dapat diubah lagi.
   const perubahanTertutup = keg.status === "arsip";

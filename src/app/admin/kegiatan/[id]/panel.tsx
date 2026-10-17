@@ -114,6 +114,18 @@ export function PanelTindakan({
       </div>
     );
   }
+
+  if (status === "ditolak") {
+    // Kegiatan yang ditolak sudah SELESAI: tidak dapat diperbaiki dan tidak
+    // dapat diajukan kembali (bila ingin diperbaiki, penyetuju seharusnya
+    // memilih "Minta Revisi"). Karena tidak berguna lagi, pengusul diberi
+    // jalan menghapusnya — bukan dibiarkan menggantung di daftar selamanya.
+    aksiUtama = pengusulSendiri ? (
+      <div className="pt-1">
+        <TombolHapusKegiatan activityId={activityId} judul={judul} />
+      </div>
+    ) : null;
+  }
   if (status === "diajukan") {
     // Pengusul dapat menarik ajuannya sendiri selagi belum ada yang menyetujui.
     // Tombol menilai (bila giliran pengguna) diurus di bagian bawah.
