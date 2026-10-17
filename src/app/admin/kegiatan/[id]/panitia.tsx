@@ -186,7 +186,7 @@ export function PanelPanitia({
               {totalPanitia} panitia · {tugasSelesai} tugas selesai dari {totalTugas}
             </p>
           </div>
-          {!bukaFormPanitia && (
+          {!bukaFormPanitia && totalPanitia > 0 && (
             <TombolUtama
               type="button"
               ukuran="kecil"

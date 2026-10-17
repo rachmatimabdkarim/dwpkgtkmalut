@@ -580,7 +580,7 @@ export async function GET(
       color: rgb(0.8, 0.8, 0.8),
     });
 
-    const infoKiri = "Sistem Informasi DWP Kantor GTK Malut — Dokumen Internal";
+    const infoKiri = "SI-ANGGUN — Sistem Informasi Anggota dan Kegiatan Unggulan DWP";
     p.drawText(infoKiri, {
       x: MARGIN_LEFT,
       y: 28,

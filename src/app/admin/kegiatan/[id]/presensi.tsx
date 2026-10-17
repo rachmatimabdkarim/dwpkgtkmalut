@@ -145,7 +145,7 @@ export function PanelPresensi({
                 Tandai Semua Hadir
               </TombolHalus>
             )}
-            {!bukaForm && (
+            {!bukaForm && daftarPeserta.length > 0 && (
               <TombolUtama
                 type="button"
                 ukuran="kecil"
