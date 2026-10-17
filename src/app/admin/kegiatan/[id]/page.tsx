@@ -645,6 +645,12 @@ export default async function DetailKegiatan({
           alasanDilewati={alasanDilewati}
           judul={keg.judul}
           pengusulSendiri={pengusulSendiri}
+          bolehJalankanTahap={
+            pengusulSendiri ||
+            pengguna.peran.some((p) =>
+              ["super_admin", "ketua", "wakil_ketua", "sekretaris", "bendahara"].includes(p),
+            )
+          }
         />
       </div>
 

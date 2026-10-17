@@ -50,6 +50,7 @@ export function PanelTindakan({
   alasanDilewati,
   judul,
   pengusulSendiri,
+  bolehJalankanTahap,
 }: {
   activityId: string;
   status: string;
@@ -66,6 +67,8 @@ export function PanelTindakan({
   judul: string;
   /** Benar bila pengguna yang masuk adalah pengusul kegiatan ini. */
   pengusulSendiri: boolean;
+  /** Boleh menjalankan tahap pelaksanaan (mulai/selesai/arsip). */
+  bolehJalankanTahap: boolean;
 }) {
   const router = useRouter();
   const [sedang, setSedang] = useState(false);
@@ -140,23 +143,23 @@ export function PanelTindakan({
       <TombolBatalkanAjuan activityId={activityId} judul={judul} />
     ) : null;
   } else if (status === "disetujui") {
-    aksiUtama = (
+    aksiUtama = bolehJalankanTahap ? (
       <TombolUtama onClick={() => jalankan("mulai")} disabled={sedang}>
         Mulai Kegiatan
       </TombolUtama>
-    );
+    ) : null;
   } else if (status === "berjalan") {
-    aksiUtama = (
+    aksiUtama = bolehJalankanTahap ? (
       <TombolUtama onClick={() => jalankan("selesai")} disabled={sedang}>
         Tandai Selesai
       </TombolUtama>
-    );
+    ) : null;
   } else if (status === "laporan_disetujui") {
-    aksiUtama = (
+    aksiUtama = bolehJalankanTahap ? (
       <TombolUtama onClick={() => jalankan("arsipkan")} disabled={sedang}>
         Kunci & Arsipkan
       </TombolUtama>
-    );
+    ) : null;
   }
 
   return (
