@@ -196,20 +196,23 @@ export default async function DetailKegiatan({
   const langkah = ((alur?.approval_steps ?? []) as { urutan: number; peran: string }[])
     .slice()
     .sort((a, b) => a.urutan - b.urutan)
-    .map((l) => ({
-      urutan: l.urutan,
-      peran: l.peran,
-      sudah:
-        ((approvals ?? []).find(
-          (a: { step_urutan: number; keputusan: string; peran: string }) =>
-            a.step_urutan === l.urutan && a.peran === l.peran,
-        )?.keputusan as "setuju" | "revisi" | "tolak" | undefined) ?? null,
-      catatan:
-        ((approvals ?? []).find(
-          (a: { step_urutan: number; keputusan: string; peran: string }) =>
-            a.step_urutan === l.urutan && a.peran === l.peran,
-        )?.catatan as string | null | undefined) ?? null,
-    }));
+    .map((l) => {
+      // Keputusan TERBARU untuk jenjang ini yang dipakai, bukan yang pertama.
+      // Kegiatan yang pernah direvisi lalu diajukan ulang meninggalkan keputusan
+      // lama di riwayat; memakai yang pertama membuat linimasa menampilkan
+      // catatan revisi lama padahal keputusan terakhirnya sudah berbeda.
+      const milik = (approvals ?? []).filter(
+        (a: { step_urutan: number; peran: string }) =>
+          a.step_urutan === l.urutan && a.peran === l.peran,
+      ) as { keputusan: string; catatan: string | null; dibuat_pada: string }[];
+      const terakhir = milik.length > 0 ? milik[milik.length - 1] : undefined;
+      return {
+        urutan: l.urutan,
+        peran: l.peran,
+        sudah: (terakhir?.keputusan as "setuju" | "revisi" | "tolak" | undefined) ?? null,
+        catatan: terakhir?.catatan ?? null,
+      };
+    });
 
   // siapa yang sedang ditunggu, dan apakah pengguna ini berhak menilai
   const sudahSetuju = new Set(
