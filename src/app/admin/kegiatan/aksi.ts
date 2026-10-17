@@ -143,7 +143,13 @@ export async function ajukanKegiatan(activityId: string) {
   // Pemilik memutuskan: wajib disetujui ulang oleh SELURUH jenjang dari awal.
   const diajukanUlang = keg.status === "revisi";
   if (diajukanUlang) {
-    await sb.from("approvals").delete().eq("activity_id", activityId);
+    // Lewat fungsi berpemilik hak: tabel approvals TIDAK memberi izin DELETE,
+    // sehingga penghapusan langsung dijawab sukses tanpa menghapus apa pun
+    // (gagal senyap) — keputusan lama lalu menempel pada data yang sudah berubah.
+    const { error: galatReset } = await sb.rpc("reset_persetujuan_kegiatan", {
+      p_activity: activityId,
+    });
+    if (galatReset) return { galat: "Gagal mengosongkan persetujuan lama: " + galatReset.message };
   }
 
   const { error } = await sb
@@ -235,15 +241,27 @@ export async function perbaikiKegiatan(
     };
   }
 
+  // Tanggal WAJIB terisi. Tanpa syarat ini, kiriman yang tanggalnya kosong
+  // akan MENGOSONGKAN tanggal kegiatan yang sudah ada — kegiatan lalu hilang
+  // dari Agenda publik dan laporannya menjadi tanpa tanggal pelaksanaan.
+  const mulaiFinal = (perubahan.tanggalMulai ?? keg.tanggal_mulai ?? "").trim();
+  const selesaiFinal = (perubahan.tanggalSelesai ?? keg.tanggal_selesai ?? "").trim();
+  if (!mulaiFinal || !selesaiFinal) {
+    return {
+      galat: "Tanggal mulai dan tanggal selesai wajib diisi.",
+    };
+  }
   // Tanggal selesai tidak boleh lebih awal dari tanggal mulai — kalau tidak,
   // muncul data tidak logis seperti "selesai sebelum dimulai".
-  const mulaiFinal = perubahan.tanggalMulai ?? keg.tanggal_mulai ?? "";
-  const selesaiFinal = perubahan.tanggalSelesai ?? keg.tanggal_selesai ?? "";
-  if (mulaiFinal && selesaiFinal && selesaiFinal < mulaiFinal) {
+  if (selesaiFinal < mulaiFinal) {
     return {
       galat:
         "Tanggal selesai tidak boleh lebih awal dari tanggal mulai. Mohon diperiksa kembali.",
     };
+  }
+  // Sasaran adalah bahan keputusan penyetuju — jangan sampai bisa dikosongkan.
+  if (perubahan.sasaran !== undefined && !perubahan.sasaran.trim()) {
+    return { galat: "Sasaran peserta tidak boleh kosong." };
   }
 
   // Susun hanya kolom yang benar-benar berubah.
@@ -264,12 +282,13 @@ export async function perbaikiKegiatan(
     catatanPerubahan.push("sasaran peserta diperbarui");
   }
   if (perubahan.tanggalMulai !== undefined && perubahan.tanggalMulai !== (keg.tanggal_mulai ?? "")) {
-    baru.tanggal_mulai = perubahan.tanggalMulai || null;
-    catatanPerubahan.push(`tanggal mulai: ${keg.tanggal_mulai ?? "—"} → ${perubahan.tanggalMulai || "—"}`);
+    // Nilai kosong sudah ditolak di atas; simpan nilai bersih, bukan null.
+    baru.tanggal_mulai = perubahan.tanggalMulai.trim();
+    catatanPerubahan.push(`tanggal mulai: ${keg.tanggal_mulai ?? "—"} → ${perubahan.tanggalMulai.trim()}`);
   }
   if (perubahan.tanggalSelesai !== undefined && perubahan.tanggalSelesai !== (keg.tanggal_selesai ?? "")) {
-    baru.tanggal_selesai = perubahan.tanggalSelesai || null;
-    catatanPerubahan.push(`tanggal selesai: ${keg.tanggal_selesai ?? "—"} → ${perubahan.tanggalSelesai || "—"}`);
+    baru.tanggal_selesai = perubahan.tanggalSelesai.trim();
+    catatanPerubahan.push(`tanggal selesai: ${keg.tanggal_selesai ?? "—"} → ${perubahan.tanggalSelesai.trim()}`);
   }
   if (perubahan.tempat !== undefined && perubahan.tempat.trim() !== (keg.tempat ?? "")) {
     baru.tempat = perubahan.tempat.trim() || null;
