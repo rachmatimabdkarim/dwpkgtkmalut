@@ -282,7 +282,7 @@ export function FormKegiatanBaru({
                     <Kolom label="Satuan">
                       <Isian value={b.satuan} onChange={(e) => ubahBaris(i, { satuan: e.target.value })} placeholder="box" />
                     </Kolom>
-                    <Kolom label="Jumlah">
+                    <Kolom label="Banyaknya">
                       <Isian
                         type="number"
                         min={0}
@@ -301,7 +301,7 @@ export function FormKegiatanBaru({
                   </div>
                   <div className="flex items-center justify-between mt-2">
                     <span className="teks-3 text-n-500">
-                      Jumlah: <span className="text-n-700">{formatRupiah(b.jumlah * b.hargaSatuan)}</span>
+                      Subtotal: <span className="text-n-700">{formatRupiah(b.jumlah * b.hargaSatuan)}</span>
                     </span>
                     {rab.length > 1 && (
                       <TombolHalus ukuran="kecil" onClick={() => setRab(rab.filter((_, n) => n !== i))}>
