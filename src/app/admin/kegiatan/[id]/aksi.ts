@@ -94,7 +94,15 @@ export async function beriKeputusan(
     catatan: catatan.trim() || null,
     oleh: pengguna.id,
   });
-  if (error) return { galat: "Gagal menyimpan keputusan: " + error.message };
+  if (error) {
+    // Pengaman basis data: satu jenjang tidak boleh diputuskan dua kali.
+    // Bisa terjadi bila dua orang menekan bersamaan — beri pesan yang jelas,
+    // bukan pesan teknis tentang indeks unik.
+    if (error.message.includes("idx_approvals_satu_per_jenjang") || error.code === "23505") {
+      return { galat: "Jenjang ini sudah diputuskan orang lain tepat sebelum Anda. Muat ulang halaman untuk melihat hasilnya." };
+    }
+    return { galat: "Gagal menyimpan keputusan: " + error.message };
+  }
 
   // tentukan status kegiatan berikutnya
   let statusBaru = keg.status;
