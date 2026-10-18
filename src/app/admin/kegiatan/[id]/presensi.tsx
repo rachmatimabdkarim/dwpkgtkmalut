@@ -170,8 +170,8 @@ export function PanelPresensi({
           </div>
         </div>
 
-        {/* Formulir Tambah Peserta */}
-        {bukaForm && (
+        {/* Formulir Tambah Peserta — hanya untuk pengelola */}
+        {bolehKelola && bukaForm && (
           <form
             onSubmit={handleTambahPeserta}
             className="mt-4 border-t border-n-200 pt-4 flex flex-col gap-4"
@@ -259,9 +259,13 @@ export function PanelPresensi({
       {/* Keadaan Kosong */}
       {daftarPeserta.length === 0 ? (
         <Kosong
-          pesan="Belum ada data presensi peserta untuk kegiatan ini."
+          pesan={
+            bolehKelola
+              ? "Belum ada data presensi peserta untuk kegiatan ini."
+              : "Belum ada data presensi peserta. Hanya pengelola presensi yang ditugaskan yang dapat mengisinya."
+          }
           aksi={
-            !bukaForm ? (
+            bolehKelola && !bukaForm ? (
               <TombolUtama
                 type="button"
                 ukuran="sedang"
