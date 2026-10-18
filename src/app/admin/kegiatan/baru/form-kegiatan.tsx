@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+import { tentukanPenanggungJawab, type PeranPJ } from "@/lib/penanggung-jawab";
 import { Kartu, JudulSeksi, Lencana, TombolUtama, TombolSekunder, TombolHalus, Kolom, Isian, AreaTeks, Pilihan } from "@/components/dasar";
 import { labelStatus, formatRupiah } from "@/lib/kegiatan";
 import { buatKegiatan, ubahKegiatan } from "../aksi";
@@ -14,6 +15,7 @@ export function FormKegiatanBaru({
   bidang,
   pengurus,
   bidangSaya,
+  jabatanSaya,
   pengurusHarian,
   sayaSendiri,
   kegiatan,
@@ -22,6 +24,8 @@ export function FormKegiatanBaru({
   pengurus: { id: string; nama: string; jabatan: string; bidang?: string | null }[];
   /** Bidang pengguna yang masuk. Kosong = Pengurus Harian (bebas memilih). */
   bidangSaya: string | null;
+  /** Jabatan pengguna yang masuk, dipakai menentukan aturan penanggung jawab. */
+  jabatanSaya: string;
   /** Benar bila pengguna termasuk Pengurus Harian (bebas memilih bidang). */
   pengurusHarian: boolean;
   /** Data pengguna yang masuk, untuk batas penanggung jawab. */
@@ -71,14 +75,29 @@ export function FormKegiatanBaru({
       : [{ uraian: "", satuan: "", jumlah: 1, hargaSatuan: 0 }],
   );
 
-  // Penanggung jawab: diri sendiri + anggota bidang yang sama.
-  // Pengurus Harian bebas menunjuk siapa saja.
-  const daftarPenanggungJawab = useMemo(() => {
-    if (pengurusHarian) return pengurus;
-    return pengurus.filter(
-      (p) => p.id === sayaSendiri.id || (!!p.bidang && p.bidang === bidangSaya),
-    );
-  }, [pengurus, pengurusHarian, bidangSaya, sayaSendiri.id]);
+  // ATURAN PENANGGUNG JAWAB (ditetapkan pemilik aplikasi):
+  //   anggota biasa   -> terkunci ke Ketua Bidang-nya
+  //   ketua bidang    -> otomatis dirinya sendiri
+  //   pengurus harian -> hanya boleh salah satu pengurus harian
+  // Aturannya ada di satu tempat (@/lib/penanggung-jawab) supaya form dan
+  // server memakai sumber yang sama dan tidak bisa berbeda diam-diam.
+  const sayaPeran: PeranPJ = useMemo(
+    () => ({ id: sayaSendiri.id, nama: sayaSendiri.nama, jabatan: jabatanSaya, bidang: bidangSaya }),
+    [sayaSendiri.id, sayaSendiri.nama, jabatanSaya, bidangSaya],
+  );
+
+  const aturanPJ = useMemo(
+    () => tentukanPenanggungJawab(sayaPeran, pengurus as PeranPJ[]),
+    [sayaPeran, pengurus],
+  );
+
+  const daftarPenanggungJawab = aturanPJ.pilihan;
+  const pjTerkunci = aturanPJ.terkunci;
+
+  // Nilai yang benar-benar dikirim: bila aturan mengunci, pakai nilai terkunci
+  // apa pun isi kotak pilihan. Dihitung langsung (bukan lewat efek) supaya
+  // tidak ada penggambaran ulang berantai.
+  const penanggungJawabFinal = pjTerkunci ? pjTerkunci.id : penanggungJawab;
 
   const total = useMemo(
     () => rab.reduce((j, b) => j + (b.jumlah || 0) * (b.hargaSatuan || 0), 0),
@@ -125,7 +144,7 @@ export function FormKegiatanBaru({
       tanggalSelesai,
       tempat,
       sectionId,
-      penanggungJawab,
+      penanggungJawab: penanggungJawabFinal,
       namaBidang: bidangSaya ?? bidang.find((b) => b.id === sectionId)?.nama ?? "",
       ringkasan,
       ajukanSekarang,
@@ -231,24 +250,33 @@ export function FormKegiatanBaru({
                   </Pilihan>
                 )}
               </Kolom>
-              <Kolom
-                label="Penanggung jawab"
-                bantuan={
-                  pengurusHarian
-                    ? "Sebagai Pengurus Harian, Anda bebas menunjuk siapa saja."
-                    : "Hanya diri Anda sendiri atau anggota bidang Anda."
-                }
-              >
-                <Pilihan value={penanggungJawab} onChange={(e) => setPenanggungJawab(e.target.value)}>
-                  <option value="">Saya sendiri — {sayaSendiri.nama}</option>
-                  {daftarPenanggungJawab
-                    .filter((p) => p.id !== sayaSendiri.id)
-                    .map((p) => (
+              <Kolom label="Penanggung jawab" bantuan={aturanPJ.bantuan}>
+                {pjTerkunci ? (
+                  // TERKUNCI: anggota biasa selalu diwakili Ketua Bidang-nya, dan
+                  // Ketua Bidang otomatis menjadi penanggung jawab kegiatannya
+                  // sendiri. Ditampilkan sebagai teks terkunci, bukan pilihan,
+                  // supaya tidak ada kesan bisa diubah.
+                  <div className="min-h-[44px] flex items-center rounded-token border border-n-200 bg-n-50 px-3">
+                    <span className="teks-3 text-n-700">
+                      {pjTerkunci.nama} — {pjTerkunci.jabatan}
+                      {pjTerkunci.bidang ? ` (${pjTerkunci.bidang})` : ""}
+                    </span>
+                    <span className="ml-auto teks-3 text-n-400">Terkunci</span>
+                  </div>
+                ) : (
+                  <Pilihan
+                    value={penanggungJawab}
+                    onChange={(e) => setPenanggungJawab(e.target.value)}
+                  >
+                    <option value="">— Pilih penanggung jawab —</option>
+                    {daftarPenanggungJawab.map((p) => (
                       <option key={p.id} value={p.id}>
                         {p.nama} — {p.jabatan}
+                        {p.bidang ? ` (${p.bidang})` : ""}
                       </option>
                     ))}
-                </Pilihan>
+                  </Pilihan>
+                )}
               </Kolom>
             </div>
             <Kolom label="Ringkasan untuk publik" bantuan="Muncul di halaman Agenda setelah disetujui. Boleh dikosongkan.">

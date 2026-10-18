@@ -89,6 +89,7 @@ export default async function HalamanUbahKegiatan({
       <FormKegiatanBaru
         bidang={(bidang ?? []) as { id: string; nama: string }[]}
         pengurus={pengurusDenganBidang}
+        jabatanSaya={pengguna.jabatan}
         bidangSaya={bidangSaya}
         pengurusHarian={pengurusHarian}
         sayaSendiri={{ id: pengguna.id, nama: pengguna.nama }}

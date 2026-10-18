@@ -41,15 +41,18 @@ export async function buatKegiatan(masukan: {
   }
 
   // ---- Pengaman penanggung jawab ----
-  // Hanya diri sendiri atau anggota bidang yang sama.
+  // ATURAN PEMILIK (lihat migrasi 0052):
+  //   anggota biasa -> terkunci ke Ketua Bidang-nya
+  //   ketua bidang  -> dirinya sendiri
+  //   pengurus harian -> hanya sesama pengurus harian
+  // Server menanyakan ALASAN penolakan, bukan sekadar boleh/tidak, supaya
+  // pengguna membaca kalimat yang menjelaskan — bukan pesan teknis.
   if (masukan.penanggungJawab) {
-    const { data: bolehPj } = await sb.rpc("boleh_penanggung_jawab", {
+    const { data: alasan } = await sb.rpc("alasan_penanggung_jawab", {
       orang: masukan.penanggungJawab,
     });
-    if (bolehPj === false) {
-      return {
-        galat: "Penanggung jawab harus diri sendiri atau anggota bidang Anda.",
-      };
+    if (typeof alasan === "string" && alasan.trim() !== "") {
+      return { galat: alasan };
     }
   }
 

@@ -41,6 +41,7 @@ export default async function HalamanKegiatanBaru() {
         bidang={(bidang ?? []) as { id: string; nama: string }[]}
         pengurus={pengurusDenganBidang}
         bidangSaya={bidangSaya}
+        jabatanSaya={pengguna.jabatan}
         pengurusHarian={pengurusHarian}
         sayaSendiri={{ id: pengguna.id, nama: pengguna.nama }}
       />
