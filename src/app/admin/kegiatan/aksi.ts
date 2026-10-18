@@ -230,12 +230,29 @@ export async function ubahKegiatan(
   if (keg.dibuat_oleh !== pengguna.id && !pengguna.peran.includes("super_admin")) {
     return { galat: "Hanya pengusul kegiatan ini yang dapat mengubahnya." };
   }
-  if (!["draf", "revisi"].includes(keg.status)) {
+
+  // ATURAN PEMILIK: perubahan kegiatan yang SUDAH disetujui atau sedang berjalan
+  // tidak lagi memakai formulir "Ajukan Perubahan" tersendiri — memakai FORM
+  // KEGIATAN yang sama, lalu masuk ANTREAN PERSETUJUAN BERJENJANG:
+  //   ada RAB   : Bendahara -> Wakil Ketua -> Ketua
+  //   tanpa RAB : Wakil Ketua -> Ketua
+  //
+  // Status yang memerlukan persetujuan ulang: disetujui, berjalan, selesai,
+  // laporan_* (kegiatan yang sudah pernah lolos persetujuan).
+  const perluPersetujuanUlang = [
+    "disetujui",
+    "berjalan",
+    "selesai",
+    "laporan_diajukan",
+    "laporan_dalam_review",
+    "laporan_disetujui",
+  ].includes(keg.status);
+
+  if (!perluPersetujuanUlang && !["draf", "revisi"].includes(keg.status)) {
     return {
       galat:
-        "Kegiatan ini sudah diajukan, jadi datanya tidak dapat diubah langsung. " +
-        "Perubahan harus lewat revisi berjenjang: penyetuju memilih \"Minta Revisi\", " +
-        "lalu kegiatan diajukan ulang dan disetujui ulang oleh seluruh jenjang.",
+        "Kegiatan ini sedang dalam proses persetujuan, jadi datanya belum dapat diubah. " +
+        "Tunggu keputusan penyetuju, atau ajukan perbaikan bila kegiatan dikembalikan untuk revisi.",
     };
   }
 
@@ -280,6 +297,39 @@ export async function ubahKegiatan(
       const { error: galatRab } = await sb.from("budget_items").insert(baris);
       if (galatRab) return { galat: "Gagal menyimpan anggaran: " + galatRab.message };
     }
+  }
+
+  if (perluPersetujuanUlang) {
+    // Perubahan menunggu persetujuan ulang: kegiatan kembali ke status
+    // "diajukan" sehingga jenjang persetujuan berjalan dari awal. Keputusan
+    // lama DIBERSIHKAN supaya penyetuju benar-benar menilai data yang baru —
+    // kalau tidak, kegiatan bisa berstatus disetujui padahal isinya berubah.
+    await sb.from("approvals").delete().eq("activity_id", activityId);
+    const { error: galatStatus } = await sb
+      .from("activities")
+      .update({ status: "diajukan" })
+      .eq("id", activityId);
+    if (galatStatus) return { galat: "Gagal mengajukan perubahan: " + galatStatus.message };
+
+    await sb.from("activity_logs").insert({
+      activity_id: activityId,
+      aksi: "perubahan_diajukan",
+      keterangan:
+        "Pengusul mengusulkan perubahan data kegiatan dan rincian anggaran. " +
+        "Perubahan menunggu persetujuan berjenjang.",
+      pelaku_id: pengguna.id,
+      pelaku_nama: pengguna.nama,
+    });
+
+    // Beritahu penyetuju pertama menurut alur baru.
+    await beritahuPenyetujuBerikut(activityId, "perencanaan");
+
+    revalidatePath("/admin");
+    revalidatePath("/admin/kegiatan");
+    revalidatePath(`/admin/kegiatan/${activityId}`);
+    revalidatePath("/");
+    revalidatePath("/agenda");
+    return { ok: true, menungguPersetujuan: true };
   }
 
   await sb.from("activity_logs").insert({

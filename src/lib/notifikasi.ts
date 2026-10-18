@@ -352,6 +352,54 @@ export async function beritahuPenyetujuBerikut(
       activity_id: activityId,
     });
   }
+
+  // Sekretaris & Bendahara menerima pemberitahuan setiap tahap (bukan tugas).
+  await beritahuPengawas(
+    sb,
+    activityId,
+    keg.judul,
+    `${namaPeran}`,
+    `Kegiatan ini sekarang berada di tahap ${namaPeran}. Pemberitahuan ini hanya untuk pemantauan.`,
+  );
+}
+
+/**
+ * MENGABARI PENGAWAS — Sekretaris & Bendahara menerima pemberitahuan pada
+ * SETIAP tahap persetujuan, walaupun mereka bukan pemutus.
+ *
+ * Aturan pemilik: "Sekretaris dan bendahara tetap mendapatkan notifikasi dari
+ * setiap tahapan."
+ *
+ * Notifikasi ini bersifat PEMBERITAHUAN, bukan tugas: jenisnya dibedakan
+ * (`pantauan_tahap_...`) sehingga tidak masuk hitungan "Perlu tindakan saya".
+ * Bila tidak dibedakan, lonceng akan menuduh mereka punya pekerjaan yang
+ * sebenarnya bukan tugasnya.
+ */
+async function beritahuPengawas(
+  sb: ReturnType<typeof klienAdmin>,
+  activityId: string,
+  judulKegiatan: string,
+  namaTahap: string,
+  pesan: string,
+) {
+  const { data: pengawas } = await sb
+    .from("officers")
+    .select("profile_id, jabatan")
+    .in("jabatan", ["Sekretaris", "Bendahara"]);
+
+  const sudah = new Set<string>();
+  for (const o of (pengawas ?? []) as { profile_id: string | null; jabatan: string }[]) {
+    if (!o.profile_id || sudah.has(o.profile_id)) continue;
+    sudah.add(o.profile_id);
+    await kirimSatu(sb, {
+      user_id: o.profile_id,
+      jenis: `pantauan_tahap_${namaTahap}`,
+      judul: `Pantauan ${namaTahap}: ${judulKegiatan}`,
+      pesan,
+      tautan: `/admin/kegiatan/${activityId}`,
+      activity_id: activityId,
+    });
+  }
 }
 
 /**
@@ -387,6 +435,13 @@ export async function beritahuSetelahKeputusan(
           activity_id: activityId,
         });
       }
+      await beritahuPengawas(
+        sb,
+        activityId,
+        keg.judul,
+        `${namaPeran}`,
+        `Kegiatan ini sekarang berada di tahap ${namaPeran}. Pemberitahuan ini hanya untuk pemantauan.`,
+      );
       return;
     }
     // Tidak ada tahap berikutnya -> disetujui penuh. Beritahu pengusul.

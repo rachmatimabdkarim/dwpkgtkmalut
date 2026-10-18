@@ -10,7 +10,6 @@ import { SembunyikanToggle } from "./sembunyikan";
 import { PanelPanitia, type PanitiaItem, type PengurusOpsi } from "./panitia";
 import { PanelPresensi, type PesertaItem } from "./presensi";
 import { PanelDokumentasi, type FotoItem } from "./dokumentasi";
-import { PanelPerubahan, type ItemPengajuan } from "./perubahan";
 
 export const instant = false;
 
@@ -116,56 +115,7 @@ export default async function DetailKegiatan({
     .eq("status", "resmi")
     .order("diunggah_pada", { ascending: true });
 
-  // Perubahan hanya masuk akal SETELAH perencanaan disetujui. Kegiatan yang
-  // sudah selesai laporan atau diarsipkan pun masih boleh diajukan perubahan
-  // (mis. koreksi tanggal/tempat yang tercatat keliru), karena itu ikut dicakup.
-  // C. "arsip" sengaja TIDAK dimasukkan — kegiatan yang sudah diarsipkan adalah
-  // catatan final dan tidak boleh diubah lagi.
-  const tampilkanPerubahan = [
-    "disetujui",
-    "berjalan",
-    "selesai",
-    "laporan_diajukan",
-    "laporan_dalam_review",
-    "laporan_disetujui",
-  ].includes(keg.status);
-  const { data: dataPerubahan } = tampilkanPerubahan
-    ? await sb
-        .from("change_requests")
-        .select(
-          "id, activity_id, jenis, usulan, alasan, status, diajukan_oleh, dibuat_pada, diputuskan_pada, profiles:diajukan_oleh(nama)",
-        )
-        .eq("activity_id", id)
-        .order("dibuat_pada", { ascending: false })
-    : { data: null };
 
-  const daftarPengajuan: ItemPengajuan[] = ((dataPerubahan ?? []) as unknown as {
-    id: string;
-    activity_id: string;
-    jenis: "tanggal" | "tempat" | "anggaran" | "lain";
-    usulan: string;
-    alasan: string | null;
-    status: "diajukan" | "dalam_review" | "disetujui" | "ditolak";
-    diajukan_oleh: string | null;
-    dibuat_pada: string;
-    diputuskan_pada: string | null;
-    profiles?: { nama: string } | null;
-  }[]).map((cr) => ({
-    id: cr.id,
-    activity_id: cr.activity_id,
-    jenis: cr.jenis,
-    usulan: cr.usulan,
-    alasan: cr.alasan,
-    status: cr.status,
-    diajukan_oleh: cr.diajukan_oleh,
-    nama_pengaju: cr.profiles?.nama,
-    dibuat_pada: cr.dibuat_pada,
-    diputuskan_pada: cr.diputuskan_pada,
-  }));
-
-  const apakahPengurusInti = pengguna.peran.some((p) =>
-    ["super_admin", "ketua", "wakil_ketua", "sekretaris", "bendahara", "ketua_seksi"].includes(p),
-  );
 
 
   const bolehUbahPublik =
@@ -267,16 +217,7 @@ export default async function DetailKegiatan({
   // A. Mengajukan perubahan hanya untuk PENGUSUL kegiatan dan Sekretaris
   //    (plus Super Admin). Sebelumnya semua pengurus inti — termasuk Ketua
   //    Bidang bidang lain yang tidak ada kaitannya dengan kegiatan ini.
-  const bolehAjukanPerubahan =
-    pengusulSendiri ||
-    pengguna.peran.includes("sekretaris") ||
-    pengguna.peran.includes("super_admin");
 
-  // Saat kegiatan sedang BERJALAN, aksi utama di layar adalah "Tandai Selesai".
-  // Menampilkan "Ajukan Perubahan" berdampingan membuat pengguna ragu mana yang
-  // harus ditekan (temuan pemilik). Perubahan anggaran tetap bisa diajukan nanti
-  // — lewat tab Anggaran — setelah kegiatan ditandai selesai.
-  const bolehBukaFormPerubahan = bolehAjukanPerubahan && keg.status !== "berjalan";
 
   // B. Perbaikan langsung oleh pengusul — HANYA selama belum ada persetujuan
   //    yang berlaku (draf / revisi / ditolak). Sesudah diajukan, perubahan data
@@ -285,9 +226,21 @@ export default async function DetailKegiatan({
   //    dapat diubah diam-diam menjadi 20 tanpa sepengetahuan penyetuju.
   // "ditolak" sengaja TIDAK termasuk — penolakan berarti selesai dan tidak ada
   // jalan mengajukan kembali, sehingga perbaikan data tidak ada gunanya.
-  const bolehPerbaikiLangsung =
+  // ATURAN PEMILIK: tidak ada lagi formulir "Ajukan Perubahan" tersendiri.
+  // Perubahan — termasuk anggaran — memakai FORM KEGIATAN yang sama.
+  //
+  //   * draf / revisi          -> perubahan langsung, tanpa persetujuan ulang
+  //   * disetujui / berjalan / selesai / laporan_* -> masuk ANTREAN PERSETUJUAN
+  //     BERJENJANG (Bendahara bila ada RAB -> Wakil Ketua -> Ketua)
+  //
+  // Hanya PENGUSUL kegiatan (atau Super Admin) yang boleh mengusulkan.
+  const bolehUbahKegiatan =
     (pengusulSendiri || pengguna.peran.includes("super_admin")) &&
-    ["draf", "revisi"].includes(keg.status);
+    ["draf", "revisi", "disetujui", "berjalan", "selesai", "laporan_diajukan",
+     "laporan_dalam_review", "laporan_disetujui"].includes(keg.status);
+
+  const ubahPerluPersetujuan =
+    !["draf", "revisi"].includes(keg.status) && keg.status !== "arsip";
 
   // D. Modul pelaksanaan (panitia, presensi, dokumentasi) terkunci begitu
   //    laporan DIAJUKAN. Isinya sedang dinilai penyetuju — kalau bisa diubah di
@@ -300,7 +253,6 @@ export default async function DetailKegiatan({
   ].includes(keg.status);
 
   // C. Kegiatan yang sudah diarsipkan tidak dapat diubah lagi.
-  const perubahanTertutup = keg.status === "arsip";
 
   // Peran cocok dengan tahap yang sedang menunggu...
   const peranCocok = !!berikut && (peranSaya.includes(berikut.peran as Peran) || lewatDelegasi);
@@ -443,52 +395,33 @@ export default async function DetailKegiatan({
                 </dl>
               </Kartu>
 
-              {/* B. Pengusul memperbaiki langsung — memakai FORM KEGIATAN yang
-                  sama dengan kegiatan baru, LENGKAP dengan tab Anggaran (RAB).
-                  Sebelumnya ada form terpisah yang tidak memuat RAB sehingga
-                  rincian anggaran tidak bisa diperbaiki sama sekali. */}
-              {bolehPerbaikiLangsung && (
+              {/* B. TOMBOL TUNGGAL untuk mengubah data kegiatan.
+                  Memakai FORM KEGIATAN yang sama dengan kegiatan baru, lengkap
+                  dengan tab Anggaran (RAB). Tidak ada lagi formulir terpisah.
+
+                  Bila kegiatan sudah disetujui/berjalan, tombol ini berarti
+                  MENGAJUKAN PERUBAHAN: setelah disimpan, kegiatan kembali ke
+                  antrean persetujuan berjenjang. Keterangannya berubah supaya
+                  pengguna tahu apa yang akan terjadi. */}
+              {bolehUbahKegiatan && (
                 <div className="mt-4 rounded-token border border-n-200 bg-n-50 p-4">
-                  <p className="text-[14px] text-n-800 font-medium">Perbaiki data kegiatan</p>
+                  <p className="text-[14px] text-n-800 font-medium">
+                    {ubahPerluPersetujuan ? "Usulkan perubahan kegiatan" : "Perbaiki data kegiatan"}
+                  </p>
                   <p className="teks-3 text-n-600 mt-1">
-                    Mengubah nama, tujuan, sasaran, tanggal, tempat, ringkasan publik, dan
-                    rincian anggaran (RAB). Perubahan langsung tersimpan dan tercatat di riwayat.
+                    {ubahPerluPersetujuan
+                      ? "Mengubah nama, tujuan, sasaran, tanggal, tempat, ringkasan publik, dan rincian anggaran (RAB). Karena kegiatan ini sudah disetujui, perubahannya akan DIAJUKAN ULANG dan harus disetujui berjenjang sebelum berlaku."
+                      : "Mengubah nama, tujuan, sasaran, tanggal, tempat, ringkasan publik, dan rincian anggaran (RAB). Perubahan langsung tersimpan dan tercatat di riwayat."}
                   </p>
                   <Link
                     href={`/admin/kegiatan/${keg.id}/ubah`}
                     className="inline-flex h-11 items-center mt-3 rounded-token bg-brand-600 px-4 text-[14px] font-medium text-brand-contrast hover:bg-brand-700"
                   >
-                    Perbaiki Data Kegiatan
+                    {ubahPerluPersetujuan ? "Usulkan Perubahan Kegiatan" : "Perbaiki Data Kegiatan"}
                   </Link>
                 </div>
               )}
 
-              {/* A & C. Pengajuan perubahan resmi — untuk hal yang harus
-                  disetujui ulang, dan tertutup untuk kegiatan yang diarsipkan. */}
-              {tampilkanPerubahan &&
-                !perubahanTertutup &&
-                // Kotak hanya ditampilkan bila ADA gunanya:
-                //  (a) pengguna berhak MENGAJUKAN perubahan, atau
-                //  (b) ada pengajuan yang benar-benar menunggu keputusan dia.
-                // Tanpa syarat (b), kotak kosong ini muncul di layar Ketua —
-                // berisi tulisan "Belum ada pengajuan perubahan" tanpa satu
-                // pun tombol. Kotak tanpa aksi hanya membingungkan (temuan
-                // pemilik: "tidak berfungsi, tidak ada artinya").
-                (bolehAjukanPerubahan ||
-                  (apakahPengurusInti &&
-                    (daftarPengajuan ?? []).some(
-                      (r) =>
-                        (r.status === "diajukan" || r.status === "dalam_review") &&
-                        r.diajukan_oleh !== pengguna.id,
-                    ))) && (
-                  <PanelPerubahan
-                    activityId={keg.id}
-                    daftarPengajuan={daftarPengajuan}
-                    bisaMengajukan={bolehBukaFormPerubahan}
-                    bisaMemutuskan={apakahPengurusInti}
-                    penggunaId={pengguna.id}
-                  />
-                )}
             </div>
           )}
 

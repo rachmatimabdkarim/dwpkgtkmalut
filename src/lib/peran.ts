@@ -132,9 +132,9 @@ export function labelPeran(peran: RoleKey[]): string {
    halaman ubah kegiatan. Wajib satu sumber agar tampilan dan pengaman
    halaman tidak pernah berbeda.
 
-   "pengurus" = anggota biasa. Mereka BOLEH mengajukan, tetapi bidang
-   pelaksana terkunci pada bidangnya dan penanggung jawab dibatasi pada
-   anggota bidang yang sama (lihat aturan di pusat data).
+   "pengurus" = anggota biasa. Mereka TIDAK LAGI BOLEH mengajukan kegiatan
+   (aturan pemilik): kegiatan hanya boleh diusulkan pengurus harian dan
+   Ketua Bidang. Kebutuhan anggota disalurkan lewat Ketua Bidangnya.
    ============================================================ */
 export const PERAN_PENGAJU: RoleKey[] = [
   "super_admin",
@@ -143,5 +143,4 @@ export const PERAN_PENGAJU: RoleKey[] = [
   "sekretaris",
   "bendahara",
   "ketua_seksi",
-  "pengurus",
 ];
