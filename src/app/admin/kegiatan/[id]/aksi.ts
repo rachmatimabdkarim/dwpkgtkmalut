@@ -206,12 +206,28 @@ export async function ubahTahap(
   const aturan = peta[aksi];
   const { data: keg } = await sb
     .from("activities")
-    .select("status")
+    .select("status, penanggung_jawab")
     .eq("id", activityId)
-    .maybeSingle<{ status: string }>();
+    .maybeSingle<{ status: string; penanggung_jawab: string | null }>();
   if (!keg) return { galat: "Kegiatan tidak ditemukan." };
   if (!aturan.dari.includes(keg.status)) {
     return { galat: "Tahap kegiatan saat ini belum memungkinkan langkah tersebut." };
+  }
+
+  // ATURAN PEMILIK: langkah pelaksanaan (mulai, selesai, ajukan laporan,
+  // arsipkan) HANYA boleh dilakukan PENANGGUNG JAWAB kegiatan.
+  // Sebelumnya tidak ada pemeriksaan sama sekali di sini — siapa pun yang
+  // mengirim permintaan bisa mengubah tahap. Menyembunyikan tombol saja tidak
+  // cukup. Super Admin tetap boleh sebagai cadangan bila penanggung jawab
+  // berhalangan (sakit, mutasi, cuti).
+  const bolehLangkah =
+    pengguna.id === keg.penanggung_jawab || pengguna.peran.includes("super_admin");
+  if (!bolehLangkah) {
+    return {
+      galat:
+        "Hanya penanggung jawab kegiatan yang dapat menjalankan langkah ini. " +
+        "Bila penanggung jawab berhalangan, mintakan bantuan Super Admin.",
+    };
   }
 
   // Kunci & arsip lewat fungsi database berpemilik hak: kebijakan UPDATE tabel
