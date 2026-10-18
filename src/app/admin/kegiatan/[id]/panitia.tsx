@@ -83,12 +83,20 @@ export function PanelPanitia({
   daftarPanitia,
   daftarPengurus,
   daftarPenugasan = [],
+  bolehUbahPanitia = false,
   terkunci = false,
 }: {
   activityId: string;
   daftarPanitia: PanitiaItem[];
   daftarPengurus: PengurusOpsi[];
   daftarPenugasan?: PenugasanItem[];
+  /**
+   * Hanya PENANGGUNG JAWAB kegiatan (atau Super Admin) yang boleh menyusun
+   * panitia dan menugaskan pekerjaan. Tab Panitia tetap boleh DIBACA orang
+   * lain, tetapi tanpa tombol apa pun — supaya tidak ada tombol yang
+   * ditekan lalu ditolak server (membingungkan).
+   */
+  bolehUbahPanitia?: boolean;
   /** Laporan sudah diajukan: susunan panitia tidak boleh diubah lagi. */
   terkunci?: boolean;
 }) {
@@ -222,7 +230,7 @@ export function PanelPanitia({
               {totalPanitia} panitia · {tugasSelesai} tugas selesai dari {totalTugas}
             </p>
           </div>
-          {!terkunci && !bukaFormPanitia && totalPanitia > 0 && (
+          {bolehUbahPanitia && !terkunci && !bukaFormPanitia && totalPanitia > 0 && (
             <TombolUtama
               type="button"
               ukuran="kecil"
@@ -238,7 +246,7 @@ export function PanelPanitia({
         </div>
 
         {/* Formulir Tambah Panitia */}
-        {bukaFormPanitia && (
+        {bolehUbahPanitia && bukaFormPanitia && (
           <form
             onSubmit={handleTambahPanitia}
             className="mt-4 border-t border-n-200 pt-4 flex flex-col gap-4"
@@ -337,7 +345,7 @@ export function PanelPanitia({
           Aturan pemilik: penanggung jawab menugaskan; hanya yang ditugaskan
           boleh membuka dan mengelola tab presensi/dokumentasi.
           Penanggung jawab & Super Admin tetap bisa sebagai cadangan. */}
-      {!terkunci && totalPanitia > 0 && (
+      {bolehUbahPanitia && !terkunci && totalPanitia > 0 && (
         <Kartu className="p-4 sm:p-5">
           <JudulSeksi>Pengelola Presensi &amp; Dokumentasi</JudulSeksi>
           <p className="teks-3 text-n-600 mt-1">
@@ -413,12 +421,21 @@ export function PanelPanitia({
         </Kartu>
       )}
 
+      {!bolehUbahPanitia && (
+        <div className="rounded-token border border-n-200 bg-n-50 p-3">
+          <p className="teks-3 text-n-600">
+            Hanya penanggung jawab kegiatan yang dapat menyusun panitia dan menugaskan
+            pengelola presensi atau dokumentasi. Anda dapat melihat susunannya di sini.
+          </p>
+        </div>
+      )}
+
       {/* Daftar Panitia */}
       {daftarPanitia.length === 0 ? (
         <Kosong
           pesan="Belum ada susunan panitia untuk kegiatan ini."
           aksi={
-            !terkunci && !bukaFormPanitia ? (
+            bolehUbahPanitia && !terkunci && !bukaFormPanitia ? (
               <TombolUtama
                 type="button"
                 ukuran="sedang"

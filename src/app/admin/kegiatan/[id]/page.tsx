@@ -564,6 +564,14 @@ export default async function DetailKegiatan({
                   committee_id: string;
                 }[]
               }
+              // ATURAN PEMILIK: hanya PENANGGUNG JAWAB (atau Super Admin) yang
+              // boleh menyusun panitia dan menugaskan pekerjaan. Anggota lain
+              // tidak boleh melihat tombolnya sama sekali — walau tab Panitia
+              // tetap boleh dibaca.
+              bolehUbahPanitia={
+                pengguna.id === keg.penanggung_jawab ||
+                pengguna.peran.includes("super_admin")
+              }
               terkunci={pelaksanaanTerkunci}
             />
           )}
