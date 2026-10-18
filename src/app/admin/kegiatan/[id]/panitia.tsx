@@ -22,7 +22,29 @@ import {
   tambahTugas,
   ubahStatusTugas,
   hapusTugas,
+  tugaskanPengelola,
+  cabutPenugasan,
 } from "../aksi-pelaksanaan";
+
+/**
+ * Peran kepanitiaan — DAFTAR TETAP, bukan teks bebas.
+ *
+ * Aturan pemilik: panitia terdiri dari Ketua Panitia dan Anggota Panitia.
+ * Sekretaris dan Bendahara panitia tetap disediakan karena susunan
+ * kepanitiaan lazim memuat keduanya. Nilai disimpan dalam bentuk kode
+ * (huruf kecil bergaris bawah); label dipakai untuk tampilan.
+ */
+export const PERAN_PANITIA = [
+  { nilai: "ketua_panitia", label: "Ketua Panitia" },
+  { nilai: "sekretaris_panitia", label: "Sekretaris Panitia" },
+  { nilai: "bendahara_panitia", label: "Bendahara Panitia" },
+  { nilai: "anggota_panitia", label: "Anggota Panitia" },
+] as const;
+
+/** Mengubah kode peran menjadi label yang terbaca. */
+export function labelPeranPanitia(nilai: string): string {
+  return PERAN_PANITIA.find((p) => p.nilai === nilai)?.label ?? "Anggota Panitia";
+}
 
 export type PengurusOpsi = {
   id: string;
@@ -36,6 +58,11 @@ export type TugasItem = {
   selesai: boolean;
   batas: string | null;
   committee_id: string | null;
+};
+
+export type PenugasanItem = {
+  bagian: "presensi" | "dokumentasi";
+  committee_id: string;
 };
 
 export type PanitiaItem = {
@@ -55,11 +82,13 @@ export function PanelPanitia({
   activityId,
   daftarPanitia,
   daftarPengurus,
+  daftarPenugasan = [],
   terkunci = false,
 }: {
   activityId: string;
   daftarPanitia: PanitiaItem[];
   daftarPengurus: PengurusOpsi[];
+  daftarPenugasan?: PenugasanItem[];
   /** Laporan sudah diajukan: susunan panitia tidak boleh diubah lagi. */
   terkunci?: boolean;
 }) {
@@ -72,6 +101,10 @@ export function PanelPanitia({
   const [pilihanProfileId, setPilihanProfileId] = useState(daftarPengurus[0]?.id || "");
   const [namaLuar, setNamaLuar] = useState("");
   const [peran, setPeran] = useState("");
+
+  // Satu kegiatan hanya boleh punya satu Ketua Panitia (dijaga juga di pusat
+  // data lewat indeks unik). Pilihan Ketua Panitia dimatikan bila sudah ada.
+  const sudahAdaKetua = daftarPanitia.some((p) => p.peran === "ketua_panitia");
   const [galatPanitia, setGalatPanitia] = useState("");
 
   // Dialog konfirmasi hapus panitia
@@ -258,16 +291,26 @@ export function PanelPanitia({
             )}
 
             <Kolom
-              label="Peran / Seksi"
-              bantuan="Contoh: Ketua Panitia, Sekretaris, Seksi Acara, Seksi Konsumsi"
+              label="Peran dalam Kepanitiaan"
+              bantuan={
+                sudahAdaKetua
+                  ? "Ketua Panitia sudah ada. Pilih Sekretaris, Bendahara, atau Anggota Panitia."
+                  : "Pilih satu. Satu kegiatan hanya boleh punya satu Ketua Panitia."
+              }
               galat={galatPanitia}
             >
-              <Isian
-                type="text"
-                placeholder="Contoh: Ketua Panitia"
-                value={peran}
-                onChange={(e) => setPeran(e.target.value)}
-              />
+              <Pilihan value={peran} onChange={(e) => setPeran(e.target.value)}>
+                <option value="">— Pilih peran —</option>
+                {PERAN_PANITIA.map((p) => (
+                  <option
+                    key={p.nilai}
+                    value={p.nilai}
+                    disabled={p.nilai === "ketua_panitia" && sudahAdaKetua}
+                  >
+                    {p.label}
+                  </option>
+                ))}
+              </Pilihan>
             </Kolom>
 
             <div className="flex items-center gap-2 pt-1">
@@ -289,6 +332,86 @@ export function PanelPanitia({
           </form>
         )}
       </Kartu>
+
+      {/* PENUGASAN PENGELOLA PRESENSI & DOKUMENTASI
+          Aturan pemilik: penanggung jawab menugaskan; hanya yang ditugaskan
+          boleh membuka dan mengelola tab presensi/dokumentasi.
+          Penanggung jawab & Super Admin tetap bisa sebagai cadangan. */}
+      {!terkunci && totalPanitia > 0 && (
+        <Kartu className="p-4 sm:p-5">
+          <JudulSeksi>Pengelola Presensi &amp; Dokumentasi</JudulSeksi>
+          <p className="teks-3 text-n-600 mt-1">
+            Tunjuk satu panitia untuk mengurus kehadiran peserta dan satu untuk dokumentasi.
+            Hanya yang ditunjuk yang dapat membuka tab tersebut.
+          </p>
+
+          <div className="mt-4 grid gap-4 sm:grid-cols-2">
+            {(["presensi", "dokumentasi"] as const).map((bagian) => {
+              const aktif = daftarPenugasan.find((p) => p.bagian === bagian);
+              const panitiaAktif = daftarPanitia.find((p) => p.id === aktif?.committee_id);
+              const namaAktif =
+                panitiaAktif?.profiles?.nama || panitiaAktif?.nama_luar || null;
+              const label = bagian === "presensi" ? "Presensi" : "Dokumentasi";
+
+              return (
+                <div key={bagian} className="rounded-token border border-n-200 p-3">
+                  <p className="text-[14px] font-medium text-n-800">{label}</p>
+                  {namaAktif ? (
+                    <div className="mt-2 flex items-center justify-between gap-2">
+                      <span className="teks-3 text-n-700">{namaAktif}</span>
+                      <TombolHalus
+                        type="button"
+                        ukuran="kecil"
+                        disabled={isPending}
+                        onClick={() => {
+                          startTransition(async () => {
+                            const r = await cabutPenugasan(activityId, bagian);
+                            if (r.galat) setGalatPanitia(r.galat);
+                          });
+                        }}
+                        className="min-h-[44px]"
+                      >
+                        Cabut
+                      </TombolHalus>
+                    </div>
+                  ) : (
+                    <p className="teks-3 text-n-400 mt-2">Belum ditugaskan</p>
+                  )}
+
+                  <div className="mt-3">
+                    <Pilihan
+                      value=""
+                      disabled={isPending}
+                      onChange={(e) => {
+                        const id = e.target.value;
+                        if (!id) return;
+                        startTransition(async () => {
+                          const r = await tugaskanPengelola(activityId, id, bagian);
+                          if (r.galat) setGalatPanitia(r.galat);
+                        });
+                      }}
+                    >
+                      <option value="">— Pilih panitia —</option>
+                      {daftarPanitia
+                        .filter((p) => p.profile_id)
+                        .map((p) => (
+                          <option key={p.id} value={p.id}>
+                            {p.profiles?.nama || p.nama_luar} ({labelPeranPanitia(p.peran)})
+                          </option>
+                        ))}
+                    </Pilihan>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          <p className="teks-3 text-n-500 mt-3">
+            Hanya panitia yang punya akun SI-ANGGUN yang bisa ditugaskan. Penanggung jawab
+            kegiatan tetap dapat membuka kedua tab bila pengelola berhalangan.
+          </p>
+        </Kartu>
+      )}
 
       {/* Daftar Panitia */}
       {daftarPanitia.length === 0 ? (
@@ -321,7 +444,7 @@ export function PanelPanitia({
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
                       <h3 className="font-semibold text-n-800 text-[16px]">{nama}</h3>
-                      <Lencana nada="brand">{panitia.peran}</Lencana>
+                      <Lencana nada="brand">{labelPeranPanitia(panitia.peran)}</Lencana>
                       {panitia.nama_luar && (
                         <Lencana nada="netral">Luar</Lencana>
                       )}
@@ -485,7 +608,7 @@ export function PanelPanitia({
               <strong className="text-n-800">
                 {panitiaDihapus.profiles?.nama || panitiaDihapus.nama_luar || "Panitia"}
               </strong>{" "}
-              ({panitiaDihapus.peran})? Semua tugas yang terkait juga akan dihapus. Tindakan ini tidak dapat dibatalkan.
+              ({labelPeranPanitia(panitiaDihapus.peran)})? Semua tugas yang terkait juga akan dihapus. Tindakan ini tidak dapat dibatalkan.
             </p>
             <div className="flex justify-end gap-2">
               <TombolSekunder

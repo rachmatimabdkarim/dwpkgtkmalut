@@ -312,7 +312,42 @@ export default async function DetailKegiatan({
     { key: "laporan", label: "Laporan", tahap: ["pelaporan"] },
     { key: "riwayat", label: "Riwayat", tahap: ["perencanaan", "pelaksanaan", "pelaporan"] },
   ];
-  const tabTampil = semuaTab.filter((t) => t.tahap.includes(tahap));
+  // ATURAN PEMILIK: tab Presensi dan Dokumentasi hanya terbuka bagi panitia
+  // yang DITUGASKAN oleh penanggung jawab. Penanggung jawab dan Super Admin
+  // tetap bisa sebagai cadangan bila pengelola berhalangan.
+  const { data: dataPenugasan } = await sb
+    .from("penugasan_pengelola")
+    .select("bagian, committee_id")
+    .eq("activity_id", id);
+
+  const penugasan = (dataPenugasan ?? []) as { bagian: string; committee_id: string }[];
+
+  // Daftar panitia dibutuhkan untuk mencocokkan akun dengan penugasan.
+  const { data: panitiaSaya } = await sb
+    .from("committees")
+    .select("id, profile_id")
+    .eq("activity_id", id);
+  const committeeSaya = new Set(
+    ((panitiaSaya ?? []) as { id: string; profile_id: string | null }[])
+      .filter((c) => c.profile_id === pengguna.id)
+      .map((c) => c.id),
+  );
+
+  const bolehKelola = (bagian: "presensi" | "dokumentasi") => {
+    if (pengguna.id === keg.penanggung_jawab) return true;
+    if (pengguna.peran.includes("super_admin")) return true;
+    const p = penugasan.find((x) => x.bagian === bagian);
+    return !!p && committeeSaya.has(p.committee_id);
+  };
+
+  const tabTampil = semuaTab
+    .filter((t) => t.tahap.includes(tahap))
+    // Presensi & Dokumentasi hanya untuk pengelola yang ditugaskan.
+    .filter((t) => {
+      if (t.key === "presensi") return bolehKelola("presensi");
+      if (t.key === "dokumentasi") return bolehKelola("dokumentasi");
+      return true;
+    });
   const tabAktif = tabTampil.find((t) => t.key === tab)?.key ?? tabTampil[0].key;
 
   return (
@@ -523,6 +558,12 @@ export default async function DetailKegiatan({
               activityId={keg.id}
               daftarPanitia={(panitia ?? []) as unknown as PanitiaItem[]}
               daftarPengurus={(daftarPengurus ?? []) as PengurusOpsi[]}
+              daftarPenugasan={
+                penugasan as unknown as {
+                  bagian: "presensi" | "dokumentasi";
+                  committee_id: string;
+                }[]
+              }
               terkunci={pelaksanaanTerkunci}
             />
           )}

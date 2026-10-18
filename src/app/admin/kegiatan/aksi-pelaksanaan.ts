@@ -41,6 +41,68 @@ async function pastikanBelumDiajukan(
   return null;
 }
 
+/**
+ * Hanya PENANGGUNG JAWAB kegiatan (atau Super Admin) yang boleh menyusun
+ * panitia dan menugaskan pekerjaan.
+ *
+ * Aturan pemilik: "yang bisa menambahkan ketua panitia dan anggota panitia
+ * hanya penanggung jawab kegiatan", dan penanggung jawab yang menugaskan
+ * pengelola presensi/dokumentasi.
+ *
+ * Dipisah dari pastikanBelumDiajukan karena orang yang berbeda bisa
+ * memegang keduanya: pengelola presensi boleh mencatat kehadiran tanpa
+ * berhak mengubah susunan panitia.
+ */
+async function pastikanPengurusPanitia(
+  sb: Awaited<ReturnType<typeof klienServer>>,
+  activityId: string,
+): Promise<{ galat: string } | null> {
+  const { data } = await sb
+    .from("activities")
+    .select("penanggung_jawab")
+    .eq("id", activityId)
+    .maybeSingle<{ penanggung_jawab: string | null }>();
+  if (!data) return { galat: "Kegiatan tidak ditemukan." };
+
+  const { data: boleh } = await sb.rpc("boleh_urus_panitia", { p_activity: activityId });
+  if (boleh === false) {
+    return {
+      galat:
+        "Hanya penanggung jawab kegiatan yang dapat menyusun panitia dan menugaskan pekerjaan.",
+    };
+  }
+  return null;
+}
+
+/**
+ * Presensi dan dokumentasi hanya boleh dikelola PENUGAS yang ditunjuk
+ * penanggung jawab. Penanggung jawab dan Super Admin tetap bisa sebagai
+ * cadangan bila pengelola berhalangan.
+ *
+ * Aturan pemilik: "yang bisa membuka dan mengelola tab presensi dan
+ * dokumentasi hanya yang ditugaskan."
+ *
+ * Diperiksa di server, bukan hanya dengan menyembunyikan tab — permintaan
+ * bisa dikirim langsung tanpa melewati tampilan.
+ */
+async function pastikanPengelolaBagian(
+  sb: Awaited<ReturnType<typeof klienServer>>,
+  activityId: string,
+  bagian: "presensi" | "dokumentasi",
+): Promise<{ galat: string } | null> {
+  const { data: boleh } = await sb.rpc("boleh_kelola_bagian", {
+    p_activity: activityId,
+    p_bagian: bagian,
+  });
+  if (boleh === false) {
+    const nama = bagian === "presensi" ? "presensi" : "dokumentasi";
+    return {
+      galat: `Hanya pengelola ${nama} yang ditugaskan penanggung jawab yang dapat mengubah bagian ini.`,
+    };
+  }
+  return null;
+}
+
 /* ============================================================
    1. PANITIA KEGIATAN
    ============================================================ */
@@ -61,6 +123,9 @@ export async function tambahPanitia(
   }
 
   const sb = await klienServer();
+
+  const bukanPengurusPanitia = await pastikanPengurusPanitia(sb, activityId);
+  if (bukanPengurusPanitia) return { galat: bukanPengurusPanitia.galat };
 
   const terhalang = await pastikanBelumDiajukan(sb, activityId);
   if (terhalang) return { galat: terhalang.galat };
@@ -99,6 +164,9 @@ export async function hapusPanitia(activityId: string, committeeId: string) {
   const pengguna = await penggunaSaatIni();
   if (!pengguna) return { galat: "Sesi Anda sudah berakhir." };
   const sb = await klienServer();
+
+  const bukanPengurusPanitia = await pastikanPengurusPanitia(sb, activityId);
+  if (bukanPengurusPanitia) return { galat: bukanPengurusPanitia.galat };
 
   const terhalang = await pastikanBelumDiajukan(sb, activityId);
   if (terhalang) return { galat: terhalang.galat };
@@ -153,6 +221,9 @@ export async function tambahTugas(
 
   const sb = await klienServer();
 
+  const bukanPengurusPanitia = await pastikanPengurusPanitia(sb, activityId);
+  if (bukanPengurusPanitia) return { galat: bukanPengurusPanitia.galat };
+
   const terhalang = await pastikanBelumDiajukan(sb, activityId);
   if (terhalang) return { galat: terhalang.galat };
   const { error } = await sb.from("tasks").insert({
@@ -185,6 +256,9 @@ export async function ubahStatusTugas(
   if (!pengguna) return { galat: "Sesi Anda sudah berakhir." };
 
   const sb = await klienServer();
+
+  const bukanPengurusPanitia = await pastikanPengurusPanitia(sb, activityId);
+  if (bukanPengurusPanitia) return { galat: bukanPengurusPanitia.galat };
 
   const terhalang = await pastikanBelumDiajukan(sb, activityId);
   if (terhalang) return { galat: terhalang.galat };
@@ -220,6 +294,9 @@ export async function hapusTugas(activityId: string, taskId: string) {
   if (!pengguna) return { galat: "Sesi Anda sudah berakhir." };
 
   const sb = await klienServer();
+
+  const bukanPengurusPanitia = await pastikanPengurusPanitia(sb, activityId);
+  if (bukanPengurusPanitia) return { galat: bukanPengurusPanitia.galat };
 
   const terhalang = await pastikanBelumDiajukan(sb, activityId);
   if (terhalang) return { galat: terhalang.galat };
@@ -264,6 +341,9 @@ export async function tambahPeserta(
   if (!pengguna) return { galat: "Sesi Anda sudah berakhir." };
 
   const sb = await klienServer();
+
+  const bukanPengelola = await pastikanPengelolaBagian(sb, activityId, "presensi");
+  if (bukanPengelola) return { galat: bukanPengelola.galat };
 
   const terhalang = await pastikanBelumDiajukan(sb, activityId);
   if (terhalang) return { galat: terhalang.galat };
@@ -331,6 +411,9 @@ export async function hapusPeserta(activityId: string, attendanceId: string) {
 
   const sb = await klienServer();
 
+  const bukanPengelola = await pastikanPengelolaBagian(sb, activityId, "presensi");
+  if (bukanPengelola) return { galat: bukanPengelola.galat };
+
   const terhalang = await pastikanBelumDiajukan(sb, activityId);
   if (terhalang) return { galat: terhalang.galat };
   const { data: pres } = await sb
@@ -363,6 +446,9 @@ export async function tandaiSemuaHadir(activityId: string) {
   if (!pengguna) return { galat: "Sesi Anda sudah berakhir." };
 
   const sb = await klienServer();
+
+  const bukanPengelola = await pastikanPengelolaBagian(sb, activityId, "presensi");
+  if (bukanPengelola) return { galat: bukanPengelola.galat };
 
   const terhalang = await pastikanBelumDiajukan(sb, activityId);
   if (terhalang) return { galat: terhalang.galat };
@@ -398,6 +484,9 @@ export async function simpanKeteranganFoto(
 
   const sb = await klienServer();
 
+  const bukanPengelola = await pastikanPengelolaBagian(sb, activityId, "dokumentasi");
+  if (bukanPengelola) return { galat: bukanPengelola.galat };
+
   const terhalang = await pastikanBelumDiajukan(sb, activityId);
   if (terhalang) return { galat: terhalang.galat };
   const { error } = await sb
@@ -427,6 +516,9 @@ export async function ubahVisibilitasFoto(
   if (!pengguna) return { galat: "Sesi Anda sudah berakhir." };
 
   const sb = await klienServer();
+
+  const bukanPengelola = await pastikanPengelolaBagian(sb, activityId, "dokumentasi");
+  if (bukanPengelola) return { galat: bukanPengelola.galat };
 
   const terhalang = await pastikanBelumDiajukan(sb, activityId);
   if (terhalang) return { galat: terhalang.galat };
@@ -493,6 +585,9 @@ export async function hapusFoto(activityId: string, attachmentId: string) {
 
   const sb = await klienServer();
 
+  const bukanPengelola = await pastikanPengelolaBagian(sb, activityId, "dokumentasi");
+  if (bukanPengelola) return { galat: bukanPengelola.galat };
+
   const terhalang = await pastikanBelumDiajukan(sb, activityId);
   if (terhalang) return { galat: terhalang.galat };
   const { data: berkas } = await sb
@@ -530,6 +625,9 @@ export async function sahkanFoto(activityId: string, attachmentIds: string[] | s
 
   const sb = await klienServer();
 
+  const bukanPengelola = await pastikanPengelolaBagian(sb, activityId, "dokumentasi");
+  if (bukanPengelola) return { galat: bukanPengelola.galat };
+
   const terhalang = await pastikanBelumDiajukan(sb, activityId);
   if (terhalang) return { galat: terhalang.galat };
   const { error } = await sb
@@ -548,6 +646,104 @@ export async function sahkanFoto(activityId: string, attachmentIds: string[] | s
     activity_id: activityId,
     aksi: "sahkan_foto",
     keterangan: `${ids.length} foto dokumentasi kegiatan disahkan`,
+    pelaku_id: pengguna.id,
+    pelaku_nama: pengguna.nama,
+  });
+
+  revalidatePath(`/admin/kegiatan/${activityId}`);
+  return { ok: true };
+}
+
+/* ============================================================
+   PENUGASAN PENGELOLA PRESENSI & DOKUMENTASI
+   ============================================================ */
+
+/**
+ * Menunjuk seorang panitia sebagai pengelola presensi atau dokumentasi.
+ *
+ * Aturan pemilik: penanggung jawab kegiatan yang menugaskan; hanya yang
+ * ditugaskan yang bisa membuka dan mengelola bagian itu.
+ *
+ * Satu kegiatan hanya punya SATU pengelola per bagian — menunjuk orang baru
+ * otomatis menggantikan yang lama, karena dua pencatat pada satu bagian
+ * membuat data ganda dan sulit dipertanggungjawabkan.
+ */
+export async function tugaskanPengelola(
+  activityId: string,
+  committeeId: string,
+  bagian: "presensi" | "dokumentasi",
+) {
+  const pengguna = await penggunaSaatIni();
+  if (!pengguna) return { galat: "Sesi Anda sudah berakhir." };
+
+  const sb = await klienServer();
+
+  const bukanPengurus = await pastikanPengurusPanitia(sb, activityId);
+  if (bukanPengurus) return { galat: bukanPengurus.galat };
+
+  const { data: panitia } = await sb
+    .from("committees")
+    .select("id, profile_id, nama_luar, peran")
+    .eq("id", committeeId)
+    .eq("activity_id", activityId)
+    .maybeSingle<{ id: string; profile_id: string | null; nama_luar: string | null; peran: string }>();
+  if (!panitia) return { galat: "Panitia tidak ditemukan pada kegiatan ini." };
+
+  // Penugasan hanya berlaku untuk orang yang punya akun — tanpa akun, orang
+  // itu tidak dapat masuk dan membuka tab yang ditugaskan.
+  if (!panitia.profile_id) {
+    return {
+      galat:
+        "Panitia ini tidak memiliki akun SI-ANGGUN, jadi tidak dapat membuka tab. " +
+        "Pilih panitia yang terdaftar sebagai pengurus.",
+    };
+  }
+
+  const { error } = await sb.from("penugasan_pengelola").upsert(
+    {
+      activity_id: activityId,
+      committee_id: committeeId,
+      bagian,
+      ditugaskan_oleh: pengguna.id,
+    },
+    { onConflict: "activity_id,bagian" },
+  );
+  if (error) return { galat: "Gagal menugaskan: " + error.message };
+
+  const nama = panitia.nama_luar || "panitia";
+  await sb.from("activity_logs").insert({
+    activity_id: activityId,
+    aksi: "tugaskan_pengelola",
+    keterangan: `Penanggung jawab menugaskan ${nama} sebagai pengelola ${bagian}`,
+    pelaku_id: pengguna.id,
+    pelaku_nama: pengguna.nama,
+  });
+
+  revalidatePath(`/admin/kegiatan/${activityId}`);
+  return { ok: true };
+}
+
+/** Mencabut penugasan pengelola pada satu bagian. */
+export async function cabutPenugasan(activityId: string, bagian: "presensi" | "dokumentasi") {
+  const pengguna = await penggunaSaatIni();
+  if (!pengguna) return { galat: "Sesi Anda sudah berakhir." };
+
+  const sb = await klienServer();
+
+  const bukanPengurus = await pastikanPengurusPanitia(sb, activityId);
+  if (bukanPengurus) return { galat: bukanPengurus.galat };
+
+  const { error } = await sb
+    .from("penugasan_pengelola")
+    .delete()
+    .eq("activity_id", activityId)
+    .eq("bagian", bagian);
+  if (error) return { galat: "Gagal mencabut penugasan: " + error.message };
+
+  await sb.from("activity_logs").insert({
+    activity_id: activityId,
+    aksi: "cabut_penugasan",
+    keterangan: `Penanggung jawab mencabut penugasan pengelola ${bagian}`,
     pelaku_id: pengguna.id,
     pelaku_nama: pengguna.nama,
   });
