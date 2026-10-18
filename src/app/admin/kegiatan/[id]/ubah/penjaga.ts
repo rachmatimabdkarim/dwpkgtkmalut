@@ -3,10 +3,11 @@
  *
  * Dipisah dari halaman supaya aturannya terbaca jelas dan bisa diuji:
  *   * hanya PENGUSUL (atau super admin) yang boleh mengubah;
- *   * hanya saat status draf atau revisi.
- *
- * Sesudah kegiatan diajukan, perubahan data WAJIB lewat revisi berjenjang dan
- * disetujui ulang oleh seluruh jenjang (keputusan pemilik).
+ *   * status draf/revisi -> perbaikan langsung;
+ *   * status disetujui/berjalan/selesai/laporan_* -> USULAN PERUBAHAN yang
+ *     masuk antrean persetujuan berjenjang;
+ *   * status diajukan/dalam_review -> belum boleh diubah (sedang dinilai);
+ *   * status arsip -> tertutup selamanya.
  */
 type Keg = {
   id: string;
@@ -33,15 +34,27 @@ export function tidakBoleh(
       pesan: "Hanya pengusul kegiatan ini yang dapat mengubah datanya.",
     };
   }
-  if (!["draf", "revisi"].includes(keg.status)) {
+  // ATURAN PEMILIK: halaman ini dipakai untuk DUA hal —
+  //   * memperbaiki data saat draf/revisi (langsung tersimpan), dan
+  //   * MENGAJUKAN PERUBAHAN saat kegiatan sudah disetujui/berjalan.
+  // Saat arsip, data tidak boleh diubah lagi sama sekali.
+  if (keg.status === "arsip") {
     return {
-      judul: "Data terkunci",
+      judul: "Kegiatan sudah diarsipkan",
       pesan:
-        "Kegiatan ini sudah diajukan, jadi datanya tidak dapat diubah langsung. " +
-        "Perubahan harus lewat revisi berjenjang: penyetuju memilih \"Minta Revisi\", " +
-        "lalu kegiatan diajukan ulang dan disetujui ulang oleh seluruh jenjang.",
+        "Kegiatan yang sudah diarsipkan adalah catatan final dan tidak dapat diubah lagi.",
     };
   }
+
+  if (["diajukan", "dalam_review"].includes(keg.status)) {
+    return {
+      judul: "Sedang dalam persetujuan",
+      pesan:
+        "Kegiatan ini sedang menunggu keputusan penyetuju, jadi datanya belum dapat diubah. " +
+        "Tunggu keputusan, atau perbaiki bila kegiatan dikembalikan untuk revisi.",
+    };
+  }
+
   return null;
 }
 
