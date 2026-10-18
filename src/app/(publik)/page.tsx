@@ -442,12 +442,21 @@ export default async function BerandaPublik() {
                     </p>
                   </div>
                 )}
+                {/* Foto galeri di beranda TIDAK memakai loading="lazy".
+                    Alasan: kartu-kartu ini berada di dalam wadah bergulir sendiri,
+                    sehingga pemuatan tertunda tidak pernah terpicu sampai pengunjung
+                    menggulir wadah itu — yang tampak hanya kotak kosong. Foto beranda
+                    sudah dibatasi maksimal 8 buah dan ukurannya sudah diperkecil,
+                    jadi memuatnya langsung tidak membebani halaman.
+                    Foto diberi latar netral agar sebelum selesai dimuat tidak
+                    terlihat sebagai lubang putih. */}
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
                   src={urlPublik(f.path) ?? ""}
                   alt={f.keterangan ?? "Foto kegiatan DWP"}
-                  className="w-full h-full object-cover"
-                  loading="lazy"
+                  className="w-full h-full object-cover bg-brand-800"
+                  loading="eager"
+                  decoding="async"
                 />
               </Link>
             ))}
