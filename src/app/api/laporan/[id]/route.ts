@@ -3,6 +3,22 @@ import { PDFDocument, StandardFonts, rgb, PDFFont } from "pdf-lib";
 import { penggunaSaatIni, klienServer } from "@/lib/supabase-server";
 import { formatTanggal, formatRupiah } from "@/lib/kegiatan";
 
+/**
+ * Menentukan jenis gambar dari beberapa byte pertama berkas.
+ * Dipakai agar PDF tidak bergantung pada nama file yang bisa keliru.
+ */
+function cekJenisGambar(buf: Buffer): "png" | "jpg" | "webp" | null {
+  if (buf.length > 8 && buf[0] === 0x89 && buf[1] === 0x50 && buf[2] === 0x4e && buf[3] === 0x47) {
+    return "png";
+  }
+  if (buf.length > 3 && buf[0] === 0xff && buf[1] === 0xd8 && buf[2] === 0xff) return "jpg";
+  // "RIFF"...."WEBP"
+  if (buf.length > 12 && buf.toString("ascii", 0, 4) === "RIFF" && buf.toString("ascii", 8, 12) === "WEBP") {
+    return "webp";
+  }
+  return null;
+}
+
 function potongTeks(teks: string, lebarMaks: number, font: PDFFont, ukuran: number): string[] {
   if (!teks) return ["—"];
   const paragraf = teks.split("\n");
@@ -563,10 +579,28 @@ export async function GET(
         const { data: berkas } = await sb.storage.from("publik").download(f.path);
         if (berkas) {
           const buf = Buffer.from(await berkas.arrayBuffer());
-          const nama = (f.path || "").toLowerCase();
-          gambar = nama.endsWith(".png")
-            ? await pdfDoc.embedPng(buf)
-            : await pdfDoc.embedJpg(buf);
+
+          // Jenis gambar ditentukan dari ISI berkas, bukan dari nama file.
+          // Nama file bisa tidak cocok dengan isinya, dan foto lama tersimpan
+          // sebagai WebP — yang tidak dikenali pdf-lib. Untuk WebP dipakai
+          // jalur khusus di bawah agar tetap bisa ditampilkan.
+          const jenis = cekJenisGambar(buf);
+          if (jenis === "png") gambar = await pdfDoc.embedPng(buf);
+          else if (jenis === "jpg") gambar = await pdfDoc.embedJpg(buf);
+          else if (jenis === "webp") {
+            // WebP tidak didukung pdf-lib: ubah lebih dulu ke PNG lewat gambar
+            // yang sudah ter-decode browser? Tidak tersedia di server, jadi
+            // dicoba lewat sharp bila terpasang; bila tidak, tandai kosong.
+            try {
+              const { default: sharp } = await import("sharp");
+              const pngBuf = await sharp(buf).png().toBuffer();
+              gambar = await pdfDoc.embedPng(pngBuf);
+            } catch {
+              gambar = null;
+            }
+          } else {
+            gambar = null;
+          }
         }
       } catch {
         gambar = null;

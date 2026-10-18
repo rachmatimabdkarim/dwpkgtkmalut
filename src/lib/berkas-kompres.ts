@@ -64,15 +64,6 @@ function ukuranGambar(berkas: Blob): Promise<{ lebar: number; tinggi: number }> 
 }
 
 /** Apakah peramban mendukung WebP sebagai hasil kompresi. */
-function dukungWebp(): boolean {
-  try {
-    const c = document.createElement("canvas");
-    return c.toDataURL("image/webp").startsWith("data:image/webp");
-  } catch {
-    return false;
-  }
-}
-
 /**
  * Mengompres satu gambar. Kualitas diturunkan bertahap sampai ukurannya
  * di bawah batas, dengan batas bawah kualitas agar hasil tidak terlalu rusak.
@@ -83,8 +74,14 @@ export async function kompresGambar(
   lapor?: (tahap: string) => void,
 ): Promise<HasilKompresi> {
   const batas = BATAS[jenis];
-  const webp = dukungWebp();
-  const tipeTarget = webp ? "image/webp" : "image/jpeg";
+  // SELALU JPEG, bukan WebP.
+  //
+  // Foto WebP memang lebih kecil, tetapi pustaka pembuat PDF (pdf-lib) hanya
+  // dapat menyisipkan JPEG dan PNG. Akibatnya seluruh foto berformat WebP
+  // gagal muncul di PDF laporan — hanya tertulis "(foto tidak dapat dimuat)".
+  // JPEG dipilih karena ukurannya tetap kecil pada kualitas ini, dan bisa
+  // langsung disisipkan ke PDF tanpa pengubah format tambahan.
+  const tipeTarget = "image/jpeg" as const;
   const namaDasar = berkasAsli.name.replace(/\.[^.]+$/, "");
 
   let kualitas = batas.kualitasAwal;
@@ -120,7 +117,7 @@ export async function kompresGambar(
   }
 
   const { lebar, tinggi } = await ukuranGambar(hasil);
-  const ekstensi = tipeTarget === "image/webp" ? "webp" : "jpg";
+  const ekstensi = "jpg";
   const file = new File([hasil], `${namaDasar}.${ekstensi}`, { type: tipeTarget });
 
   return {
