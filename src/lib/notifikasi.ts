@@ -353,13 +353,16 @@ export async function beritahuPenyetujuBerikut(
     });
   }
 
-  // Sekretaris & Bendahara menerima pemberitahuan setiap tahap (bukan tugas).
+  // Sekretaris & Bendahara menerima pemberitahuan SETIAP tahap, termasuk tahap
+  // pertama. Penyetuju yang sedang giliran tidak perlu dikabari lagi — dia sudah
+  // menerima notifikasi "Menunggu persetujuan Anda" di atas.
   await beritahuPengawas(
     sb,
     activityId,
     keg.judul,
-    `${namaPeran}`,
-    `Kegiatan ini sekarang berada di tahap ${namaPeran}. Pemberitahuan ini hanya untuk pemantauan.`,
+    `tahap_${giliran.urutan}_${namaPeran}`,
+    `Kegiatan ini sedang di tahap ${namaPeran}. Pemberitahuan ini hanya untuk pemantauan.`,
+    giliran.userIds,
   );
 }
 
@@ -379,22 +382,24 @@ async function beritahuPengawas(
   sb: ReturnType<typeof klienAdmin>,
   activityId: string,
   judulKegiatan: string,
-  namaTahap: string,
+  kunciTahap: string,
   pesan: string,
+  /** Penyetuju yang sudah menerima notifikasi tugas — tidak dikabari lagi. */
+  lewati: string[] = [],
 ) {
   const { data: pengawas } = await sb
     .from("officers")
     .select("profile_id, jabatan")
     .in("jabatan", ["Sekretaris", "Bendahara"]);
 
-  const sudah = new Set<string>();
+  const sudah = new Set<string>(lewati);
   for (const o of (pengawas ?? []) as { profile_id: string | null; jabatan: string }[]) {
     if (!o.profile_id || sudah.has(o.profile_id)) continue;
     sudah.add(o.profile_id);
     await kirimSatu(sb, {
       user_id: o.profile_id,
-      jenis: `pantauan_tahap_${namaTahap}`,
-      judul: `Pantauan ${namaTahap}: ${judulKegiatan}`,
+      jenis: `pantauan_${kunciTahap}`,
+      judul: `Pantauan tahap ${judulKegiatan}`,
       pesan,
       tautan: `/admin/kegiatan/${activityId}`,
       activity_id: activityId,
@@ -439,8 +444,9 @@ export async function beritahuSetelahKeputusan(
         sb,
         activityId,
         keg.judul,
-        `${namaPeran}`,
-        `Kegiatan ini sekarang berada di tahap ${namaPeran}. Pemberitahuan ini hanya untuk pemantauan.`,
+        `${tahap}_${giliran.urutan}_${namaPeran}`,
+        `Kegiatan ini sedang di tahap ${namaPeran}. Pemberitahuan ini hanya untuk pemantauan.`,
+        giliran.userIds,
       );
       return;
     }
