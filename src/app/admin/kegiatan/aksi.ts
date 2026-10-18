@@ -301,10 +301,31 @@ export async function ubahKegiatan(
 
   if (perluPersetujuanUlang) {
     // Perubahan menunggu persetujuan ulang: kegiatan kembali ke status
-    // "diajukan" sehingga jenjang persetujuan berjalan dari awal. Keputusan
-    // lama DIBERSIHKAN supaya penyetuju benar-benar menilai data yang baru —
-    // kalau tidak, kegiatan bisa berstatus disetujui padahal isinya berubah.
-    await sb.from("approvals").delete().eq("activity_id", activityId);
+    // "diajukan" sehingga jenjang persetujuan berjalan dari awal.
+    //
+    // CACAT YANG DIPERBAIKI: penghapusan keputusan lama dulu dilakukan langsung
+    // dari sisi aplikasi, padahal tabel approvals tidak punya izin hapus.
+    // Penghapusan GAGAL DIAM-DIAM, sehingga keputusan lama tetap tersimpan dan
+    // sistem menganggap semua jenjang sudah setuju — kegiatan macet di
+    // "diajukan" tanpa tombol untuk siapa pun.
+    //
+    // Sekarang lewat fungsi basis data yang memeriksa hak sendiri, dan
+    // kegagalannya DIPERIKSA — tidak dibiarkan lewat.
+    const { data: hasilReset, error: galatReset } = await sb.rpc("reset_keputusan_perubahan", {
+      p_activity: activityId,
+    });
+    if (galatReset) {
+      return {
+        galat:
+          "Gagal mengosongkan keputusan lama sehingga perubahan tidak dapat diajukan: " +
+          galatReset.message,
+      };
+    }
+    const reset = hasilReset as { ok?: boolean; galat?: string; dihapus?: number } | null;
+    if (reset && reset.ok === false) {
+      return { galat: reset.galat ?? "Gagal mengosongkan keputusan lama." };
+    }
+
     const { error: galatStatus } = await sb
       .from("activities")
       .update({ status: "diajukan" })
