@@ -108,14 +108,22 @@ export async function beriKeputusan(
   if (keputusan === "revisi") statusBaru = tahap === "perencanaan" ? "revisi" : "selesai";
   else if (keputusan === "tolak") statusBaru = "ditolak";
   else {
-    const sisa = langkah.filter((l) => l.urutan > berikut.urutan);
-    const semuaSetuju =
-      sisa.length === 0 ||
-      langkah.every(
-        (l) =>
-          l.urutan === berikut.urutan ||
-          sudahSetuju.has(l.urutan),
-      );
+    // CACAT YANG DIPERBAIKI:
+    // `sudahSetuju` hanya memuat keputusan yang tersimpan SEBELUM klik ini.
+    // Keputusan yang baru saja diberikan belum ikut dihitung, sehingga jenjang
+    // TERAKHIR (Ketua) tidak pernah membuat status menjadi "disetujui" —
+    // kegiatan tertahan di "diajukan" walau semua jenjang sudah setuju, dan
+    // tombol persetujuan tidak muncul lagi untuk siapa pun.
+    //
+    // Sekarang jenjang yang baru diputuskan ikut dihitung, dan tahap yang
+    // dilewati otomatis tidak dianggap penghalang.
+    const sudahSetujuTermasukIni = new Set(sudahSetuju);
+    sudahSetujuTermasukIni.add(berikut.urutan);
+
+    const semuaSetuju = langkah.every(
+      (l) =>
+        sudahSetujuTermasukIni.has(l.urutan) || urutanDilewati.has(l.urutan),
+    );
     if (semuaSetuju) {
       statusBaru = tahap === "perencanaan" ? "disetujui" : "laporan_disetujui";
     } else {
