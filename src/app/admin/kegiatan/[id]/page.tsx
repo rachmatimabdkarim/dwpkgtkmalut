@@ -467,7 +467,20 @@ export default async function DetailKegiatan({
                   disetujui ulang, dan tertutup untuk kegiatan yang diarsipkan. */}
               {tampilkanPerubahan &&
                 !perubahanTertutup &&
-                (bolehAjukanPerubahan || apakahPengurusInti) && (
+                // Kotak hanya ditampilkan bila ADA gunanya:
+                //  (a) pengguna berhak MENGAJUKAN perubahan, atau
+                //  (b) ada pengajuan yang benar-benar menunggu keputusan dia.
+                // Tanpa syarat (b), kotak kosong ini muncul di layar Ketua —
+                // berisi tulisan "Belum ada pengajuan perubahan" tanpa satu
+                // pun tombol. Kotak tanpa aksi hanya membingungkan (temuan
+                // pemilik: "tidak berfungsi, tidak ada artinya").
+                (bolehAjukanPerubahan ||
+                  (apakahPengurusInti &&
+                    (daftarPengajuan ?? []).some(
+                      (r) =>
+                        (r.status === "diajukan" || r.status === "dalam_review") &&
+                        r.diajukan_oleh !== pengguna.id,
+                    ))) && (
                   <PanelPerubahan
                     activityId={keg.id}
                     daftarPengajuan={daftarPengajuan}
