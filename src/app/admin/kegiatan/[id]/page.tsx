@@ -272,6 +272,12 @@ export default async function DetailKegiatan({
     pengguna.peran.includes("sekretaris") ||
     pengguna.peran.includes("super_admin");
 
+  // Saat kegiatan sedang BERJALAN, aksi utama di layar adalah "Tandai Selesai".
+  // Menampilkan "Ajukan Perubahan" berdampingan membuat pengguna ragu mana yang
+  // harus ditekan (temuan pemilik). Perubahan anggaran tetap bisa diajukan nanti
+  // — lewat tab Anggaran — setelah kegiatan ditandai selesai.
+  const bolehBukaFormPerubahan = bolehAjukanPerubahan && keg.status !== "berjalan";
+
   // B. Perbaikan langsung oleh pengusul — HANYA selama belum ada persetujuan
   //    yang berlaku (draf / revisi / ditolak). Sesudah diajukan, perubahan data
   //    wajib lewat revisi berjenjang dan disetujui ulang oleh seluruh jenjang.
@@ -282,6 +288,16 @@ export default async function DetailKegiatan({
   const bolehPerbaikiLangsung =
     (pengusulSendiri || pengguna.peran.includes("super_admin")) &&
     ["draf", "revisi"].includes(keg.status);
+
+  // D. Modul pelaksanaan (panitia, presensi, dokumentasi) terkunci begitu
+  //    laporan DIAJUKAN. Isinya sedang dinilai penyetuju — kalau bisa diubah di
+  //    tengah penilaian, penyetuju menilai data yang sudah berbeda.
+  const pelaksanaanTerkunci = [
+    "laporan_diajukan",
+    "laporan_dalam_review",
+    "laporan_disetujui",
+    "arsip",
+  ].includes(keg.status);
 
   // C. Kegiatan yang sudah diarsipkan tidak dapat diubah lagi.
   const perubahanTertutup = keg.status === "arsip";
@@ -449,14 +465,17 @@ export default async function DetailKegiatan({
 
               {/* A & C. Pengajuan perubahan resmi — untuk hal yang harus
                   disetujui ulang, dan tertutup untuk kegiatan yang diarsipkan. */}
-              {tampilkanPerubahan && !perubahanTertutup && (
-                <PanelPerubahan
-                  activityId={keg.id}
-                  daftarPengajuan={daftarPengajuan}
-                  bisaMengajukan={bolehAjukanPerubahan}
-                  bisaMemutuskan={apakahPengurusInti}
-                />
-              )}
+              {tampilkanPerubahan &&
+                !perubahanTertutup &&
+                (bolehAjukanPerubahan || apakahPengurusInti) && (
+                  <PanelPerubahan
+                    activityId={keg.id}
+                    daftarPengajuan={daftarPengajuan}
+                    bisaMengajukan={bolehBukaFormPerubahan}
+                    bisaMemutuskan={apakahPengurusInti}
+                    penggunaId={pengguna.id}
+                  />
+                )}
             </div>
           )}
 
@@ -558,6 +577,7 @@ export default async function DetailKegiatan({
               activityId={keg.id}
               daftarPanitia={(panitia ?? []) as unknown as PanitiaItem[]}
               daftarPengurus={(daftarPengurus ?? []) as PengurusOpsi[]}
+              terkunci={pelaksanaanTerkunci}
             />
           )}
 
@@ -566,6 +586,7 @@ export default async function DetailKegiatan({
               activityId={keg.id}
               daftarPeserta={(presensi ?? []) as PesertaItem[]}
               daftarPengurus={(daftarPengurus ?? []) as PengurusOpsi[]}
+              terkunci={pelaksanaanTerkunci}
             />
           )}
 
@@ -574,6 +595,7 @@ export default async function DetailKegiatan({
               activityId={keg.id}
               daftarFoto={(foto ?? []) as FotoItem[]}
               bolehUbahPublik={bolehUbahPublik}
+              terkunci={pelaksanaanTerkunci}
             />
           )}
 
@@ -602,7 +624,10 @@ export default async function DetailKegiatan({
                   jumlahHadir: laporan?.jumlah_hadir ?? 0,
                 }}
                 bisaUbah={
-                  !["laporan_disetujui", "arsip"].includes(keg.status) &&
+                  // HANYA saat kegiatan berstatus `selesai` — yaitu sebelum laporan
+                  // diajukan. Sesudah diajukan, isi laporan terkunci supaya yang
+                  // dinilai penyetuju sama dengan yang dilihat pengusul.
+                  keg.status === "selesai" &&
                   pengguna.peran.some((p) =>
                     ["super_admin", "ketua", "wakil_ketua", "sekretaris", "bendahara", "ketua_seksi"].includes(p),
                   )

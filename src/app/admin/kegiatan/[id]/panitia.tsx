@@ -55,10 +55,13 @@ export function PanelPanitia({
   activityId,
   daftarPanitia,
   daftarPengurus,
+  terkunci = false,
 }: {
   activityId: string;
   daftarPanitia: PanitiaItem[];
   daftarPengurus: PengurusOpsi[];
+  /** Laporan sudah diajukan: susunan panitia tidak boleh diubah lagi. */
+  terkunci?: boolean;
 }) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
@@ -186,7 +189,7 @@ export function PanelPanitia({
               {totalPanitia} panitia · {tugasSelesai} tugas selesai dari {totalTugas}
             </p>
           </div>
-          {!bukaFormPanitia && totalPanitia > 0 && (
+          {!terkunci && !bukaFormPanitia && totalPanitia > 0 && (
             <TombolUtama
               type="button"
               ukuran="kecil"
@@ -292,7 +295,7 @@ export function PanelPanitia({
         <Kosong
           pesan="Belum ada susunan panitia untuk kegiatan ini."
           aksi={
-            !bukaFormPanitia ? (
+            !terkunci && !bukaFormPanitia ? (
               <TombolUtama
                 type="button"
                 ukuran="sedang"

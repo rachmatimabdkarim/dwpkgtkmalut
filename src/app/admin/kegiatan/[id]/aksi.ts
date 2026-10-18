@@ -282,6 +282,23 @@ export async function simpanLaporan(
   if (!pengguna) return { galat: "Sesi Anda sudah berakhir." };
   const sb = await klienServer();
 
+  // Isi laporan hanya boleh diubah SEBELUM diajukan. Sesudah diajukan, penyetuju
+  // sedang menilai — kalau isinya bisa berubah di tengah penilaian, keputusan
+  // penyetuju menjadi tidak sah. Menyembunyikan tombol saja tidak cukup.
+  const { data: kegStatus } = await sb
+    .from("activities")
+    .select("status")
+    .eq("id", activityId)
+    .maybeSingle<{ status: string }>();
+  if (!kegStatus) return { galat: "Kegiatan tidak ditemukan." };
+  if (kegStatus.status !== "selesai") {
+    return {
+      galat:
+        "Laporan sudah diajukan, jadi isinya tidak dapat diubah lagi. " +
+        "Bila perlu diperbaiki, minta penyetuju mengembalikan laporan.",
+    };
+  }
+
   const { data: rab } = await sb
     .from("budget_items")
     .select("jumlah, harga_satuan")
@@ -482,6 +499,18 @@ export async function putuskanPerubahan(
     }>();
 
   if (!cr) return { galat: "Data pengajuan perubahan tidak ditemukan." };
+
+  // YANG MENGAJUKAN TIDAK BOLEH MEMUTUSKAN PENGAJUANNYA SENDIRI.
+  // Tanpa ini, seorang Bendahara yang mengajukan perubahan anggaran bisa
+  // langsung menyetujuinya sendiri — sama saja tidak ada persetujuan.
+  if (cr.diajukan_oleh && cr.diajukan_oleh === pengguna.id) {
+    return {
+      galat:
+        "Anda yang mengajukan perubahan ini, jadi Anda tidak dapat memutuskannya sendiri. " +
+        "Mintakan keputusan kepada pengurus inti lain.",
+    };
+  }
+
   if (cr.status !== "diajukan" && cr.status !== "dalam_review") {
     return { galat: `Pengajuan ini sudah pernah diputuskan sebelumnya (${cr.status}).` };
   }

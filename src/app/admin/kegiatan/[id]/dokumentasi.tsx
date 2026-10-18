@@ -37,10 +37,13 @@ export function PanelDokumentasi({
   activityId,
   daftarFoto,
   bolehUbahPublik,
+  terkunci = false,
 }: {
   activityId: string;
   daftarFoto: FotoItem[];
   bolehUbahPublik: boolean;
+  /** Laporan sudah diajukan: dokumentasi tidak boleh diubah lagi. */
+  terkunci?: boolean;
 }) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
@@ -219,8 +222,15 @@ export function PanelDokumentasi({
           </div>
         )}
 
-        {/* Kotak Unggah Foto */}
-        {totalFoto < batasFotoMaks ? (
+        {/* Kotak Unggah Foto — disembunyikan bila laporan sudah diajukan */}
+        {terkunci ? (
+          <div className="mt-4 rounded-token border border-n-200 bg-n-50 p-3">
+            <p className="teks-3 text-n-600">
+              Laporan sudah diajukan, jadi dokumentasi tidak dapat diubah lagi. Bila ada foto
+              yang harus diganti, minta penyetuju mengembalikan laporan.
+            </p>
+          </div>
+        ) : totalFoto < batasFotoMaks ? (
           <div className="mt-4">
             <KotakUnggah
               label="Pilih Foto Kegiatan"
@@ -349,7 +359,9 @@ export function PanelDokumentasi({
                   {/* Hapus hanya untuk yang berhak mengubah — sejalan dengan
                       sakelar visibilitas di atas. Tanpa pengaman ini, siapa pun
                       yang bisa membuka tab Dokumentasi melihat tombol Hapus. */}
-                  {bolehUbahPublik ? (
+                  {terkunci ? (
+                    <span className="teks-3 text-n-400">Terkunci</span>
+                  ) : bolehUbahPublik ? (
                     <TombolHalus
                       type="button"
                       ukuran="kecil"

@@ -10,6 +10,38 @@ import { klienServer, penggunaSaatIni } from "@/lib/supabase-server";
  */
 
 /* ============================================================
+   0. PENGAMAN BERSAMA — data pelaksanaan terkunci setelah laporan diajukan
+   ============================================================ */
+
+/**
+ * Menolak penulisan bila laporan sudah diajukan.
+ *
+ * Panitia, tugas, presensi, dan dokumentasi adalah ISI YANG DINILAI penyetuju.
+ * Kalau bisa diubah di tengah penilaian, penyetuju bisa memutuskan atas data
+ * yang sudah berbeda. Karena itu seluruh penulisan pelaksanaan ditutup begitu
+ * status masuk `laporan_diajukan` dan sesudahnya.
+ */
+async function pastikanBelumDiajukan(
+  sb: Awaited<ReturnType<typeof klienServer>>,
+  activityId: string,
+): Promise<{ galat: string } | null> {
+  const { data } = await sb
+    .from("activities")
+    .select("status")
+    .eq("id", activityId)
+    .maybeSingle<{ status: string }>();
+  if (!data) return { galat: "Kegiatan tidak ditemukan." };
+  if (["laporan_diajukan", "laporan_dalam_review", "laporan_disetujui", "arsip"].includes(data.status)) {
+    return {
+      galat:
+        "Laporan sudah diajukan, jadi data pelaksanaan tidak dapat diubah lagi. " +
+        "Bila ada yang harus diperbaiki, minta penyetuju mengembalikan laporan.",
+    };
+  }
+  return null;
+}
+
+/* ============================================================
    1. PANITIA KEGIATAN
    ============================================================ */
 
@@ -29,6 +61,9 @@ export async function tambahPanitia(
   }
 
   const sb = await klienServer();
+
+  const terhalang = await pastikanBelumDiajukan(sb, activityId);
+  if (terhalang) return { galat: terhalang.galat };
   let namaTercatat = data.namaLuar?.trim() || "";
 
   if (data.profileId) {
@@ -64,6 +99,9 @@ export async function hapusPanitia(activityId: string, committeeId: string) {
   const pengguna = await penggunaSaatIni();
   if (!pengguna) return { galat: "Sesi Anda sudah berakhir." };
   const sb = await klienServer();
+
+  const terhalang = await pastikanBelumDiajukan(sb, activityId);
+  if (terhalang) return { galat: terhalang.galat };
 
   const { data: panitia } = await sb
     .from("committees")
@@ -114,6 +152,9 @@ export async function tambahTugas(
   if (!data.judul?.trim()) return { galat: "Judul tugas wajib diisi." };
 
   const sb = await klienServer();
+
+  const terhalang = await pastikanBelumDiajukan(sb, activityId);
+  if (terhalang) return { galat: terhalang.galat };
   const { error } = await sb.from("tasks").insert({
     activity_id: activityId,
     committee_id: data.committeeId || null,
@@ -144,6 +185,9 @@ export async function ubahStatusTugas(
   if (!pengguna) return { galat: "Sesi Anda sudah berakhir." };
 
   const sb = await klienServer();
+
+  const terhalang = await pastikanBelumDiajukan(sb, activityId);
+  if (terhalang) return { galat: terhalang.galat };
   const { data: t } = await sb
     .from("tasks")
     .select("judul")
@@ -176,6 +220,9 @@ export async function hapusTugas(activityId: string, taskId: string) {
   if (!pengguna) return { galat: "Sesi Anda sudah berakhir." };
 
   const sb = await klienServer();
+
+  const terhalang = await pastikanBelumDiajukan(sb, activityId);
+  if (terhalang) return { galat: terhalang.galat };
   const { data: t } = await sb
     .from("tasks")
     .select("judul")
@@ -217,6 +264,9 @@ export async function tambahPeserta(
   if (!pengguna) return { galat: "Sesi Anda sudah berakhir." };
 
   const sb = await klienServer();
+
+  const terhalang = await pastikanBelumDiajukan(sb, activityId);
+  if (terhalang) return { galat: terhalang.galat };
   let namaPeserta = data.nama?.trim() || "";
 
   if (data.profileId) {
@@ -233,6 +283,27 @@ export async function tambahPeserta(
   }
 
   const ket = data.keterangan || "Hadir";
+
+  // CEGAH DOBEL. Temuan pemilik: peserta yang sama bisa dimasukkan berkali-kali
+  // sehingga jumlah hadir di laporan menjadi tidak benar (mis. 27 padahal 20).
+  // Diperiksa dua cara: lewat akun pengurus, dan lewat nama (untuk peserta tamu
+  // yang tidak punya akun). Nama dibandingkan tanpa membedakan huruf besar/kecil
+  // dan spasi berlebih, supaya "Siti Aminah" dan " siti  aminah " dianggap sama.
+  const { data: sudahAda } = await sb
+    .from("attendances")
+    .select("id, profile_id, nama")
+    .eq("activity_id", activityId);
+  const rapikan = (t: string) => t.trim().toLowerCase().replace(/\s+/g, " ");
+  const kembar = (sudahAda ?? []).find((a) =>
+    data.profileId
+      ? a.profile_id === data.profileId
+      : rapikan(String(a.nama ?? "")) === rapikan(namaPeserta),
+  );
+  if (kembar) {
+    return {
+      galat: `${namaPeserta} sudah tercatat hadir di kegiatan ini. Satu peserta cukup dicatat sekali.`,
+    };
+  }
 
   const { error } = await sb.from("attendances").insert({
     activity_id: activityId,
@@ -259,6 +330,9 @@ export async function hapusPeserta(activityId: string, attendanceId: string) {
   if (!pengguna) return { galat: "Sesi Anda sudah berakhir." };
 
   const sb = await klienServer();
+
+  const terhalang = await pastikanBelumDiajukan(sb, activityId);
+  if (terhalang) return { galat: terhalang.galat };
   const { data: pres } = await sb
     .from("attendances")
     .select("nama")
@@ -289,6 +363,9 @@ export async function tandaiSemuaHadir(activityId: string) {
   if (!pengguna) return { galat: "Sesi Anda sudah berakhir." };
 
   const sb = await klienServer();
+
+  const terhalang = await pastikanBelumDiajukan(sb, activityId);
+  if (terhalang) return { galat: terhalang.galat };
   const { error } = await sb
     .from("attendances")
     .update({ keterangan: "Hadir" })
@@ -320,6 +397,9 @@ export async function simpanKeteranganFoto(
   if (!pengguna) return { galat: "Sesi Anda sudah berakhir." };
 
   const sb = await klienServer();
+
+  const terhalang = await pastikanBelumDiajukan(sb, activityId);
+  if (terhalang) return { galat: terhalang.galat };
   const { error } = await sb
     .from("attachments")
     .update({ keterangan: keterangan.trim() || null })
@@ -347,6 +427,9 @@ export async function ubahVisibilitasFoto(
   if (!pengguna) return { galat: "Sesi Anda sudah berakhir." };
 
   const sb = await klienServer();
+
+  const terhalang = await pastikanBelumDiajukan(sb, activityId);
+  if (terhalang) return { galat: terhalang.galat };
 
   // Periksa hak akses: HANYA penanggung jawab kegiatan atau pengurus inti
   // (super_admin, ketua, wakil_ketua, sekretaris) yang boleh mengubah
@@ -409,6 +492,9 @@ export async function hapusFoto(activityId: string, attachmentId: string) {
   if (!pengguna) return { galat: "Sesi Anda sudah berakhir." };
 
   const sb = await klienServer();
+
+  const terhalang = await pastikanBelumDiajukan(sb, activityId);
+  if (terhalang) return { galat: terhalang.galat };
   const { data: berkas } = await sb
     .from("attachments")
     .select("id, bucket, path, nama_asli")
@@ -443,6 +529,9 @@ export async function sahkanFoto(activityId: string, attachmentIds: string[] | s
   if (ids.length === 0) return { ok: true };
 
   const sb = await klienServer();
+
+  const terhalang = await pastikanBelumDiajukan(sb, activityId);
+  if (terhalang) return { galat: terhalang.galat };
   const { error } = await sb
     .from("attachments")
     .update({

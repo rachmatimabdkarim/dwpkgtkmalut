@@ -41,10 +41,13 @@ export function PanelPresensi({
   activityId,
   daftarPeserta,
   daftarPengurus,
+  terkunci = false,
 }: {
   activityId: string;
   daftarPeserta: PesertaItem[];
   daftarPengurus: PengurusOpsi[];
+  /** Laporan sudah diajukan: presensi tidak boleh diubah lagi. */
+  terkunci?: boolean;
 }) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
@@ -145,7 +148,7 @@ export function PanelPresensi({
                 Tandai Semua Hadir
               </TombolHalus>
             )}
-            {!bukaForm && daftarPeserta.length > 0 && (
+            {!terkunci && !bukaForm && daftarPeserta.length > 0 && (
               <TombolUtama
                 type="button"
                 ukuran="kecil"

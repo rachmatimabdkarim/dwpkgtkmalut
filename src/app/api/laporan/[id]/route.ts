@@ -548,23 +548,86 @@ export async function GET(
     });
     y -= 12;
 
-    for (let i = 0; i < foto.length; i++) {
-      pastikanRuang(12);
-      const f = foto[i];
-      const ket = f.keterangan ? `${f.keterangan} (${f.nama_asli})` : f.nama_asli;
-      const barisKet = potongTeks(`• ${ket}`, LEBAR_KONTEN - 20, fontBiasa, 8);
-      for (const bk of barisKet) {
-        pastikanRuang(11);
-        page.drawText(bk, {
-          x: MARGIN_LEFT + 12,
-          y,
-          size: 8,
-          font: fontBiasa,
-          color: rgb(0.2, 0.2, 0.2),
+    // Setiap foto diunduh lalu DIGAMBAR ke PDF. Dua foto per baris supaya
+    // hemat ruang namun tetap terlihat jelas. Kegagalan satu foto tidak
+    // menggagalkan seluruh laporan — hanya dilewati dengan catatan kecil.
+    const LEBAR_FOTO = (LEBAR_KONTEN - 20) / 2 - 6;
+    const TINGGI_FOTO = LEBAR_FOTO * 0.66; // sekitar 3:2
+
+    let kolom = 0;
+    let yBaris = y;
+
+    for (const f of foto) {
+      let gambar: Awaited<ReturnType<typeof pdfDoc.embedJpg>> | null = null;
+      try {
+        const { data: berkas } = await sb.storage.from("publik").download(f.path);
+        if (berkas) {
+          const buf = Buffer.from(await berkas.arrayBuffer());
+          const nama = (f.path || "").toLowerCase();
+          gambar = nama.endsWith(".png")
+            ? await pdfDoc.embedPng(buf)
+            : await pdfDoc.embedJpg(buf);
+        }
+      } catch {
+        gambar = null;
+      }
+
+      if (kolom === 0) {
+        pastikanRuang(TINGGI_FOTO + 26);
+        yBaris = y;
+      }
+
+      const xFoto = MARGIN_LEFT + 6 + kolom * (LEBAR_FOTO + 12);
+
+      if (gambar) {
+        page.drawImage(gambar, {
+          x: xFoto,
+          y: yBaris - TINGGI_FOTO,
+          width: LEBAR_FOTO,
+          height: TINGGI_FOTO,
+          opacity: 0.98,
         });
-        y -= 11;
+      } else {
+        // Foto tidak bisa diunduh: beri kotak kosong supaya tata letak tetap rapi.
+        page.drawRectangle({
+          x: xFoto,
+          y: yBaris - TINGGI_FOTO,
+          width: LEBAR_FOTO,
+          height: TINGGI_FOTO,
+          borderColor: rgb(0.85, 0.85, 0.85),
+          borderWidth: 0.5,
+        });
+        page.drawText("(foto tidak dapat dimuat)", {
+          x: xFoto + 6,
+          y: yBaris - TINGGI_FOTO / 2,
+          size: 7,
+          font: fontMiring,
+          color: rgb(0.6, 0.6, 0.6),
+        });
+      }
+
+      // Keterangan di bawah foto
+      const ket = f.keterangan ? f.keterangan : "Dokumentasi kegiatan";
+      const barisKet = potongTeks(ket, LEBAR_FOTO, fontBiasa, 6.5);
+      let yKet = yBaris - TINGGI_FOTO - 8;
+      for (const bk of barisKet.slice(0, 2)) {
+        page.drawText(bk, {
+          x: xFoto,
+          y: yKet,
+          size: 6.5,
+          font: fontBiasa,
+          color: rgb(0.35, 0.35, 0.35),
+        });
+        yKet -= 7.5;
+      }
+
+      kolom += 1;
+      if (kolom === 2) {
+        kolom = 0;
+        y = yBaris - TINGGI_FOTO - 24;
       }
     }
+    if (kolom === 1) y = yBaris - TINGGI_FOTO - 24;
   }
 
   // ===== NOMOR HALAMAN PADA SEMUA HALAMAN =====

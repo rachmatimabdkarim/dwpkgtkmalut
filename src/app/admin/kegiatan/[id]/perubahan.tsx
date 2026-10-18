@@ -57,9 +57,12 @@ export function PanelPerubahan({
   daftarPengajuan,
   bisaMengajukan,
   bisaMemutuskan,
+  penggunaId,
 }: {
   activityId: string;
   daftarPengajuan: ItemPengajuan[];
+  /** Id pengguna yang sedang melihat — dipakai menandai pengajuannya sendiri. */
+  penggunaId?: string;
   bisaMengajukan: boolean;
   bisaMemutuskan: boolean;
 }) {
@@ -273,7 +276,12 @@ export function PanelPerubahan({
                       </td>
                       {bisaMemutuskan && (
                         <td className="py-3 align-top text-right whitespace-nowrap">
-                          {menunggu ? (
+                          {menunggu && p.diajukan_oleh === penggunaId ? (
+                            // Yang mengajukan tidak boleh memutuskan sendiri.
+                            <span className="teks-3 text-n-400">
+                              Diajukan oleh Anda
+                            </span>
+                          ) : menunggu ? (
                             <div className="flex justify-end gap-2">
                               <TombolUtama
                                 ukuran="kecil"
