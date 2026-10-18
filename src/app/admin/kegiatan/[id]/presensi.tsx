@@ -41,11 +41,17 @@ export function PanelPresensi({
   activityId,
   daftarPeserta,
   daftarPengurus,
+  bolehKelola = false,
   terkunci = false,
 }: {
   activityId: string;
   daftarPeserta: PesertaItem[];
   daftarPengurus: PengurusOpsi[];
+  /**
+   * Hanya pengelola presensi yang ditugaskan (plus penanggung jawab & Super
+   * Admin) yang boleh MENGISI. Orang lain tetap dapat MELIHAT daftar hadir.
+   */
+  bolehKelola?: boolean;
   /** Laporan sudah diajukan: presensi tidak boleh diubah lagi. */
   terkunci?: boolean;
 }) {
@@ -148,7 +154,7 @@ export function PanelPresensi({
                 Tandai Semua Hadir
               </TombolHalus>
             )}
-            {!terkunci && !bukaForm && daftarPeserta.length > 0 && (
+            {bolehKelola && !terkunci && !bukaForm && daftarPeserta.length > 0 && (
               <TombolUtama
                 type="button"
                 ukuran="kecil"
@@ -292,15 +298,19 @@ export function PanelPresensi({
                       {formatTanggal(peserta.dibuat_pada.slice(0, 10))}
                     </td>
                     <td className="py-3 text-right">
-                      <TombolHalus
-                        type="button"
-                        ukuran="kecil"
-                        disabled={isPending}
-                        onClick={() => setPesertaDihapus(peserta)}
-                        className="text-bad-fg hover:bg-bad-bg"
-                      >
-                        Hapus
-                      </TombolHalus>
+                      {bolehKelola && !terkunci ? (
+                        <TombolHalus
+                          type="button"
+                          ukuran="kecil"
+                          disabled={isPending}
+                          onClick={() => setPesertaDihapus(peserta)}
+                          className="text-bad-fg hover:bg-bad-bg"
+                        >
+                          Hapus
+                        </TombolHalus>
+                      ) : (
+                        <span className="teks-3 text-n-400">—</span>
+                      )}
                     </td>
                   </tr>
                 ))}
@@ -329,15 +339,17 @@ export function PanelPresensi({
                   </div>
                 </div>
 
-                <TombolHalus
-                  type="button"
-                  ukuran="kecil"
-                  disabled={isPending}
-                  onClick={() => setPesertaDihapus(peserta)}
-                  className="text-bad-fg hover:bg-bad-bg min-h-[44px] min-w-[44px] shrink-0"
-                >
-                  Hapus
-                </TombolHalus>
+                {bolehKelola && !terkunci && (
+                  <TombolHalus
+                    type="button"
+                    ukuran="kecil"
+                    disabled={isPending}
+                    onClick={() => setPesertaDihapus(peserta)}
+                    className="text-bad-fg hover:bg-bad-bg min-h-[44px] min-w-[44px] shrink-0"
+                  >
+                    Hapus
+                  </TombolHalus>
+                )}
               </div>
             ))}
           </div>

@@ -340,14 +340,10 @@ export default async function DetailKegiatan({
     return !!p && committeeSaya.has(p.committee_id);
   };
 
-  const tabTampil = semuaTab
-    .filter((t) => t.tahap.includes(tahap))
-    // Presensi & Dokumentasi hanya untuk pengelola yang ditugaskan.
-    .filter((t) => {
-      if (t.key === "presensi") return bolehKelola("presensi");
-      if (t.key === "dokumentasi") return bolehKelola("dokumentasi");
-      return true;
-    });
+  // Tab Presensi & Dokumentasi TETAP DITAMPILKAN untuk semua orang (aturan
+  // pemilik). Yang dibatasi adalah ISI-nya: hanya pengelola yang ditugaskan,
+  // penanggung jawab, dan Super Admin yang dapat mengisi atau mengubah.
+  const tabTampil = semuaTab.filter((t) => t.tahap.includes(tahap));
   const tabAktif = tabTampil.find((t) => t.key === tab)?.key ?? tabTampil[0].key;
 
   return (
@@ -581,6 +577,7 @@ export default async function DetailKegiatan({
               activityId={keg.id}
               daftarPeserta={(presensi ?? []) as PesertaItem[]}
               daftarPengurus={(daftarPengurus ?? []) as PengurusOpsi[]}
+              bolehKelola={bolehKelola("presensi")}
               terkunci={pelaksanaanTerkunci}
             />
           )}
@@ -590,6 +587,7 @@ export default async function DetailKegiatan({
               activityId={keg.id}
               daftarFoto={(foto ?? []) as FotoItem[]}
               bolehUbahPublik={bolehUbahPublik}
+              bolehKelola={bolehKelola("dokumentasi")}
               terkunci={pelaksanaanTerkunci}
             />
           )}

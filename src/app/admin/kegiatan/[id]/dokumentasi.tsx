@@ -37,11 +37,18 @@ export function PanelDokumentasi({
   activityId,
   daftarFoto,
   bolehUbahPublik,
+  bolehKelola = false,
   terkunci = false,
 }: {
   activityId: string;
   daftarFoto: FotoItem[];
   bolehUbahPublik: boolean;
+  /**
+   * Hanya pengelola dokumentasi yang ditugaskan (plus penanggung jawab &
+   * Super Admin) yang boleh MENGUNGGAH atau MENGUBAH. Orang lain tetap dapat
+   * MELIHAT foto yang sudah ada.
+   */
+  bolehKelola?: boolean;
   /** Laporan sudah diajukan: dokumentasi tidak boleh diubah lagi. */
   terkunci?: boolean;
 }) {
@@ -223,11 +230,11 @@ export function PanelDokumentasi({
         )}
 
         {/* Kotak Unggah Foto — disembunyikan bila laporan sudah diajukan */}
-        {terkunci ? (
+        {!bolehKelola ? (
           <div className="mt-4 rounded-token border border-n-200 bg-n-50 p-3">
             <p className="teks-3 text-n-600">
-              Laporan sudah diajukan, jadi dokumentasi tidak dapat diubah lagi. Bila ada foto
-              yang harus diganti, minta penyetuju mengembalikan laporan.
+              Hanya pengelola dokumentasi yang ditugaskan penanggung jawab yang dapat
+              mengunggah atau mengubah foto. Anda tetap dapat melihat dokumentasi di bawah.
             </p>
           </div>
         ) : totalFoto < batasFotoMaks ? (
