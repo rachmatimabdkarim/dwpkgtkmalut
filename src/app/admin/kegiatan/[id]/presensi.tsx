@@ -144,7 +144,10 @@ export function PanelPresensi({
           </div>
 
           <div className="flex items-center gap-2 flex-wrap">
-            {daftarPeserta.length > 0 && (
+            {/* ATURAN: hanya pengelola presensi yang ditugaskan (plus penanggung
+                jawab & Super Admin) yang boleh mengubah kehadiran. Sebelumnya
+                tombol ini tidak dibungkus syarat sehingga muncul untuk semua. */}
+            {bolehKelola && !terkunci && daftarPeserta.length > 0 && (
               <TombolHalus
                 type="button"
                 ukuran="kecil"
@@ -171,7 +174,7 @@ export function PanelPresensi({
         </div>
 
         {/* Formulir Tambah Peserta — hanya untuk pengelola */}
-        {bolehKelola && bukaForm && (
+        {bolehKelola && !terkunci && bukaForm && (
           <form
             onSubmit={handleTambahPeserta}
             className="mt-4 border-t border-n-200 pt-4 flex flex-col gap-4"
