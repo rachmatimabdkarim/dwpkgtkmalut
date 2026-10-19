@@ -483,15 +483,23 @@ export function PanelPanitia({
                     )}
                   </div>
 
-                  <TombolHalus
-                    type="button"
-                    ukuran="kecil"
-                    disabled={isPending}
-                    onClick={() => setPanitiaDihapus(panitia)}
-                    className="text-bad-fg hover:bg-bad-bg"
-                  >
-                    Hapus
-                  </TombolHalus>
+                  {/* ATURAN PEMILIK: menghapus panitia HANYA boleh penanggung
+                      jawab kegiatan. Sebelumnya tombol ini tidak dibungkus syarat
+                      apa pun sehingga muncul untuk semua orang — termasuk anggota
+                      panitia yang ingin menghapus dirinya sendiri. */}
+                  {bolehUbahPanitia && !terkunci ? (
+                    <TombolHalus
+                      type="button"
+                      ukuran="kecil"
+                      disabled={isPending}
+                      onClick={() => setPanitiaDihapus(panitia)}
+                      className="text-bad-fg hover:bg-bad-bg"
+                    >
+                      Hapus
+                    </TombolHalus>
+                  ) : (
+                    <span className="teks-3 text-n-400">—</span>
+                  )}
                 </div>
 
                 {/* Bagian Tugas Panitia */}
