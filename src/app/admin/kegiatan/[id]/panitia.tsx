@@ -357,7 +357,12 @@ export function PanelPanitia({
           Aturan pemilik: penanggung jawab menugaskan; hanya yang ditugaskan
           boleh membuka dan mengelola tab presensi/dokumentasi.
           Penanggung jawab & Super Admin tetap bisa sebagai cadangan. */}
-      {bolehUbahPanitia && !terkunci && totalPanitia > 0 && (
+      {/* Panel ini TAMPIL UNTUK SEMUA orang yang membuka tab Panitia.
+          Aturan pemilik: semua berhak MENGETAHUI siapa pengelola presensi dan
+          dokumentasi; yang dibatasi hanya MENGUBAH penugasannya (penanggung
+          jawab saja). Sebelumnya panel ini disembunyikan seluruhnya sehingga
+          Ketua Panitia pun tidak tahu siapa pengelolanya. */}
+      {totalPanitia > 0 && (
         <Kartu className="p-4 sm:p-5">
           <JudulSeksi>Pengelola Presensi &amp; Dokumentasi</JudulSeksi>
           <p className="teks-3 text-n-600 mt-1">
@@ -379,26 +384,29 @@ export function PanelPanitia({
                   {namaAktif ? (
                     <div className="mt-2 flex items-center justify-between gap-2">
                       <span className="teks-3 text-n-700">{namaAktif}</span>
-                      <TombolHalus
-                        type="button"
-                        ukuran="kecil"
-                        disabled={isPending}
-                        onClick={() => {
-                          startTransition(async () => {
-                            const r = await cabutPenugasan(activityId, bagian);
-                            if (r.galat) setGalatPanitia(r.galat);
-                          });
-                        }}
-                        className="min-h-[44px]"
-                      >
-                        Cabut
-                      </TombolHalus>
+                      {bolehUbahPanitia && !terkunci && (
+                        <TombolHalus
+                          type="button"
+                          ukuran="kecil"
+                          disabled={isPending}
+                          onClick={() => {
+                            startTransition(async () => {
+                              const r = await cabutPenugasan(activityId, bagian);
+                              if (r.galat) setGalatPanitia(r.galat);
+                            });
+                          }}
+                          className="min-h-[44px]"
+                        >
+                          Cabut
+                        </TombolHalus>
+                      )}
                     </div>
                   ) : (
                     <p className="teks-3 text-n-400 mt-2">Belum ditugaskan</p>
                   )}
 
                   <div className="mt-3">
+                    {!bolehUbahPanitia || terkunci ? null : (
                     <Pilihan
                       value=""
                       disabled={isPending}
@@ -420,6 +428,7 @@ export function PanelPanitia({
                           </option>
                         ))}
                     </Pilihan>
+                    )}
                   </div>
                 </div>
               );
@@ -427,8 +436,9 @@ export function PanelPanitia({
           </div>
 
           <p className="teks-3 text-n-500 mt-3">
-            Hanya panitia yang punya akun SI-ANGGUN yang bisa ditugaskan. Penanggung jawab
-            kegiatan tetap dapat membuka kedua tab bila pengelola berhalangan.
+            {bolehUbahPanitia && !terkunci
+              ? "Hanya panitia yang punya akun SI-ANGGUN yang bisa ditugaskan. Penanggung jawab kegiatan tetap dapat membuka kedua tab bila pengelola berhalangan."
+              : "Hanya penanggung jawab kegiatan yang dapat mengubah penugasan ini. Penanggung jawab juga tetap dapat membuka kedua tab bila pengelola berhalangan."}
           </p>
         </Kartu>
       )}
