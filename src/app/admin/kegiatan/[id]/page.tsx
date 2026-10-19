@@ -681,6 +681,7 @@ export default async function DetailKegiatan({
             presensi: (presensi ?? []).length,
             dokumentasi: (foto ?? []).length,
           }}
+          judulKegiatan={keg.judul}
         />
       </div>
 

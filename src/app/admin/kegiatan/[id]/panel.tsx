@@ -52,6 +52,7 @@ export function PanelTindakan({
   pengusulSendiri,
   bolehJalankanTahap,
   kelengkapan = { panitia: 0, presensi: 0, dokumentasi: 0 },
+  judulKegiatan = "",
 }: {
   activityId: string;
   status: string;
@@ -77,6 +78,8 @@ export function PanelTindakan({
    * yang "selesai" tanpa bukti pelaksanaan.
    */
   kelengkapan?: { panitia: number; presensi: number; dokumentasi: number };
+  /** Judul kegiatan — dipakai pada konfirmasi "tandai selesai". */
+  judulKegiatan?: string;
 }) {
   const router = useRouter();
   const [sedang, setSedang] = useState(false);
@@ -104,6 +107,18 @@ export function PanelTindakan({
     if (r.galat) return setGalat(r.galat);
     router.refresh();
   }
+
+  /* ---------- Konfirmasi "Tandai Selesai" ----------
+     ATURAN PEMILIK: menandai selesai adalah langkah yang mengubah banyak hal
+     (kegiatan masuk tahap pelaporan dan isinya terkunci). Karena itu perlu
+     pengaman ganda supaya tidak terklik tanpa sengaja:
+       1. Dialog konfirmasi dengan peringatan.
+       2. WAJIB mengetik judul kegiatan — tidak bisa asal klik.
+     Setelah selesai, kegiatan tidak bisa dikembalikan ke "berjalan". */
+  const [konfirmasiSelesai, setKonfirmasiSelesai] = useState(false);
+  const [ketikanJudul, setKetikanJudul] = useState("");
+  const judulCocok =
+    ketikanJudul.trim().toLowerCase() === (judulKegiatan || "").trim().toLowerCase();
 
   /* ---------- Satu aksi utama sesuai konteks ---------- */
 
@@ -168,7 +183,13 @@ export function PanelTindakan({
 
     aksiUtama =
       bolehJalankanTahap && siapSelesai ? (
-        <TombolUtama onClick={() => jalankan("selesai")} disabled={sedang}>
+        <TombolUtama
+          onClick={() => {
+            setKetikanJudul("");
+            setKonfirmasiSelesai(true);
+          }}
+          disabled={sedang}
+        >
           Tandai Selesai
         </TombolUtama>
       ) : bolehJalankanTahap ? (
@@ -347,11 +368,75 @@ export function PanelTindakan({
           </ol>
         </Kartu>
       )}
+
+      {/* ===== KONFIRMASI TANDAI SELESAI =====
+          Sengaja dibuat dua lapis: peringatan + ketik judul kegiatan.
+          Menandai selesai mengubah status dan mengunci isi kegiatan, dan
+          TIDAK dapat dikembalikan ke "berjalan". */}
+      {konfirmasiSelesai && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-n-900/50 p-4">
+          <div className="w-full max-w-md rounded-token-lg bg-n-0 p-5 border border-n-200 shadow-lg">
+            <h3 className="judul-2 text-n-800 mb-2">Tandai kegiatan selesai?</h3>
+            <p className="text-[14px] text-n-600">
+              Kegiatan <strong className="text-n-800">{judulKegiatan}</strong> akan ditandai
+              selesai dan masuk tahap pelaporan. Setelah ini, data pelaksanaan
+              (panitia, presensi, dokumentasi) terkunci dan statusnya{" "}
+              <strong className="text-n-800">tidak dapat dikembalikan</strong> ke
+              &ldquo;berjalan&rdquo;.
+            </p>
+            <p className="text-[14px] text-n-600 mt-3">
+              Pastikan kegiatan benar-benar sudah dilaksanakan. Untuk mencegah salah klik,
+              ketik judul kegiatan di bawah ini:
+            </p>
+
+            <input
+              type="text"
+              value={ketikanJudul}
+              onChange={(e) => setKetikanJudul(e.target.value)}
+              placeholder={judulKegiatan}
+              className="mt-2 w-full min-h-[44px] rounded-token border border-n-300 px-3 text-[14.5px] text-n-900 bg-n-0"
+              autoComplete="off"
+            />
+            <p className="teks-3 text-n-500 mt-1">
+              {ketikanJudul.length === 0
+                ? "Judul harus diketik persis sama."
+                : judulCocok
+                  ? "Judul sudah cocok."
+                  : "Belum sama dengan judul kegiatan."}
+            </p>
+
+            <div className="flex justify-end gap-2 mt-4">
+              <TombolSekunder
+                type="button"
+                ukuran="sedang"
+                disabled={sedang}
+                onClick={() => {
+                  setKonfirmasiSelesai(false);
+                  setKetikanJudul("");
+                }}
+              >
+                Batal
+              </TombolSekunder>
+              <TombolUtama
+                type="button"
+                ukuran="sedang"
+                disabled={sedang || !judulCocok}
+                onClick={async () => {
+                  await jalankan("selesai");
+                  setKonfirmasiSelesai(false);
+                  setKetikanJudul("");
+                }}
+              >
+                {sedang ? "Menyimpan…" : "Ya, Tandai Selesai"}
+              </TombolUtama>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
 
-/** Panel isi laporan saat tahap pelaporan. */
 export function PanelLaporan({
   activityId,
   isi,
@@ -656,6 +741,7 @@ export function TombolBatalkanAjuan({
           Batal
         </TombolHalus>
       </div>
+
     </div>
   );
 }
