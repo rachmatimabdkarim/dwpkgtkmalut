@@ -176,7 +176,8 @@ export function PanelTindakan({
     // presensi, dan dokumentasi sudah ada. Sebelumnya tombol aktif begitu
     // kegiatan dimulai — kegiatan bisa "selesai" tanpa bukti pelaksanaan.
     const kurang: string[] = [];
-    if (kelengkapan.panitia === 0) kurang.push("susunan panitia");
+    // Aturan pemilik: minimal harus ada Ketua Panitia (bukan sekadar panitia).
+    if (kelengkapan.panitia === 0) kurang.push("Ketua Panitia");
     if (kelengkapan.presensi === 0) kurang.push("daftar hadir peserta");
     if (kelengkapan.dokumentasi === 0) kurang.push("foto dokumentasi");
     const siapSelesai = kurang.length === 0;

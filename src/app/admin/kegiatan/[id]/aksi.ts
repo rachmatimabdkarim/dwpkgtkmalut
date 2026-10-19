@@ -243,9 +243,13 @@ export async function ubahTahap(
   // apa pun, dan laporan pertanggungjawabannya menjadi kosong.
   // Diperiksa di server, bukan hanya dengan mematikan tombol.
   if (aksi === "selesai") {
-    const [{ count: jumlahPanitia }, { count: jumlahHadir }, { count: jumlahFoto }] =
+    const [{ count: jumlahKetuaPanitia }, { count: jumlahHadir }, { count: jumlahFoto }] =
       await Promise.all([
-        sb.from("committees").select("id", { count: "exact", head: true }).eq("activity_id", activityId),
+        sb
+          .from("committees")
+          .select("id", { count: "exact", head: true })
+          .eq("activity_id", activityId)
+          .eq("peran", "ketua_panitia"),
         sb.from("attendances").select("id", { count: "exact", head: true }).eq("activity_id", activityId),
         sb.from("attachments")
           .select("id", { count: "exact", head: true })
@@ -254,7 +258,7 @@ export async function ubahTahap(
       ]);
 
     const kurang: string[] = [];
-    if (!jumlahPanitia) kurang.push("susunan panitia");
+    if (!jumlahKetuaPanitia) kurang.push("Ketua Panitia");
     if (!jumlahHadir) kurang.push("daftar hadir peserta");
     if (!jumlahFoto) kurang.push("foto dokumentasi");
 

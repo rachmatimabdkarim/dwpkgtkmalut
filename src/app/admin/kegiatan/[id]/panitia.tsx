@@ -17,6 +17,12 @@ import {
 } from "@/components/dasar";
 import { formatTanggal } from "@/lib/kegiatan";
 import {
+  bolehBeriTugas,
+  bolehCentangTugas,
+  type KonteksPengguna,
+  type PeranPanitiaKode,
+} from "@/lib/aturan-panitia";
+import {
   tambahPanitia,
   hapusPanitia,
   tambahTugas,
@@ -84,6 +90,7 @@ export function PanelPanitia({
   daftarPengurus,
   daftarPenugasan = [],
   bolehUbahPanitia = false,
+  konteks,
   terkunci = false,
 }: {
   activityId: string;
@@ -97,6 +104,11 @@ export function PanelPanitia({
    * ditekan lalu ditolak server (membingungkan).
    */
   bolehUbahPanitia?: boolean;
+  /**
+   * Keterangan siapa pengguna pada kegiatan ini (penanggung jawab? ketua
+   * panitia?). Dipakai memutuskan tombol tugas mana yang boleh tampil.
+   */
+  konteks?: KonteksPengguna;
   /** Laporan sudah diajukan: susunan panitia tidak boleh diubah lagi. */
   terkunci?: boolean;
 }) {
@@ -488,18 +500,23 @@ export function PanelPanitia({
                     <span className="text-[13px] font-medium text-n-700">
                       Tugas ({tugasList.filter((t) => t.selesai).length}/{tugasList.length})
                     </span>
-                    {!adaFormTugas && (
-                      <TombolHalus
-                        type="button"
-                        ukuran="kecil"
-                        disabled={isPending}
-                        onClick={() =>
-                          setFormTugasBuka((prev) => ({ ...prev, [panitia.id]: true }))
-                        }
-                      >
-                        + Tambah Tugas
-                      </TombolHalus>
-                    )}
+                    {/* ATURAN PEMILIK:
+                        tugas untuk KETUA PANITIA -> hanya penanggung jawab;
+                        tugas untuk anggota lain  -> penanggung jawab atau ketua panitia. */}
+                    {!adaFormTugas &&
+                      konteks &&
+                      bolehBeriTugas(konteks, panitia.peran as PeranPanitiaKode) && (
+                        <TombolHalus
+                          type="button"
+                          ukuran="kecil"
+                          disabled={isPending}
+                          onClick={() =>
+                            setFormTugasBuka((prev) => ({ ...prev, [panitia.id]: true }))
+                          }
+                        >
+                          + Tambah Tugas
+                        </TombolHalus>
+                      )}
                   </div>
 
                   {/* List Tugas */}
@@ -513,10 +530,18 @@ export function PanelPanitia({
                           className="flex items-center justify-between gap-3 p-2.5 rounded-token bg-n-50 border border-n-100 min-h-[44px]"
                         >
                           <label className="flex items-center gap-3 cursor-pointer flex-1 min-w-0">
+                            {/* ATURAN PEMILIK: mencentang tugas hanya boleh
+                                penanggung jawab atau Ketua Panitia. Anggota
+                                panitia tidak mencentang tugasnya sendiri. */}
                             <input
                               type="checkbox"
                               checked={tugas.selesai}
-                              disabled={isPending}
+                              disabled={
+                                isPending ||
+                                !konteks ||
+                                !bolehCentangTugas(konteks) ||
+                                terkunci
+                              }
                               onChange={() => handleToggleTugas(tugas.id, tugas.selesai)}
                               className="accent-brand-600 h-5 w-5 rounded-token shrink-0"
                             />
@@ -538,15 +563,17 @@ export function PanelPanitia({
                             </div>
                           </label>
 
-                          <button
-                            type="button"
-                            disabled={isPending}
-                            onClick={() => handleHapusTugas(tugas.id)}
-                            className="text-n-400 hover:text-bad-fg p-1.5 rounded-token transition-colors"
-                            title="Hapus tugas"
-                          >
-                            ×
-                          </button>
+                          {konteks && bolehCentangTugas(konteks) && !terkunci && (
+                            <button
+                              type="button"
+                              disabled={isPending}
+                              onClick={() => handleHapusTugas(tugas.id)}
+                              className="text-n-400 hover:text-bad-fg p-1.5 rounded-token transition-colors"
+                              title="Hapus tugas"
+                            >
+                              ×
+                            </button>
+                          )}
                         </div>
                       ))}
                     </div>

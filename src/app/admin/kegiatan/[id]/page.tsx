@@ -568,6 +568,19 @@ export default async function DetailKegiatan({
                 pengguna.id === keg.penanggung_jawab ||
                 pengguna.peran.includes("super_admin")
               }
+              konteks={{
+                id: pengguna.id,
+                superAdmin: pengguna.peran.includes("super_admin"),
+                penanggungJawabId: keg.penanggung_jawab,
+                peranPanitia:
+                  ((panitia ?? []) as { profile_id: string | null; peran: string }[])
+                    .filter((c) => c.profile_id === pengguna.id)
+                    .map((c) => c.peran as
+                      | "ketua_panitia"
+                      | "sekretaris_panitia"
+                      | "bendahara_panitia"
+                      | "anggota_panitia")[0] ?? null,
+              }}
               terkunci={pelaksanaanTerkunci}
             />
           )}
@@ -677,7 +690,10 @@ export default async function DetailKegiatan({
             pengguna.peran.includes("super_admin")
           }
           kelengkapan={{
-            panitia: (panitia ?? []).length,
+            // Wajib ada KETUA PANITIA, bukan sekadar panitia.
+            panitia: ((panitia ?? []) as { peran: string }[]).filter(
+              (c) => c.peran === "ketua_panitia",
+            ).length,
             presensi: (presensi ?? []).length,
             dokumentasi: (foto ?? []).length,
           }}

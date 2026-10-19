@@ -2,6 +2,16 @@
 
 import { revalidatePath } from "next/cache";
 import { klienServer, penggunaSaatIni } from "@/lib/supabase-server";
+import {
+  bolehSusunPanitia,
+  bolehBeriTugas,
+  bolehCentangTugas,
+  alasanTolakSusunPanitia,
+  alasanTolakBeriTugas,
+  alasanTolakCentang,
+  type KonteksPengguna,
+  type PeranPanitiaKode,
+} from "@/lib/aturan-panitia";
 
 /**
  * SERVER ACTIONS PELAKSANAAN KEGIATAN
@@ -42,39 +52,6 @@ async function pastikanBelumDiajukan(
 }
 
 /**
- * Hanya PENANGGUNG JAWAB kegiatan (atau Super Admin) yang boleh menyusun
- * panitia dan menugaskan pekerjaan.
- *
- * Aturan pemilik: "yang bisa menambahkan ketua panitia dan anggota panitia
- * hanya penanggung jawab kegiatan", dan penanggung jawab yang menugaskan
- * pengelola presensi/dokumentasi.
- *
- * Dipisah dari pastikanBelumDiajukan karena orang yang berbeda bisa
- * memegang keduanya: pengelola presensi boleh mencatat kehadiran tanpa
- * berhak mengubah susunan panitia.
- */
-async function pastikanPengurusPanitia(
-  sb: Awaited<ReturnType<typeof klienServer>>,
-  activityId: string,
-): Promise<{ galat: string } | null> {
-  const { data } = await sb
-    .from("activities")
-    .select("penanggung_jawab")
-    .eq("id", activityId)
-    .maybeSingle<{ penanggung_jawab: string | null }>();
-  if (!data) return { galat: "Kegiatan tidak ditemukan." };
-
-  const { data: boleh } = await sb.rpc("boleh_urus_panitia", { p_activity: activityId });
-  if (boleh === false) {
-    return {
-      galat:
-        "Hanya penanggung jawab kegiatan yang dapat menyusun panitia dan menugaskan pekerjaan.",
-    };
-  }
-  return null;
-}
-
-/**
  * Presensi dan dokumentasi hanya boleh dikelola PENUGAS yang ditunjuk
  * penanggung jawab. Penanggung jawab dan Super Admin tetap bisa sebagai
  * cadangan bila pengelola berhalangan.
@@ -103,6 +80,68 @@ async function pastikanPengelolaBagian(
   return null;
 }
 
+/**
+ * Menyusun keterangan siapa pengguna dalam konteks satu kegiatan:
+ * apakah dia penanggung jawab, dan apakah dia panitia (serta perannya).
+ *
+ * Dipakai bersama oleh aturan panitia dan tugas, supaya penilaian hak
+ * tidak ditulis berulang di banyak tempat dan bisa berbeda.
+ */
+async function konteksPanitia(
+  sb: Awaited<ReturnType<typeof klienServer>>,
+  activityId: string,
+  pengguna: { id: string; peran: string[] },
+): Promise<KonteksPengguna> {
+  const { data: keg } = await sb
+    .from("activities")
+    .select("penanggung_jawab")
+    .eq("id", activityId)
+    .maybeSingle<{ penanggung_jawab: string | null }>();
+
+  const { data: panitia } = await sb
+    .from("committees")
+    .select("peran")
+    .eq("activity_id", activityId)
+    .eq("profile_id", pengguna.id)
+    .maybeSingle<{ peran: string }>();
+
+  return {
+    id: pengguna.id,
+    superAdmin: pengguna.peran.includes("super_admin"),
+    penanggungJawabId: keg?.penanggung_jawab ?? null,
+    peranPanitia: (panitia?.peran as PeranPanitiaKode | undefined) ?? null,
+  };
+}
+
+/**
+ * Pengaman untuk MENYUSUN PANITIA (tambah/hapus panitia).
+ * Hanya penanggung jawab kegiatan (atau Super Admin).
+ *
+ * Sebelumnya fungsi `pastikanPengurusPanitia` dipakai untuk semua hal
+ * (panitia, tugas, penugasan) — terlalu ketat untuk tugas, karena aturan
+ * pemilik mengizinkan Ketua Panitia memberi tugas kepada anggota lain.
+ */
+async function pastikanBolehSusunPanitia(
+  sb: Awaited<ReturnType<typeof klienServer>>,
+  activityId: string,
+  pengguna: { id: string; peran: string[] },
+): Promise<{ galat: string } | null> {
+  const k = await konteksPanitia(sb, activityId, pengguna);
+  if (!bolehSusunPanitia(k)) return { galat: alasanTolakSusunPanitia() };
+  return null;
+}
+
+/** Pengaman untuk mencentang / menghapus tugas: penanggung jawab atau Ketua Panitia. */
+async function pastikanBolehCentangTugas(
+  sb: Awaited<ReturnType<typeof klienServer>>,
+  activityId: string,
+  pengguna: { id: string; peran: string[] },
+): Promise<{ galat: string } | null> {
+  const k = await konteksPanitia(sb, activityId, pengguna);
+  if (!bolehCentangTugas(k)) return { galat: alasanTolakCentang() };
+  return null;
+}
+
 /* ============================================================
    1. PANITIA KEGIATAN
    ============================================================ */
@@ -124,8 +163,10 @@ export async function tambahPanitia(
 
   const sb = await klienServer();
 
-  const bukanPengurusPanitia = await pastikanPengurusPanitia(sb, activityId);
-  if (bukanPengurusPanitia) return { galat: bukanPengurusPanitia.galat };
+  const bukanPenyusun = await pastikanBolehSusunPanitia(sb, activityId, pengguna);
+  if (bukanPenyusun) return { galat: bukanPenyusun.galat };
+
+
 
   const terhalang = await pastikanBelumDiajukan(sb, activityId);
   if (terhalang) return { galat: terhalang.galat };
@@ -165,8 +206,32 @@ export async function hapusPanitia(activityId: string, committeeId: string) {
   if (!pengguna) return { galat: "Sesi Anda sudah berakhir." };
   const sb = await klienServer();
 
-  const bukanPengurusPanitia = await pastikanPengurusPanitia(sb, activityId);
-  if (bukanPengurusPanitia) return { galat: bukanPengurusPanitia.galat };
+  const bukanPenyusun = await pastikanBolehSusunPanitia(sb, activityId, pengguna);
+  if (bukanPenyusun) return { galat: bukanPenyusun.galat };
+
+  // ATURAN PEMILIK: susunan panitia WAJIB memiliki satu Ketua Panitia.
+  // Menghapus Ketua Panitia tanpa pengganti akan meninggalkan kegiatan tanpa
+  // penanggung jawab pelaksanaan — dan tidak ada yang bisa diberi tugas.
+  const { data: calon } = await sb
+    .from("committees")
+    .select("peran")
+    .eq("id", committeeId)
+    .eq("activity_id", activityId)
+    .maybeSingle<{ peran: string }>();
+  if (calon?.peran === "ketua_panitia") {
+    const { count } = await sb
+      .from("committees")
+      .select("id", { count: "exact", head: true })
+      .eq("activity_id", activityId)
+      .eq("peran", "ketua_panitia");
+    if ((count ?? 0) <= 1) {
+      return {
+        galat:
+          "Ketua Panitia tidak dapat dihapus karena kegiatan wajib memiliki satu Ketua Panitia. " +
+          "Tunjuk Ketua Panitia pengganti lebih dulu, baru hapus yang lama.",
+      };
+    }
+  }
 
   const terhalang = await pastikanBelumDiajukan(sb, activityId);
   if (terhalang) return { galat: terhalang.galat };
@@ -221,8 +286,21 @@ export async function tambahTugas(
 
   const sb = await klienServer();
 
-  const bukanPengurusPanitia = await pastikanPengurusPanitia(sb, activityId);
-  if (bukanPengurusPanitia) return { galat: bukanPengurusPanitia.galat };
+  // ATURAN PEMILIK:
+  //   tugas untuk KETUA PANITIA -> hanya penanggung jawab
+  //   tugas untuk anggota lain  -> penanggung jawab ATAU ketua panitia
+  const { data: panitiaTarget } = await sb
+    .from("committees")
+    .select("peran")
+    .eq("id", data.committeeId)
+    .eq("activity_id", activityId)
+    .maybeSingle<{ peran: string }>();
+  if (!panitiaTarget) return { galat: "Panitia tujuan tidak ditemukan pada kegiatan ini." };
+
+  const k = await konteksPanitia(sb, activityId, pengguna);
+  if (!bolehBeriTugas(k, panitiaTarget.peran as PeranPanitiaKode)) {
+    return { galat: alasanTolakBeriTugas(panitiaTarget.peran as PeranPanitiaKode) };
+  }
 
   const terhalang = await pastikanBelumDiajukan(sb, activityId);
   if (terhalang) return { galat: terhalang.galat };
@@ -257,8 +335,8 @@ export async function ubahStatusTugas(
 
   const sb = await klienServer();
 
-  const bukanPengurusPanitia = await pastikanPengurusPanitia(sb, activityId);
-  if (bukanPengurusPanitia) return { galat: bukanPengurusPanitia.galat };
+  const bukanPenilai = await pastikanBolehCentangTugas(sb, activityId, pengguna);
+  if (bukanPenilai) return { galat: bukanPenilai.galat };
 
   const terhalang = await pastikanBelumDiajukan(sb, activityId);
   if (terhalang) return { galat: terhalang.galat };
@@ -295,8 +373,8 @@ export async function hapusTugas(activityId: string, taskId: string) {
 
   const sb = await klienServer();
 
-  const bukanPengurusPanitia = await pastikanPengurusPanitia(sb, activityId);
-  if (bukanPengurusPanitia) return { galat: bukanPengurusPanitia.galat };
+  const bukanPenilai = await pastikanBolehCentangTugas(sb, activityId, pengguna);
+  if (bukanPenilai) return { galat: bukanPenilai.galat };
 
   const terhalang = await pastikanBelumDiajukan(sb, activityId);
   if (terhalang) return { galat: terhalang.galat };
@@ -678,8 +756,8 @@ export async function tugaskanPengelola(
 
   const sb = await klienServer();
 
-  const bukanPengurus = await pastikanPengurusPanitia(sb, activityId);
-  if (bukanPengurus) return { galat: bukanPengurus.galat };
+  const bukanPenyusun = await pastikanBolehSusunPanitia(sb, activityId, pengguna);
+  if (bukanPenyusun) return { galat: bukanPenyusun.galat };
 
   const { data: panitia } = await sb
     .from("committees")
@@ -730,8 +808,8 @@ export async function cabutPenugasan(activityId: string, bagian: "presensi" | "d
 
   const sb = await klienServer();
 
-  const bukanPengurus = await pastikanPengurusPanitia(sb, activityId);
-  if (bukanPengurus) return { galat: bukanPengurus.galat };
+  const bukanPenyusun = await pastikanBolehSusunPanitia(sb, activityId, pengguna);
+  if (bukanPenyusun) return { galat: bukanPenyusun.galat };
 
   const { error } = await sb
     .from("penugasan_pengelola")
