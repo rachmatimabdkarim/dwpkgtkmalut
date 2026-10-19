@@ -51,6 +51,7 @@ export function PanelTindakan({
   judul,
   pengusulSendiri,
   bolehJalankanTahap,
+  kelengkapan = { panitia: 0, presensi: 0, dokumentasi: 0 },
 }: {
   activityId: string;
   status: string;
@@ -69,6 +70,13 @@ export function PanelTindakan({
   pengusulSendiri: boolean;
   /** Boleh menjalankan tahap pelaksanaan (mulai/selesai/arsip). */
   bolehJalankanTahap: boolean;
+  /**
+   * Kelengkapan pelaksanaan sebelum kegiatan boleh ditandai selesai.
+   * ATURAN PEMILIK: tombol "Tandai Selesai" baru aktif bila panitia,
+   * presensi, dan dokumentasi sudah terisi — supaya tidak ada kegiatan
+   * yang "selesai" tanpa bukti pelaksanaan.
+   */
+  kelengkapan?: { panitia: number; presensi: number; dokumentasi: number };
 }) {
   const router = useRouter();
   const [sedang, setSedang] = useState(false);
@@ -149,11 +157,30 @@ export function PanelTindakan({
       </TombolUtama>
     ) : null;
   } else if (status === "berjalan") {
-    aksiUtama = bolehJalankanTahap ? (
-      <TombolUtama onClick={() => jalankan("selesai")} disabled={sedang}>
-        Tandai Selesai
-      </TombolUtama>
-    ) : null;
+    // ATURAN PEMILIK: kegiatan hanya boleh ditandai selesai bila panitia,
+    // presensi, dan dokumentasi sudah ada. Sebelumnya tombol aktif begitu
+    // kegiatan dimulai — kegiatan bisa "selesai" tanpa bukti pelaksanaan.
+    const kurang: string[] = [];
+    if (kelengkapan.panitia === 0) kurang.push("susunan panitia");
+    if (kelengkapan.presensi === 0) kurang.push("daftar hadir peserta");
+    if (kelengkapan.dokumentasi === 0) kurang.push("foto dokumentasi");
+    const siapSelesai = kurang.length === 0;
+
+    aksiUtama =
+      bolehJalankanTahap && siapSelesai ? (
+        <TombolUtama onClick={() => jalankan("selesai")} disabled={sedang}>
+          Tandai Selesai
+        </TombolUtama>
+      ) : bolehJalankanTahap ? (
+        <div className="rounded-token border border-n-200 bg-n-50 p-3">
+          <p className="text-[13.5px] font-medium text-n-800">
+            Belum dapat ditandai selesai
+          </p>
+          <p className="teks-3 text-n-600 mt-1">
+            Lengkapi dulu: {kurang.join(", ")}.
+          </p>
+        </div>
+      ) : null;
   } else if (status === "laporan_disetujui") {
     aksiUtama = bolehJalankanTahap ? (
       <TombolUtama onClick={() => jalankan("arsipkan")} disabled={sedang}>

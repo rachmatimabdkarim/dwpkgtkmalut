@@ -676,6 +676,11 @@ export default async function DetailKegiatan({
             pengguna.id === keg.penanggung_jawab ||
             pengguna.peran.includes("super_admin")
           }
+          kelengkapan={{
+            panitia: (panitia ?? []).length,
+            presensi: (presensi ?? []).length,
+            dokumentasi: (foto ?? []).length,
+          }}
         />
       </div>
 

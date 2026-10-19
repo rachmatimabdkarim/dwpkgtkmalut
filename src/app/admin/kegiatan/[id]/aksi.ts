@@ -237,6 +237,37 @@ export async function ubahTahap(
     };
   }
 
+  // ATURAN PEMILIK: kegiatan tidak boleh ditandai selesai sebelum ada bukti
+  // pelaksanaan — panitia, daftar hadir peserta, dan foto dokumentasi.
+  // Tanpa pemeriksaan ini, kegiatan bisa "selesai" lalu dilaporkan tanpa data
+  // apa pun, dan laporan pertanggungjawabannya menjadi kosong.
+  // Diperiksa di server, bukan hanya dengan mematikan tombol.
+  if (aksi === "selesai") {
+    const [{ count: jumlahPanitia }, { count: jumlahHadir }, { count: jumlahFoto }] =
+      await Promise.all([
+        sb.from("committees").select("id", { count: "exact", head: true }).eq("activity_id", activityId),
+        sb.from("attendances").select("id", { count: "exact", head: true }).eq("activity_id", activityId),
+        sb.from("attachments")
+          .select("id", { count: "exact", head: true })
+          .eq("entitas_id", activityId)
+          .eq("kategori", "foto_kegiatan"),
+      ]);
+
+    const kurang: string[] = [];
+    if (!jumlahPanitia) kurang.push("susunan panitia");
+    if (!jumlahHadir) kurang.push("daftar hadir peserta");
+    if (!jumlahFoto) kurang.push("foto dokumentasi");
+
+    if (kurang.length > 0) {
+      return {
+        galat:
+          "Kegiatan belum dapat ditandai selesai. Lengkapi dulu: " +
+          kurang.join(", ") +
+          ". Data ini diperlukan sebagai bukti pelaksanaan pada laporan.",
+      };
+    }
+  }
+
   // Kunci & arsip lewat fungsi database berpemilik hak: kebijakan UPDATE tabel
   // activities tidak mengenali pengusul, sehingga pembaruan langsung tidak
   // mengenai baris mana pun dan layar tidak menampilkan sebabnya. Fungsi ini
