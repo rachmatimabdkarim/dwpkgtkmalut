@@ -674,14 +674,16 @@ export default async function DetailKegiatan({
           pengusulSendiri={pengusulSendiri}
           bolehJalankanTahap={
             // ATURAN PEMILIK: tombol pelaksanaan (Mulai Kegiatan, Tandai Selesai,
-            // Kunci & Arsipkan) HANYA untuk PENANGGUNG JAWAB kegiatan.
-            // Sebelumnya terbuka untuk semua pengurus inti dan pengusul — sehingga
-            // orang yang tidak menjalankan kegiatan bisa menekannya.
-            // Super Admin tetap bisa semuanya sebagai cadangan bila penanggung
-            // jawab berhalangan (sakit, mutasi, cuti).
+            // Kunci & Arsipkan) untuk PENANGGUNG JAWAB kegiatan, KETUA PANITIA
+            // (yang memimpin pelaksanaan di lapangan), dan Super Admin sebagai
+            // cadangan bila keduanya berhalangan.
             pengguna.id === keg.penanggung_jawab ||
-            pengguna.peran.includes("super_admin")
+            pengguna.peran.includes("super_admin") ||
+            ((panitia ?? []) as { profile_id: string | null; peran: string }[]).some(
+              (c) => c.profile_id === pengguna.id && c.peran === "ketua_panitia",
+            )
           }
+          tanggalSelesai={keg.tanggal_selesai}
           kelengkapan={{
             // Wajib ada KETUA PANITIA, bukan sekadar panitia.
             panitia: ((panitia ?? []) as { peran: string }[]).filter(

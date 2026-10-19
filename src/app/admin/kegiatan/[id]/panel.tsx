@@ -53,6 +53,7 @@ export function PanelTindakan({
   bolehJalankanTahap,
   kelengkapan = { panitia: 0, presensi: 0, dokumentasi: 0 },
   judulKegiatan = "",
+  tanggalSelesai = null,
 }: {
   activityId: string;
   status: string;
@@ -80,6 +81,12 @@ export function PanelTindakan({
   kelengkapan?: { panitia: number; presensi: number; dokumentasi: number };
   /** Judul kegiatan — dipakai pada konfirmasi "tandai selesai". */
   judulKegiatan?: string;
+  /**
+   * Tanggal selesai pelaksanaan (YYYY-MM-DD). Tombol "Tandai Selesai" hanya
+   * aktif setelah tanggal ini terlewati — kegiatan tidak logis ditandai
+   * selesai sebelum jadwalnya berakhir.
+   */
+  tanggalSelesai?: string | null;
 }) {
   const router = useRouter();
   const [sedang, setSedang] = useState(false);
@@ -180,6 +187,21 @@ export function PanelTindakan({
     if (kelengkapan.panitia === 0) kurang.push("Ketua Panitia");
     if (kelengkapan.presensi === 0) kurang.push("daftar hadir peserta");
     if (kelengkapan.dokumentasi === 0) kurang.push("foto dokumentasi");
+    // ATURAN PEMILIK: kegiatan tidak boleh ditandai selesai sebelum tanggal
+    // pelaksanaannya berakhir. Tanpa ini, kegiatan bisa "selesai" padahal
+    // jadwalnya belum usai — dan seluruh isinya langsung terkunci.
+    const hariIni = new Date();
+    hariIni.setHours(0, 0, 0, 0);
+    const batas = tanggalSelesai ? new Date(`${tanggalSelesai}T00:00:00`) : null;
+    const tanggalTerlewati = !batas || batas.getTime() <= hariIni.getTime();
+
+    if (!tanggalTerlewati) {
+      const tgl = batas
+        ? batas.toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" })
+        : "";
+      kurang.push(`tanggal pelaksanaan berakhir (${tgl})`);
+    }
+
     const siapSelesai = kurang.length === 0;
 
     aksiUtama =
@@ -200,6 +222,9 @@ export function PanelTindakan({
           </p>
           <p className="teks-3 text-n-600 mt-1">
             Lengkapi dulu: {kurang.join(", ")}.
+          </p>
+          <p className="teks-3 text-n-500 mt-1">
+            Setelah semua terpenuhi, tombol Tandai Selesai akan aktif sendiri.
           </p>
         </div>
       ) : null;

@@ -213,9 +213,13 @@ export async function ubahTahap(
   const aturan = peta[aksi];
   const { data: keg } = await sb
     .from("activities")
-    .select("status, penanggung_jawab")
+    .select("status, penanggung_jawab, tanggal_selesai")
     .eq("id", activityId)
-    .maybeSingle<{ status: string; penanggung_jawab: string | null }>();
+    .maybeSingle<{
+      status: string;
+      penanggung_jawab: string | null;
+      tanggal_selesai: string | null;
+    }>();
   if (!keg) return { galat: "Kegiatan tidak ditemukan." };
   if (!aturan.dari.includes(keg.status)) {
     return { galat: "Tahap kegiatan saat ini belum memungkinkan langkah tersebut." };
@@ -227,8 +231,20 @@ export async function ubahTahap(
   // mengirim permintaan bisa mengubah tahap. Menyembunyikan tombol saja tidak
   // cukup. Super Admin tetap boleh sebagai cadangan bila penanggung jawab
   // berhalangan (sakit, mutasi, cuti).
+  // ATURAN PEMILIK: KETUA PANITIA juga boleh menjalankan tahap pelaksanaan
+  // (dia yang memimpin di lapangan). Penanggung jawab & Super Admin tetap.
+  const { data: panitiaSaya } = await sb
+    .from("committees")
+    .select("peran")
+    .eq("activity_id", activityId)
+    .eq("profile_id", pengguna.id)
+    .maybeSingle<{ peran: string }>();
+  const ketuaPanitia = panitiaSaya?.peran === "ketua_panitia";
+
   const bolehLangkah =
-    pengguna.id === keg.penanggung_jawab || pengguna.peran.includes("super_admin");
+    pengguna.id === keg.penanggung_jawab ||
+    pengguna.peran.includes("super_admin") ||
+    ketuaPanitia;
   if (!bolehLangkah) {
     return {
       galat:
@@ -243,6 +259,27 @@ export async function ubahTahap(
   // apa pun, dan laporan pertanggungjawabannya menjadi kosong.
   // Diperiksa di server, bukan hanya dengan mematikan tombol.
   if (aksi === "selesai") {
+    // ATURAN PEMILIK: tidak boleh ditandai selesai sebelum tanggal pelaksanaan
+    // berakhir. Tanpa ini, kegiatan bisa "selesai" padahal jadwalnya belum usai
+    // dan seluruh isinya langsung terkunci.
+    if (keg.tanggal_selesai) {
+      const hariIni = new Date();
+      hariIni.setHours(0, 0, 0, 0);
+      const batas = new Date(`${keg.tanggal_selesai}T00:00:00`);
+      if (batas.getTime() > hariIni.getTime()) {
+        const tgl = batas.toLocaleDateString("id-ID", {
+          day: "numeric",
+          month: "long",
+          year: "numeric",
+        });
+        return {
+          galat:
+            `Kegiatan belum dapat ditandai selesai karena tanggal pelaksanaannya ` +
+            `berakhir pada ${tgl}. Tunggu sampai tanggal itu terlewati.`,
+        };
+      }
+    }
+
     const [{ count: jumlahKetuaPanitia }, { count: jumlahHadir }, { count: jumlahFoto }] =
       await Promise.all([
         sb
