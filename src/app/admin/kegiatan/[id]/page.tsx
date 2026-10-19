@@ -118,12 +118,6 @@ export default async function DetailKegiatan({
 
 
 
-  const bolehUbahPublik =
-    pengguna.id === keg.penanggung_jawab ||
-    pengguna.peran.some((p) =>
-      ["super_admin", "ketua", "wakil_ketua", "sekretaris"].includes(p),
-    );
-
   // jenjang persetujuan untuk tahap yang sedang berjalan
   const namaAlur = tahap === "pelaporan" ? "pelaporan" : "perencanaan";
   const { data: alur } = await sb
@@ -599,7 +593,6 @@ export default async function DetailKegiatan({
             <PanelDokumentasi
               activityId={keg.id}
               daftarFoto={(foto ?? []) as FotoItem[]}
-              bolehUbahPublik={bolehUbahPublik}
               bolehKelola={bolehKelola("dokumentasi")}
               terkunci={pelaksanaanTerkunci}
             />

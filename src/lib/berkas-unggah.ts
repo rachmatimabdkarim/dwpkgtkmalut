@@ -53,7 +53,14 @@ async function unggahSementara(
       tipe_mime: berkas.type,
       ukuran_byte: berkas.size,
       hash_sha256: hash,
-      visibilitas: bucket === "publik" ? "publik" : "privat",
+      // ATURAN KEAMANAN (ditetapkan pemilik): setiap foto yang diunggah
+      // TIDAK otomatis tayang di web publik. Foto mulai sebagai PRIVAT dan
+      // hanya menjadi publik setelah pengelola yang ditugaskan menekan
+      // "Tayangkan". Alasannya: foto bisa salah pilih atau tidak pantas, dan
+      // begitu tayang ia langsung dapat dilihat siapa pun di internet.
+      // "bucket publik" hanya menyangkut tempat penyimpanan (agar URL-nya
+      // dapat dibuka), BUKAN izin tayang di halaman publik.
+      visibilitas: "privat",
       status: "sementara",
       kategori,
       entitas: entitas ?? null,

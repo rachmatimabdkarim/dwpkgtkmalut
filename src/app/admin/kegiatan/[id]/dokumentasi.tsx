@@ -36,13 +36,11 @@ export type FotoItem = {
 export function PanelDokumentasi({
   activityId,
   daftarFoto,
-  bolehUbahPublik,
   bolehKelola = false,
   terkunci = false,
 }: {
   activityId: string;
   daftarFoto: FotoItem[];
-  bolehUbahPublik: boolean;
   /**
    * Hanya pengelola dokumentasi yang ditugaskan (plus penanggung jawab &
    * Super Admin) yang boleh MENGUNGGAH atau MENGUBAH. Orang lain tetap dapat
@@ -241,7 +239,7 @@ export function PanelDokumentasi({
           <div className="mt-4">
             <KotakUnggah
               label="Pilih Foto Kegiatan"
-              keterangan={`Boleh banyak sekaligus. Foto otomatis diperkecil sebelum diunggah agar hemat ruang penyimpanan. Maksimal total ${batasFotoMaks} foto.`}
+              keterangan={`Boleh banyak sekaligus. Foto otomatis diperkecil agar hemat ruang penyimpanan. Foto yang diunggah BELUM tayang di web publik — tayangkan satu per satu setelah diperiksa. Maksimal total ${batasFotoMaks} foto.`}
               terima="image/*"
               banyak={true}
               sedang={sedangUnggah}
@@ -305,7 +303,7 @@ export function PanelDokumentasi({
 
                   {/* Pengaturan Boleh Tampil Publik */}
                   <div className="mb-3">
-                    {bolehUbahPublik ? (
+                    {bolehKelola && !terkunci ? (
                       <label className="flex items-center gap-2 cursor-pointer select-none min-h-[44px]">
                         <input
                           type="checkbox"
@@ -315,7 +313,7 @@ export function PanelDokumentasi({
                           className="accent-brand-600 h-5 w-5 rounded-token shrink-0"
                         />
                         <span className="text-[13px] text-n-800 font-medium">
-                          Boleh tampil di web publik
+                          Tayangkan di web publik
                         </span>
                       </label>
                     ) : (
@@ -324,37 +322,49 @@ export function PanelDokumentasi({
                         <strong className="text-n-700">
                           {isPublik ? "Web Publik" : "Hanya Internal"}
                         </strong>
+                        {!isPublik && " — belum tayang sampai ditayangkan pengelola."}
                       </p>
                     )}
                   </div>
 
-                  {/* Keterangan Singkat Foto */}
+                  {/* Keterangan Singkat Foto
+                      ATURAN: hanya pengelola dokumentasi yang ditugaskan (atau
+                      penanggung jawab / Super Admin) yang boleh MENGUBAH.
+                      Orang lain tetap MELIHAT keterangannya sebagai teks.
+                      Sebelumnya kotak ini tidak dibungkus syarat sehingga
+                      muncul untuk semua orang. */}
                   <div className="mb-3">
                     <span className="block teks-3 text-n-600 mb-1 font-medium">
                       Keterangan Foto
                     </span>
-                    <div className="flex gap-2">
-                      <Isian
-                        type="text"
-                        placeholder="Tulis keterangan foto…"
-                        value={nilaiKet}
-                        onChange={(e) =>
-                          setKeteranganLokal((prev) => ({
-                            ...prev,
-                            [foto.id]: e.target.value,
-                          }))
-                        }
-                        className="text-[13px] h-9"
-                      />
-                      <TombolSekunder
-                        type="button"
-                        ukuran="kecil"
-                        disabled={sedangSimpan || nilaiKet === (foto.keterangan || "")}
-                        onClick={() => handleSimpanKeterangan(foto.id)}
-                      >
-                        {sedangSimpan ? "…" : "Simpan"}
-                      </TombolSekunder>
-                    </div>
+                    {bolehKelola && !terkunci ? (
+                      <div className="flex gap-2">
+                        <Isian
+                          type="text"
+                          placeholder="Tulis keterangan foto…"
+                          value={nilaiKet}
+                          onChange={(e) =>
+                            setKeteranganLokal((prev) => ({
+                              ...prev,
+                              [foto.id]: e.target.value,
+                            }))
+                          }
+                          className="text-[13px] h-9"
+                        />
+                        <TombolSekunder
+                          type="button"
+                          ukuran="kecil"
+                          disabled={sedangSimpan || nilaiKet === (foto.keterangan || "")}
+                          onClick={() => handleSimpanKeterangan(foto.id)}
+                        >
+                          {sedangSimpan ? "…" : "Simpan"}
+                        </TombolSekunder>
+                      </div>
+                    ) : (
+                      <p className="teks-3 text-n-700">
+                        {foto.keterangan || "Belum ada keterangan."}
+                      </p>
+                    )}
                   </div>
                 </div>
 
@@ -368,7 +378,7 @@ export function PanelDokumentasi({
                       yang bisa membuka tab Dokumentasi melihat tombol Hapus. */}
                   {terkunci ? (
                     <span className="teks-3 text-n-400">Terkunci</span>
-                  ) : bolehUbahPublik ? (
+                  ) : bolehKelola ? (
                     <TombolHalus
                       type="button"
                       ukuran="kecil"
