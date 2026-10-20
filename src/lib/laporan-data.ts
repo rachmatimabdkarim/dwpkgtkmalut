@@ -92,23 +92,30 @@ export async function tarikDataLaporan(
   activityId: string,
 ): Promise<DataLaporan> {
   // ---- 1. Kegiatan + penanggung jawab ----
-  const { data: keg } = await sb
+  // PENGAMAN: bila pengambilan data gagal (mis. nama kolom salah), laporkan
+  // lewat console. Tanpa ini, laporan tampil kosong tanpa sebab yang jelas —
+  // persis seperti temuan pemilik saat identitas kegiatan tampil "—".
+  const { data: keg, error: galatKeg } = await sb
     .from("activities")
     .select(
-      "judul, nomor, bidang, tempat, tanggal_mulai, tanggal_selesai, uraian, tujuan, penanggung_jawab",
+      "kode, judul, section_id, tempat, tanggal_mulai, tanggal_selesai, ringkasan, tujuan, penanggung_jawab",
     )
     .eq("id", activityId)
     .maybeSingle<{
+      kode: string | null;
       judul: string;
-      nomor: string | null;
-      bidang: string | null;
+      section_id: string | null;
       tempat: string | null;
       tanggal_mulai: string | null;
       tanggal_selesai: string | null;
-      uraian: string | null;
+      ringkasan: string | null;
       tujuan: string | null;
       penanggung_jawab: string | null;
     }>();
+
+  if (galatKeg) {
+    console.error("[laporan] gagal mengambil data kegiatan:", galatKeg.message);
+  }
 
   // ---- 2. Panitia + tugas ----
   const { data: panitiaData } = await sb
@@ -205,13 +212,13 @@ export async function tarikDataLaporan(
   return {
     kegiatan: {
       judul: keg?.judul ?? "Kegiatan",
-      nomor: keg?.nomor ?? null,
-      bidang: keg?.bidang ?? null,
+      nomor: keg?.kode ?? null,
+      bidang: await namaSection(sb, keg?.section_id ?? null),
       tempat: keg?.tempat ?? null,
       tanggalMulai: keg?.tanggal_mulai ?? null,
       tanggalSelesai: keg?.tanggal_selesai ?? null,
       penanggungJawab: await namaProfil(sb, keg?.penanggung_jawab ?? null),
-      uraian: keg?.uraian ?? null,
+      uraian: keg?.ringkasan ?? null,
       tujuan: keg?.tujuan ?? null,
     },
     panitia,
@@ -261,6 +268,13 @@ async function ambilKetuaDwp(sb: SupabaseClient) {
     nama: data?.profiles?.nama ?? "………………………………",
     jabatan: "Ketua Dharma Wanita Persatuan",
   };
+}
+
+/** Nama seksi/bidang kegiatan. */
+async function namaSection(sb: SupabaseClient, id: string | null) {
+  if (!id) return null;
+  const { data } = await sb.from("sections").select("nama").eq("id", id).maybeSingle();
+  return (data as { nama?: string } | null)?.nama ?? null;
 }
 
 /** Nama orang berdasarkan id akun. */
