@@ -398,7 +398,18 @@ export async function ubahTahap(
 /** Menyimpan isi laporan kegiatan. */
 export async function simpanLaporan(
   activityId: string,
-  isi: { ringkasan: string; hasil: string; kendala: string; rekomendasi: string; jumlahHadir: number },
+  isi: {
+    ringkasan: string;
+    hasil: string;
+    kendala: string;
+    rekomendasi: string;
+    jumlahHadir: number;
+    catatanPenutup?: string;
+    biayaLainKeterangan?: string;
+    biayaLainJumlah?: number;
+    // Realisasi per baris RAB — { id baris: nominal }
+    realisasi?: Record<string, number>;
+  },
 ) {
   const pengguna = await penggunaSaatIni();
   if (!pengguna) return { galat: "Sesi Anda sudah berakhir." };
@@ -423,12 +434,45 @@ export async function simpanLaporan(
 
   const { data: rab } = await sb
     .from("budget_items")
-    .select("jumlah, harga_satuan")
+    .select("id, jumlah, harga_satuan")
     .eq("activity_id", activityId);
-  const total = (rab ?? []).reduce(
+
+  // ---- Realisasi per baris RAB ----
+  // Hanya baris milik kegiatan ini yang boleh diubah; nominal negatif ditolak.
+  if (isi.realisasi) {
+    for (const baris of rab ?? []) {
+      const nilai = isi.realisasi[baris.id];
+      if (nilai === undefined) continue;
+      if (!Number.isFinite(nilai) || nilai < 0) {
+        return { galat: "Nilai realisasi tidak boleh negatif." };
+      }
+      const { error: errRab } = await sb
+        .from("budget_items")
+        .update({ realisasi: Math.round(nilai) })
+        .eq("id", baris.id)
+        .eq("activity_id", activityId);
+      if (errRab) return { galat: "Gagal menyimpan realisasi: " + errRab.message };
+    }
+  }
+
+  const biayaLain = isi.biayaLainJumlah ?? 0;
+  if (biayaLain < 0) return { galat: "Biaya lain tidak boleh negatif." };
+
+  // Total rencana tetap dari RAB; total realisasi dihitung ulang dari baris.
+  const { data: rabBaru } = await sb
+    .from("budget_items")
+    .select("jumlah, harga_satuan, realisasi")
+    .eq("activity_id", activityId);
+
+  const total = (rabBaru ?? []).reduce(
     (j: number, b: { jumlah: number; harga_satuan: number }) => j + b.jumlah * b.harga_satuan,
     0,
   );
+  const totalRealisasi =
+    (rabBaru ?? []).reduce(
+      (j: number, b: { realisasi: number | null }) => j + (b.realisasi ?? 0),
+      0,
+    ) + biayaLain;
 
   const { error } = await sb.from("activity_reports").upsert(
     {
@@ -438,7 +482,11 @@ export async function simpanLaporan(
       kendala: isi.kendala,
       rekomendasi: isi.rekomendasi,
       jumlah_hadir: isi.jumlahHadir,
+      catatan_penutup: isi.catatanPenutup ?? null,
+      biaya_lain_keterangan: isi.biayaLainKeterangan?.trim() || null,
+      biaya_lain_jumlah: Math.round(biayaLain),
       total_anggaran: total,
+      total_realisasi: Math.round(totalRealisasi),
       disusun_oleh: pengguna.id,
     },
     { onConflict: "activity_id" },
@@ -448,7 +496,7 @@ export async function simpanLaporan(
   await sb.from("activity_logs").insert({
     activity_id: activityId,
     aksi: "simpan_laporan",
-    keterangan: "Isi laporan disimpan",
+    keterangan: "Draf laporan disimpan",
     pelaku_id: pengguna.id,
     pelaku_nama: pengguna.nama,
   });

@@ -5,7 +5,10 @@ import { sesiWajib } from "@/lib/sesi-server";
 import { klienServer } from "@/lib/supabase-server";
 import { Kartu, JudulSeksi, Lencana, TombolHalus } from "@/components/dasar";
 import { labelStatus, tahapSaatIni, formatTanggal, formatRupiah, type Peran } from "@/lib/kegiatan";
-import { PanelTindakan, PanelLaporan, LinimasaRiwayat } from "./panel";
+import { PanelTindakan, LinimasaRiwayat } from "./panel";
+import { FormLaporan } from "./form-laporan";
+import { LembarLaporan } from "@/components/lembar-laporan";
+import { tarikDataLaporan } from "@/lib/laporan-data";
 import { SembunyikanToggle } from "./sembunyikan";
 import { PanelPanitia, type PanitiaItem, type PengurusOpsi } from "./panitia";
 import { PanelPresensi, type PesertaItem } from "./presensi";
@@ -126,6 +129,9 @@ export default async function DetailKegiatan({
 
   const { data: statusPresensi } = await sb.rpc("status_presensi", { p_activity: id });
   const presensiStatus = statusPresensi as { terbuka?: boolean; sebab?: string } | null;
+
+  // Data laporan resmi — ditarik dari data yang sudah ada, satu sumber.
+  const dataLaporan = await tarikDataLaporan(sb, id);
 
   const { data: foto } = await sb
     .from("attachments")
@@ -657,15 +663,19 @@ export default async function DetailKegiatan({
                   Unduh PDF
                 </a>
               </div>
-              <PanelLaporan
+              {/* FORM ISIAN + PRATINJAU LAPORAN
+                  Bagian yang bisa ditarik otomatis (kepanitiaan, presensi, RAB,
+                  dokumentasi) TIDAK diisi manual — langsung tampil di pratinjau.
+                  Yang diisi hanya realisasi anggaran, biaya lain, dan uraian. */}
+              <FormLaporan
                 activityId={keg.id}
-                isi={{
-                  ringkasan: laporan?.ringkasan ?? "",
-                  hasil: laporan?.hasil ?? "",
-                  kendala: laporan?.kendala ?? "",
-                  rekomendasi: laporan?.rekomendasi ?? "",
-                  jumlahHadir: laporan?.jumlah_hadir ?? 0,
-                }}
+                data={dataLaporan}
+                bisaAjukan={
+                  keg.status === "selesai" &&
+                  pengguna.peran.some((p) =>
+                    ["super_admin", "ketua", "wakil_ketua", "sekretaris", "bendahara", "ketua_seksi"].includes(p),
+                  )
+                }
                 bisaUbah={
                   // HANYA saat kegiatan berstatus `selesai` — yaitu sebelum laporan
                   // diajukan. Sesudah diajukan, isi laporan terkunci supaya yang
@@ -675,17 +685,12 @@ export default async function DetailKegiatan({
                     ["super_admin", "ketua", "wakil_ketua", "sekretaris", "bendahara", "ketua_seksi"].includes(p),
                   )
                 }
-                bisaAjukan={
-                  keg.status === "selesai" &&
-                  pengguna.peran.some((p) =>
-                    ["super_admin", "ketua", "wakil_ketua", "sekretaris", "bendahara", "ketua_seksi"].includes(p),
-                  )
-                }
-                rab={(rab ?? []) as unknown as {
-                  id: string; uraian: string; satuan: string | null; jumlah: number;
-                  harga_satuan: number; realisasi: number | null;
-                }[]}
               />
+
+              <div className="mt-4">
+                <LembarLaporan data={dataLaporan} />
+              </div>
+
 
             </div>
           )}
