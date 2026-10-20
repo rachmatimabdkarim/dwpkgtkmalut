@@ -19,6 +19,7 @@ import { formatTanggal } from "@/lib/kegiatan";
 import {
   bolehBeriTugas,
   bolehCentangTugas,
+  apakahPenanggungJawab,
   type KonteksPengguna,
   type PeranPanitiaKode,
 } from "@/lib/aturan-panitia";
@@ -476,6 +477,17 @@ export function PanelPanitia({
             const tugasList = panitia.tasks ?? [];
             const adaFormTugas = formTugasBuka[panitia.id] ?? false;
 
+            // Ketua Panitia menilai pekerjaan anggota, dan penanggung jawab
+            // menilai pekerjaan Ketua Panitia. Jadi Ketua Panitia TIDAK bisa
+            // mencentang tugas miliknya sendiri — sama seperti aturan di server.
+            const iniTugasSendiri =
+              panitia.peran === "ketua_panitia" &&
+              !!konteks &&
+              bolehCentangTugas(konteks) &&
+              panitia.profile_id === konteks.id &&
+              !apakahPenanggungJawab(konteks) &&
+              !konteks.superAdmin;
+
             return (
               <Kartu key={panitia.id} className="p-4 sm:p-5">
                 {/* Bagian Profil Panitia */}
@@ -558,6 +570,7 @@ export function PanelPanitia({
                                 isPending ||
                                 !konteks ||
                                 !bolehCentangTugas(konteks) ||
+                                iniTugasSendiri ||
                                 terkunci
                               }
                               onChange={() => handleToggleTugas(tugas.id, tugas.selesai)}
@@ -606,7 +619,7 @@ export function PanelPanitia({
                             </div>
                           </label>
 
-                          {konteks && bolehCentangTugas(konteks) && !terkunci && (
+                          {konteks && bolehCentangTugas(konteks) && !iniTugasSendiri && !terkunci && (
                             <button
                               type="button"
                               disabled={isPending}

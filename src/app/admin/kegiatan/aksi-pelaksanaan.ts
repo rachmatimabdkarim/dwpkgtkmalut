@@ -6,6 +6,8 @@ import {
   bolehSusunPanitia,
   bolehBeriTugas,
   bolehCentangTugas,
+  apakahKetuaPanitia,
+  apakahPenanggungJawab,
   alasanTolakSusunPanitia,
   alasanTolakBeriTugas,
   alasanTolakCentang,
@@ -337,6 +339,33 @@ export async function ubahStatusTugas(
 
   const bukanPenilai = await pastikanBolehCentangTugas(sb, activityId, pengguna);
   if (bukanPenilai) return { galat: bukanPenilai.galat };
+
+  // CELAH yang ditutup: Ketua Panitia tidak boleh mencentang tugas miliknya
+  // sendiri. Penanggung jawab & Super Admin tetap boleh, karena merekalah yang
+  // menilai pekerjaan Ketua Panitia.
+  const k = await konteksPanitia(sb, activityId, pengguna);
+  if (apakahKetuaPanitia(k) && !apakahPenanggungJawab(k) && !k.superAdmin) {
+    const { data: tugas } = await sb
+      .from("tasks")
+      .select("committee_id")
+      .eq("id", taskId)
+      .eq("activity_id", activityId)
+      .maybeSingle<{ committee_id: string | null }>();
+
+    const { data: milikSaya } = await sb
+      .from("committees")
+      .select("id")
+      .eq("activity_id", activityId)
+      .eq("profile_id", pengguna.id)
+      .maybeSingle<{ id: string }>();
+
+    if (tugas?.committee_id && milikSaya?.id && tugas.committee_id === milikSaya.id) {
+      return {
+        galat:
+          "Tugas untuk Ketua Panitia hanya dapat diverifikasi oleh penanggung jawab kegiatan.",
+      };
+    }
+  }
 
   const terhalang = await pastikanBelumDiajukan(sb, activityId);
   if (terhalang) return { galat: terhalang.galat };
