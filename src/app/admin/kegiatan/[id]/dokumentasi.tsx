@@ -317,12 +317,21 @@ export function PanelDokumentasi({
                         </span>
                       </label>
                     ) : (
-                      <p className="teks-3 text-n-500 py-1">
-                        Visibilitas:{" "}
-                        <strong className="text-n-700">
-                          {isPublik ? "Web Publik" : "Hanya Internal"}
-                        </strong>
-                        {!isPublik && " — belum tayang sampai ditayangkan pengelola."}
+                      <p className="teks-3 text-n-500 py-1 flex items-center gap-2">
+                        {/* Tampilan baca-saja dibuat BEDA dari kotak centang,
+                            supaya tidak terlihat seperti tombol yang bisa
+                            dicentang. Temuan pemilik: centang tidak berubah. */}
+                        <span
+                          aria-hidden
+                          className="inline-block h-4 w-4 rounded border border-n-300 bg-n-100 shrink-0"
+                        />
+                        <span>
+                          Visibilitas:{" "}
+                          <strong className="text-n-700">
+                            {isPublik ? "Web Publik" : "Hanya Internal"}
+                          </strong>
+                          {!isPublik && " — belum tayang."}
+                        </span>
                       </p>
                     )}
                   </div>

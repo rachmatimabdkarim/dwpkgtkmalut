@@ -610,31 +610,46 @@ export async function ubahVisibilitasFoto(
 
   const sb = await klienServer();
 
-  const bukanPengelola = await pastikanPengelolaBagian(sb, activityId, "dokumentasi");
-  if (bukanPengelola) return { galat: bukanPengelola.galat };
-
-  const terhalang = await pastikanBelumDiajukan(sb, activityId);
-  if (terhalang) return { galat: terhalang.galat };
-
-  // Periksa hak akses: HANYA penanggung jawab kegiatan atau pengurus inti
-  // (super_admin, ketua, wakil_ketua, sekretaris) yang boleh mengubah
+  // Satu aturan, tidak bertumpuk: yang boleh menentukan foto tayang ke publik
+  // adalah pengelola dokumentasi yang ditugaskan (termasuk penanggung jawab &
+  // Super Admin), ATAU pengurus inti / Ketua Seksi.
+  // Pemeriksaan "pengelola bagian" tidak dipakai lebih dulu karena akan menolak
+  // pengurus inti yang memang berhak.
   const { data: keg } = await sb
     .from("activities")
     .select("penanggung_jawab")
     .eq("id", activityId)
     .maybeSingle();
 
+  const { data: bolehKelola } = await sb.rpc("boleh_kelola_bagian", {
+    p_activity: activityId,
+    p_bagian: "dokumentasi",
+  });
+
   const peranPengguna = pengguna.peran;
-  const pengurusInti = ["super_admin", "ketua", "wakil_ketua", "sekretaris"];
+  const pengurusInti = [
+    "super_admin",
+    "ketua",
+    "wakil_ketua",
+    "sekretaris",
+    "ketua_seksi",
+    "bendahara",
+  ];
+
   const boleh =
+    bolehKelola === true ||
     peranPengguna.some((p) => pengurusInti.includes(p)) ||
     (keg?.penanggung_jawab && keg.penanggung_jawab === pengguna.id);
 
   if (!boleh) {
     return {
-      galat: "Hanya penanggung jawab kegiatan atau pengurus inti yang berhak mengubah visibilitas foto.",
+      galat:
+        "Hanya pengelola dokumentasi, penanggung jawab kegiatan, Ketua Seksi, atau pengurus inti yang berhak mengubah visibilitas foto.",
     };
   }
+
+  const terhalang = await pastikanBelumDiajukan(sb, activityId);
+  if (terhalang) return { galat: terhalang.galat };
 
   // Batas: maksimal 10 foto yang boleh ditandai publik
   if (bolehPublik) {
