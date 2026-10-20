@@ -415,7 +415,7 @@ export function DaftarBerita({
                 key={p.key}
                 type="button"
                 onClick={() => setFilterStatus(p.key)}
-                className={`shrink-0 inline-flex h-9 items-center gap-1.5 rounded-full border px-3 text-[13px] transition-colors ${
+                className={`shrink-0 inline-flex h-11 items-center gap-1.5 rounded-full border px-3 text-[13px] transition-colors ${
                   aktif
                     ? "border-brand-600 bg-brand-600 text-brand-contrast font-medium"
                     : "border-n-300 bg-n-0 text-n-600 hover:bg-n-50"

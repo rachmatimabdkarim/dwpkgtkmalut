@@ -12,7 +12,8 @@ import { forwardRef } from "react";
 type Ukuran = "kecil" | "sedang" | "besar";
 
 const ukuranKelas: Record<Ukuran, string> = {
-  kecil: "h-9 px-3 text-[13px]",
+  // 44px = standar area sentuh minimum agar nyaman di HP (aturan tampilan).
+  kecil: "h-11 px-3 text-[13px]",
   sedang: "h-11 px-4 text-[15px]",
   besar: "h-12 px-5 text-[15px]",
 };

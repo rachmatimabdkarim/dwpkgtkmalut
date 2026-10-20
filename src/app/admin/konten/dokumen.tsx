@@ -367,7 +367,7 @@ export function PanelUnduhan({ daftar }: { daftar: ItemDokumen[] }) {
                               setKeteranganBaru(doc.keterangan || "");
                             }}
                           >
-                            Ubah Ket.
+                            Ubah Keterangan
                           </TombolSekunder>
                           <TombolSekunder
                             ukuran="kecil"
@@ -438,7 +438,7 @@ export function PanelUnduhan({ daftar }: { daftar: ItemDokumen[] }) {
                         setKeteranganBaru(doc.keterangan || "");
                       }}
                     >
-                      Ubah Ket.
+                      Ubah Keterangan
                     </TombolSekunder>
                     <TombolSekunder
                       ukuran="kecil"
