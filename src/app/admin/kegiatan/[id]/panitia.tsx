@@ -573,11 +573,36 @@ export function PanelPanitia({
                               >
                                 {tugas.judul}
                               </p>
-                              {tugas.batas && (
-                                <p className="teks-3 text-n-500 mt-0.5">
-                                  Batas: {formatTanggal(tugas.batas)}
-                                </p>
-                              )}
+                              {tugas.batas && (() => {
+                                // Tenggat tugas SEBELUMNYA hanya ditampilkan tanpa
+                                // memeriksa apa pun, sehingga tugas yang lewat batas
+                                // terlihat sama saja dengan yang masih longgar.
+                                // Sekarang diberi tanda: lewat batas (merah) atau
+                                // mendekati batas dalam 3 hari (kuning).
+                                const hariIni = new Date();
+                                hariIni.setHours(0, 0, 0, 0);
+                                const tenggat = new Date(`${tugas.batas}T00:00:00`);
+                                const sisaHari = Math.round(
+                                  (tenggat.getTime() - hariIni.getTime()) / 86400000,
+                                );
+                                const lewat = !tugas.selesai && sisaHari < 0;
+                                const mepet = !tugas.selesai && sisaHari >= 0 && sisaHari <= 3;
+                                return (
+                                  <p
+                                    className={`teks-3 mt-0.5 ${
+                                      lewat
+                                        ? "text-bad-fg font-medium"
+                                        : mepet
+                                          ? "text-warn-fg font-medium"
+                                          : "text-n-500"
+                                    }`}
+                                  >
+                                    Batas: {formatTanggal(tugas.batas)}
+                                    {lewat && " — lewat batas"}
+                                    {mepet && ` — sisa ${sisaHari} hari`}
+                                  </p>
+                                );
+                              })()}
                             </div>
                           </label>
 
