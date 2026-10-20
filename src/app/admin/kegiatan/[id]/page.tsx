@@ -9,6 +9,7 @@ import { PanelTindakan, PanelLaporan, LinimasaRiwayat } from "./panel";
 import { SembunyikanToggle } from "./sembunyikan";
 import { PanelPanitia, type PanitiaItem, type PengurusOpsi } from "./panitia";
 import { PanelPresensi, type PesertaItem } from "./presensi";
+import { PanelQrPresensi } from "./panel-qr-presensi";
 import { PanelDokumentasi, type FotoItem } from "./dokumentasi";
 
 export const instant = false;
@@ -107,6 +108,24 @@ export default async function DetailKegiatan({
     .select("id, profile_id, nama, keterangan, dibuat_pada")
     .eq("activity_id", id)
     .order("dibuat_pada", { ascending: true });
+
+  // Jendela presensi (QR): jam buka/tutup diatur petugas, tanggalnya mengikuti
+  // tanggal kegiatan. Status terbuka/tertutup dihitung server agar tampilan
+  // tidak berbeda dengan kenyataan.
+  const { data: jendelaPresensi } = await sb
+    .from("presensi_jendela")
+    .select("kode_qr, jam_mulai, jam_selesai, dibuka_paksa, alasan_buka_paksa")
+    .eq("activity_id", id)
+    .maybeSingle<{
+      kode_qr: string | null;
+      jam_mulai: string;
+      jam_selesai: string;
+      dibuka_paksa: boolean;
+      alasan_buka_paksa: string | null;
+    }>();
+
+  const { data: statusPresensi } = await sb.rpc("status_presensi", { p_activity: id });
+  const presensiStatus = statusPresensi as { terbuka?: boolean; sebab?: string } | null;
 
   const { data: foto } = await sb
     .from("attachments")
@@ -586,6 +605,22 @@ export default async function DetailKegiatan({
               daftarPengurus={(daftarPengurus ?? []) as PengurusOpsi[]}
               bolehKelola={bolehKelola("presensi")}
               terkunci={pelaksanaanTerkunci}
+              panelQr={
+                <PanelQrPresensi
+                  activityId={keg.id}
+                  kode={jendelaPresensi?.kode_qr ?? null}
+                  jamMulai={jendelaPresensi?.jam_mulai ?? "08:00"}
+                  jamSelesai={jendelaPresensi?.jam_selesai ?? "16:00"}
+                  dibukaPaksa={jendelaPresensi?.dibuka_paksa ?? false}
+                  alasanPaksa={jendelaPresensi?.alasan_buka_paksa ?? null}
+                  tanggalMulai={keg.tanggal_mulai ?? null}
+                  tanggalSelesai={keg.tanggal_selesai ?? null}
+                  statusTerbuka={presensiStatus?.terbuka === true}
+                  sebab={presensiStatus?.sebab ?? "Presensi mengikuti jadwal kegiatan."}
+                  bolehKelola={bolehKelola("presensi")}
+                  terkunci={pelaksanaanTerkunci}
+                />
+              }
             />
           )}
 
@@ -689,7 +724,11 @@ export default async function DetailKegiatan({
             panitia: ((panitia ?? []) as { peran: string }[]).filter(
               (c) => c.peran === "ketua_panitia",
             ).length,
-            presensi: (presensi ?? []).length,
+            // Hanya kehadiran SAH yang dihitung. Peserta yang masih "Menunggu"
+            // konfirmasi petugas belum dianggap memenuhi kelengkapan.
+            presensi: ((presensi ?? []) as { keterangan: string | null }[]).filter(
+              (p) => p.keterangan !== "Menunggu",
+            ).length,
             dokumentasi: (foto ?? []).length,
           }}
           judulKegiatan={keg.judul}

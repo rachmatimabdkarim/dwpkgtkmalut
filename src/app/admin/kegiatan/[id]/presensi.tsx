@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import { konfirmasiKehadiran } from "./aksi-presensi-qr";
 import {
   Kartu,
   JudulSeksi,
@@ -43,6 +44,7 @@ export function PanelPresensi({
   daftarPengurus,
   bolehKelola = false,
   terkunci = false,
+  panelQr = null,
 }: {
   activityId: string;
   daftarPeserta: PesertaItem[];
@@ -52,6 +54,8 @@ export function PanelPresensi({
    * Admin) yang boleh MENGISI. Orang lain tetap dapat MELIHAT daftar hadir.
    */
   bolehKelola?: boolean;
+  /** Panel QR presensi (dirender halaman) — ditaruh di atas daftar peserta. */
+  panelQr?: React.ReactNode;
   /** Laporan sudah diajukan: presensi tidak boleh diubah lagi. */
   terkunci?: boolean;
 }) {
@@ -68,6 +72,12 @@ export function PanelPresensi({
 
   // Dialog konfirmasi hapus
   const [pesertaDihapus, setPesertaDihapus] = useState<PesertaItem | null>(null);
+
+  // Absen lewat QR berstatus "Menunggu" — BELUM dihitung hadir sampai
+  // dikonfirmasi petugas secara fisik. Dipisahkan supaya daftar hadir sah
+  // tidak tercampur dengan yang masih menunggu pemeriksaan.
+  const menunggu = daftarPeserta.filter((p) => p.keterangan === "Menunggu");
+  const sah = daftarPeserta.filter((p) => p.keterangan !== "Menunggu");
 
   // Hitung ringkasan
   const hadir = daftarPeserta.filter((p) => (p.keterangan || "Hadir") === "Hadir").length;
@@ -259,6 +269,81 @@ export function PanelPresensi({
         )}
       </Kartu>
 
+      {/* PANEL QR PRESENSI — pengaturan jam, tombol tampilkan QR, buka paksa. */}
+      {panelQr}
+
+      {/* MENUNGGU KONFIRMASI — absen lewat QR yang belum diperiksa petugas.
+          Ditaruh paling atas karena inilah pekerjaan petugas hari itu. */}
+      {menunggu.length > 0 && (
+        <Kartu className="p-4 sm:p-5 border-warn-line bg-warn-bg/40">
+          <div>
+            <p className="text-[15px] font-semibold text-n-900">
+              {menunggu.length} peserta menunggu konfirmasi
+            </p>
+            <p className="teks-3 text-n-600 mt-0.5">
+              Mereka sudah absen lewat QR. Periksa kehadirannya di lokasi, lalu konfirmasi.
+              Belum dihitung hadir sampai dikonfirmasi.
+            </p>
+          </div>
+
+          <div className="mt-3 flex flex-col gap-2">
+            {menunggu.map((p) => (
+              <div
+                key={p.id}
+                className="flex flex-wrap items-center justify-between gap-2 rounded-token border border-n-200 bg-n-0 p-3"
+              >
+                <div className="min-w-0">
+                  <p className="text-[14.5px] font-medium text-n-800 break-words">{p.nama}</p>
+                  <p className="teks-3 text-n-500">
+                    Absen pukul{" "}
+                    {new Date(p.dibuat_pada).toLocaleTimeString("id-ID", {
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    })}
+                  </p>
+                </div>
+
+                {bolehKelola && !terkunci ? (
+                  <div className="flex gap-2">
+                    <TombolUtama
+                      type="button"
+                      ukuran="kecil"
+                      disabled={isPending}
+                      onClick={() =>
+                        startTransition(async () => {
+                          const r = await konfirmasiKehadiran(activityId, p.id, "Hadir");
+                          if (r.galat) setGalat(r.galat);
+                          router.refresh();
+                        })
+                      }
+                    >
+                      Hadir
+                    </TombolUtama>
+                    <TombolHalus
+                      type="button"
+                      ukuran="kecil"
+                      disabled={isPending}
+                      className="text-bad-fg hover:bg-bad-bg"
+                      onClick={() =>
+                        startTransition(async () => {
+                          const r = await konfirmasiKehadiran(activityId, p.id, "Tidak");
+                          if (r.galat) setGalat(r.galat);
+                          router.refresh();
+                        })
+                      }
+                    >
+                      Tidak hadir
+                    </TombolHalus>
+                  </div>
+                ) : (
+                  <span className="teks-3 text-n-400">Menunggu petugas</span>
+                )}
+              </div>
+            ))}
+          </div>
+        </Kartu>
+      )}
+
       {/* Keadaan Kosong */}
       {daftarPeserta.length === 0 ? (
         <Kosong
@@ -293,7 +378,7 @@ export function PanelPresensi({
                 </tr>
               </thead>
               <tbody>
-                {daftarPeserta.map((peserta) => (
+                {sah.map((peserta) => (
                   <tr key={peserta.id} className="border-b border-n-100 last:border-0">
                     <td className="py-3 text-n-800 font-medium">{peserta.nama}</td>
                     <td className="py-3">
@@ -327,7 +412,7 @@ export function PanelPresensi({
 
           {/* Tampilan Mobile: Kartu */}
           <div className="md:hidden flex flex-col gap-3">
-            {daftarPeserta.map((peserta) => (
+            {sah.map((peserta) => (
               <div
                 key={peserta.id}
                 className="flex items-center justify-between gap-3 p-3 rounded-token bg-n-50 border border-n-200 min-h-[44px]"

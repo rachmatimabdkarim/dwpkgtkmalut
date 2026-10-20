@@ -532,8 +532,12 @@ export async function tandaiSemuaHadir(activityId: string) {
   if (terhalang) return { galat: terhalang.galat };
   const { error } = await sb
     .from("attendances")
+    // HANYA peserta yang sudah sah/terdaftar manual. Peserta yang absen lewat QR
+    // berstatus "Menunggu" TIDAK boleh ikut ditandai hadir — kehadiran mereka
+    // wajib diperiksa fisik oleh petugas lebih dulu.
     .update({ keterangan: "Hadir" })
-    .eq("activity_id", activityId);
+    .eq("activity_id", activityId)
+    .neq("keterangan", "Menunggu");
   if (error) return { galat: "Gagal memperbarui presensi: " + error.message };
 
   await sb.from("activity_logs").insert({
