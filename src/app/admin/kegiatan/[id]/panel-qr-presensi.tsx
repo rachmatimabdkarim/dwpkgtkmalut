@@ -25,6 +25,9 @@ export function PanelQrPresensi({
   alasanPaksa,
   tanggalMulai,
   tanggalSelesai,
+  judulKegiatan,
+  tempat,
+  rentangTanggal,
   statusTerbuka,
   sebab,
   bolehKelola,
@@ -38,6 +41,9 @@ export function PanelQrPresensi({
   alasanPaksa: string | null;
   tanggalMulai: string | null;
   tanggalSelesai: string | null;
+  judulKegiatan: string;
+  tempat: string | null;
+  rentangTanggal: string;
   statusTerbuka: boolean;
   sebab: string;
   bolehKelola: boolean;
@@ -66,6 +72,96 @@ export function PanelQrPresensi({
   }, [tautan]);
 
   const bolehUbah = bolehKelola && !terkunci;
+
+  /**
+   * Menyusun satu gambar utuh (judul kegiatan, tanggal, tempat, QR, dan tautan)
+   * lalu mengunduhnya. Dibuat di peramban supaya petugas bisa langsung
+   * membagikannya lewat WhatsApp tanpa perlu mengolah lagi.
+   */
+  async function unduhGambar() {
+    if (!dataUrl) return;
+    const L = 900;
+    const barisJudul = Math.min(3, Math.ceil(judulKegiatan.length / 32));
+    const T = 880 + barisJudul * 34;
+    const kanvas = document.createElement("canvas");
+    kanvas.width = L;
+    kanvas.height = T;
+    const g = kanvas.getContext("2d");
+    if (!g) return;
+
+    g.fillStyle = "#ffffff";
+    g.fillRect(0, 0, L, T);
+
+    const tengah = L / 2;
+    g.textAlign = "center";
+
+    // Kepala
+    g.fillStyle = "#1B4A22";
+    g.fillRect(0, 0, L, 10);
+
+    g.fillStyle = "#6b7280";
+    g.font = "500 20px Arial, sans-serif";
+    g.fillText("DHARMA WANITA PERSATUAN", tengah, 66);
+    g.fillText("KANTOR GTK PROVINSI MALUKU UTARA", tengah, 94);
+
+    g.fillStyle = "#111827";
+    g.font = "bold 30px Arial, sans-serif";
+    g.fillText("PRESENSI KEGIATAN", tengah, 152);
+
+    // Judul kegiatan (dipatahkan bila panjang)
+    g.font = "bold 25px Arial, sans-serif";
+    const kata = judulKegiatan.split(" ");
+    const baris: string[] = [];
+    let kini = "";
+    for (const k of kata) {
+      const coba = kini ? kini + " " + k : k;
+      if (g.measureText(coba).width > L - 100) {
+        baris.push(kini);
+        kini = k;
+      } else kini = coba;
+    }
+    if (kini) baris.push(kini);
+    let y = 202;
+    for (const b of baris.slice(0, 3)) {
+      g.fillText(b, tengah, y);
+      y += 34;
+    }
+
+    // Tanggal & tempat
+    g.fillStyle = "#374151";
+    g.font = "22px Arial, sans-serif";
+    g.fillText(rentangTanggal, tengah, y + 12);
+    if (tempat) g.fillText(tempat, tengah, y + 44);
+
+    // QR
+    const gambar = new Image();
+    gambar.src = dataUrl;
+    await new Promise<void>((selesai) => {
+      gambar.onload = () => selesai();
+      gambar.onerror = () => selesai();
+    });
+    const ukuran = 460;
+    const qrAtas = y + 84;
+    g.drawImage(gambar, tengah - ukuran / 2, qrAtas, ukuran, ukuran);
+
+    // Keterangan
+    g.fillStyle = "#111827";
+    g.font = "bold 21px Arial, sans-serif";
+    g.fillText("Pindai untuk mencatat kehadiran", tengah, qrAtas + ukuran + 52);
+
+    g.fillStyle = "#6b7280";
+    g.font = "18px Arial, sans-serif";
+    g.fillText("Kehadiran dinyatakan sah setelah diperiksa petugas.", tengah, qrAtas + ukuran + 84);
+
+    const alamat = tautan ? `${window.location.origin}${tautan}` : "";
+    g.font = "16px Arial, sans-serif";
+    g.fillText(alamat, tengah, qrAtas + ukuran + 114);
+
+    const a = document.createElement("a");
+    a.download = `presensi-${judulKegiatan.toLowerCase().replace(/[^a-z0-9]+/g, "-").slice(0, 40)}.png`;
+    a.href = kanvas.toDataURL("image/png");
+    a.click();
+  }
 
   return (
     <>
@@ -223,12 +319,14 @@ export function PanelQrPresensi({
 
       {/* ===== LAYAR QR PENUH ===== */}
       {qrTampil && tautan && (
-        <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-n-0 p-6">
-          <div className="text-center">
+        <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-n-0 px-6 py-5 overflow-y-auto">
+          <div className="text-center max-w-[560px]">
             <p className="teks-3 text-n-500 font-medium">Presensi Kegiatan</p>
-            <h2 className="mt-1 text-[20px] font-bold text-n-900">
-              Pindai untuk mencatat kehadiran
+            <h2 className="mt-1 text-[21px] font-bold text-n-900 leading-snug">
+              {judulKegiatan}
             </h2>
+            <p className="mt-1.5 text-[14.5px] text-n-700">{rentangTanggal}</p>
+            {tempat && <p className="text-[14.5px] text-n-600">{tempat}</p>}
           </div>
 
           {dataUrl ? (
@@ -236,13 +334,13 @@ export function PanelQrPresensi({
             <img
               src={dataUrl}
               alt="Kode QR presensi"
-              className="mt-5 w-[min(78vw,380px)] h-auto"
+              className="mt-4 w-[min(56vw,320px)] h-auto"
             />
           ) : (
             <p className="mt-8 teks-3 text-n-500">Menyiapkan kode QR…</p>
           )}
 
-          <p className="mt-5 text-center text-[14px] text-n-600 max-w-[420px]">
+          <p className="mt-4 text-center text-[13.5px] text-n-600 max-w-[460px]">
             Buka kamera HP, arahkan ke kode ini, lalu isi nama Anda.
             Kehadiran dinyatakan sah setelah petugas memeriksa di lokasi.
           </p>
@@ -252,9 +350,14 @@ export function PanelQrPresensi({
             {tautan}
           </p>
 
-          <TombolUtama type="button" className="mt-6" onClick={() => setQrTampil(false)}>
-            Tutup layar QR
-          </TombolUtama>
+          <div className="mt-4 flex flex-wrap justify-center gap-2">
+            <TombolUtama type="button" onClick={unduhGambar}>
+              Unduh gambar QR
+            </TombolUtama>
+            <TombolSekunder type="button" onClick={() => setQrTampil(false)}>
+              Tutup layar QR
+            </TombolSekunder>
+          </div>
         </div>
       )}
     </>

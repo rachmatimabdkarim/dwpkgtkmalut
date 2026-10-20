@@ -615,6 +615,15 @@ export default async function DetailKegiatan({
                   alasanPaksa={jendelaPresensi?.alasan_buka_paksa ?? null}
                   tanggalMulai={keg.tanggal_mulai ?? null}
                   tanggalSelesai={keg.tanggal_selesai ?? null}
+                  judulKegiatan={keg.judul}
+                  tempat={keg.tempat ?? null}
+                  rentangTanggal={
+                    keg.tanggal_mulai
+                      ? keg.tanggal_selesai && keg.tanggal_selesai !== keg.tanggal_mulai
+                        ? `${formatTanggal(keg.tanggal_mulai)} – ${formatTanggal(keg.tanggal_selesai)}`
+                        : formatTanggal(keg.tanggal_mulai)
+                      : "Tanggal belum diatur"
+                  }
                   statusTerbuka={presensiStatus?.terbuka === true}
                   sebab={presensiStatus?.sebab ?? "Presensi mengikuti jadwal kegiatan."}
                   bolehKelola={bolehKelola("presensi")}
