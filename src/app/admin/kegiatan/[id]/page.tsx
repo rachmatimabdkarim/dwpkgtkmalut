@@ -105,7 +105,7 @@ export default async function DetailKegiatan({
 
   const { data: presensi } = await sb
     .from("attendances")
-    .select("id, profile_id, nama, keterangan, dibuat_pada")
+    .select("id, profile_id, nama, instansi, keterangan, dibuat_pada")
     .eq("activity_id", id)
     .order("dibuat_pada", { ascending: true });
 

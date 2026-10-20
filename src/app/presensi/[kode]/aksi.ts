@@ -22,13 +22,25 @@ function rapikan(teks: string): string {
   return teks.trim().toLowerCase().replace(/\s+/g, " ");
 }
 
-export async function absenLewatQr(kode: string, nama: string): Promise<HasilAbsen> {
+export async function absenLewatQr(
+  kode: string,
+  nama: string,
+  instansi: string,
+): Promise<HasilAbsen> {
   const bersih = nama.trim();
+  const asal = instansi.trim();
   if (bersih.length < 3) {
     return { galat: "Nama lengkap wajib diisi (minimal 3 huruf)." };
   }
   if (bersih.length > 100) {
     return { galat: "Nama terlalu panjang." };
+  }
+  // Aturan pemilik: isian presensi minimal NAMA dan INSTANSI.
+  if (asal.length < 3) {
+    return { galat: "Instansi/asal wajib diisi (minimal 3 huruf)." };
+  }
+  if (asal.length > 100) {
+    return { galat: "Nama instansi terlalu panjang." };
   }
 
   const admin = klienAdmin();
@@ -85,6 +97,9 @@ export async function absenLewatQr(kode: string, nama: string): Promise<HasilAbs
     activity_id: jendela.activity_id,
     profile_id: profil?.id ?? null,
     nama: profil?.nama ?? bersih,
+    // Pengurus yang dikenali otomatis memakai instansi lembaga; tamu memakai
+    // instansi yang ia tulis sendiri.
+    instansi: profil ? "DWP Kantor GTK Malut" : asal,
     keterangan: "Menunggu",
     sumber: "qr",
     dicatat_via_qr: true,

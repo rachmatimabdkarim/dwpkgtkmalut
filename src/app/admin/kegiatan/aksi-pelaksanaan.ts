@@ -412,6 +412,7 @@ export async function tambahPeserta(
   data: {
     profileId?: string | null;
     nama?: string | null;
+    instansi?: string | null;
     keterangan?: string | null; // Hadir / Izin / Sakit
   },
 ) {
@@ -438,6 +439,15 @@ export async function tambahPeserta(
 
   if (!namaPeserta) {
     return { galat: "Pilih pengurus atau masukkan nama peserta." };
+  }
+
+  // Aturan pemilik: isian presensi minimal NAMA dan INSTANSI.
+  // Pengurus otomatis memakai instansi lembaga; peserta tamu wajib menulis asalnya.
+  const instansiPeserta = data.profileId
+    ? "DWP Kantor GTK Malut"
+    : (data.instansi ?? "").trim();
+  if (!instansiPeserta) {
+    return { galat: "Instansi/asal peserta wajib diisi." };
   }
 
   const ket = data.keterangan || "Hadir";
@@ -467,6 +477,7 @@ export async function tambahPeserta(
     activity_id: activityId,
     profile_id: data.profileId || null,
     nama: namaPeserta,
+    instansi: instansiPeserta,
     keterangan: ket,
   });
   if (error) return { galat: "Gagal menambahkan peserta: " + error.message };

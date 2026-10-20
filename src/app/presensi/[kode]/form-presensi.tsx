@@ -25,6 +25,7 @@ export function FormPresensi({
   sebab: string;
 }) {
   const [nama, setNama] = useState("");
+  const [instansi, setInstansi] = useState("");
   const [sedang, setSedang] = useState(false);
   const [galat, setGalat] = useState("");
   const [selesai, setSelesai] = useState<{ nama: string; sudahAda?: boolean } | null>(null);
@@ -33,7 +34,7 @@ export function FormPresensi({
     e.preventDefault();
     setGalat("");
     setSedang(true);
-    const r = await absenLewatQr(kode, nama);
+    const r = await absenLewatQr(kode, nama, instansi);
     setSedang(false);
     if ("galat" in r) {
       setGalat(r.galat);
@@ -102,6 +103,23 @@ export function FormPresensi({
             />
           </label>
 
+          <label className="block">
+            <span className="block text-[13.5px] font-medium text-n-800 mb-1">
+              Instansi / asal
+            </span>
+            <input
+              type="text"
+              value={instansi}
+              onChange={(e) => setInstansi(e.target.value)}
+              placeholder="Contoh: DWP Kota Ternate"
+              className="w-full min-h-[46px] rounded-token border border-n-300 px-3 text-[15px] text-n-900 bg-n-0"
+              autoComplete="organization"
+            />
+            <span className="block teks-3 text-n-500 mt-1">
+              Bagi anggota DWP KGTK Malut, tulis "DWP KGTK Malut".
+            </span>
+          </label>
+
           {galat && (
             <p className="text-[13.5px] text-bad-fg rounded-token border border-bad-line bg-bad-bg p-2.5">
               {galat}
@@ -110,7 +128,7 @@ export function FormPresensi({
 
           <button
             type="submit"
-            disabled={sedang || nama.trim().length < 3}
+            disabled={sedang || nama.trim().length < 3 || instansi.trim().length < 3}
             className="min-h-[48px] rounded-token bg-brand-600 px-4 text-[15px] font-semibold text-brand-contrast disabled:opacity-50"
           >
             {sedang ? "Menyimpan…" : "Saya Hadir"}

@@ -34,6 +34,7 @@ export type PesertaItem = {
   id: string;
   profile_id: string | null;
   nama: string;
+  instansi: string | null;
   keterangan: string | null;
   dibuat_pada: string;
 };
@@ -67,6 +68,7 @@ export function PanelPresensi({
   const [tipeSumber, setTipeSumber] = useState<"pengurus" | "bebas">("pengurus");
   const [pilihanProfileId, setPilihanProfileId] = useState(daftarPengurus[0]?.id || "");
   const [namaBebas, setNamaBebas] = useState("");
+  const [instansiBebas, setInstansiBebas] = useState("");
   const [keterangan, setKeterangan] = useState<"Hadir" | "Izin" | "Sakit">("Hadir");
   const [galat, setGalat] = useState("");
 
@@ -99,6 +101,11 @@ export function PanelPresensi({
       setGalat("Nama peserta wajib diisi.");
       return;
     }
+    // Aturan pemilik: isian presensi minimal NAMA dan INSTANSI.
+    if (tipeSumber === "bebas" && !instansiBebas.trim()) {
+      setGalat("Instansi/asal peserta wajib diisi.");
+      return;
+    }
     if (tipeSumber === "pengurus" && !pilihanProfileId) {
       setGalat("Pilih pengurus dari daftar.");
       return;
@@ -108,6 +115,7 @@ export function PanelPresensi({
       const res = await tambahPeserta(activityId, {
         profileId: tipeSumber === "pengurus" ? pilihanProfileId : null,
         nama: tipeSumber === "bebas" ? namaBebas.trim() : null,
+        instansi: tipeSumber === "bebas" ? instansiBebas.trim() : null,
         keterangan,
       });
 
@@ -115,6 +123,7 @@ export function PanelPresensi({
         setGalat(res.galat);
       } else {
         setNamaBebas("");
+        setInstansiBebas("");
         setKeterangan("Hadir");
         setBukaForm(false);
         router.refresh();
@@ -236,6 +245,17 @@ export function PanelPresensi({
               </Kolom>
             )}
 
+            {tipeSumber === "bebas" && (
+              <Kolom label="Instansi / Asal" bantuan="Contoh: DWP Kota Ternate">
+                <Isian
+                  type="text"
+                  placeholder="Contoh: DWP Kota Ternate"
+                  value={instansiBebas}
+                  onChange={(e) => setInstansiBebas(e.target.value)}
+                />
+              </Kolom>
+            )}
+
             <Kolom label="Status Kehadiran" galat={galat}>
               <Pilihan
                 value={keterangan}
@@ -294,6 +314,9 @@ export function PanelPresensi({
               >
                 <div className="min-w-0">
                   <p className="text-[14.5px] font-medium text-n-800 break-words">{p.nama}</p>
+                  {p.instansi && (
+                    <p className="teks-3 text-n-600 break-words">{p.instansi}</p>
+                  )}
                   <p className="teks-3 text-n-500">
                     Absen pukul{" "}
                     {new Date(p.dibuat_pada).toLocaleTimeString("id-ID", {
@@ -380,7 +403,14 @@ export function PanelPresensi({
               <tbody>
                 {sah.map((peserta) => (
                   <tr key={peserta.id} className="border-b border-n-100 last:border-0">
-                    <td className="py-3 text-n-800 font-medium">{peserta.nama}</td>
+                    <td className="py-3 text-n-800 font-medium">
+                      {peserta.nama}
+                      {peserta.instansi && (
+                        <span className="block teks-3 text-n-500 font-normal">
+                          {peserta.instansi}
+                        </span>
+                      )}
+                    </td>
                     <td className="py-3">
                       <Lencana nada={nadaKeterangan(peserta.keterangan)}>
                         {peserta.keterangan || "Hadir"}
@@ -421,6 +451,9 @@ export function PanelPresensi({
                   <p className="text-[14px] font-medium text-n-800 break-words">
                     {peserta.nama}
                   </p>
+                  {peserta.instansi && (
+                    <p className="teks-3 text-n-500 break-words">{peserta.instansi}</p>
+                  )}
                   <div className="flex items-center gap-2 mt-1">
                     <Lencana nada={nadaKeterangan(peserta.keterangan)}>
                       {peserta.keterangan || "Hadir"}
