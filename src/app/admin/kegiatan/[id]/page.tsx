@@ -739,6 +739,12 @@ export default async function DetailKegiatan({
               (p) => p.keterangan !== "Menunggu",
             ).length,
             dokumentasi: (foto ?? []).length,
+            // Tugas panitia yang belum dicentang — syarat "Tandai Selesai".
+            // Tugas menempel pada panitia, jadi dihitung dari daftar panitia.
+            tugasBelum: ((panitia ?? []) as { tasks?: { selesai: boolean }[] }[]).reduce(
+              (n, p) => n + (p.tasks ?? []).filter((t) => !t.selesai).length,
+              0,
+            ),
           }}
           judulKegiatan={keg.judul}
         />

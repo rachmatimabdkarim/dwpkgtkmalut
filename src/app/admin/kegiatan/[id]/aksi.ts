@@ -280,24 +280,36 @@ export async function ubahTahap(
       }
     }
 
-    const [{ count: jumlahKetuaPanitia }, { count: jumlahHadir }, { count: jumlahFoto }] =
+    const [{ count: jumlahKetuaPanitia }, { count: jumlahHadir }, { count: jumlahFoto }, { data: daftarTugas }] =
       await Promise.all([
         sb
           .from("committees")
           .select("id", { count: "exact", head: true })
           .eq("activity_id", activityId)
           .eq("peran", "ketua_panitia"),
-        sb.from("attendances").select("id", { count: "exact", head: true }).eq("activity_id", activityId),
+        // HANYA kehadiran yang sudah SAH. Peserta yang masih "Menunggu"
+        // konfirmasi petugas belum dianggap hadir (aturan presensi QR).
+        sb
+          .from("attendances")
+          .select("id", { count: "exact", head: true })
+          .eq("activity_id", activityId)
+          .neq("keterangan", "Menunggu"),
         sb.from("attachments")
           .select("id", { count: "exact", head: true })
           .eq("entitas_id", activityId)
           .eq("kategori", "foto_kegiatan"),
+        // ATURAN PEMILIK: semua tugas panitia harus sudah dicentang selesai.
+        sb.from("tasks").select("id, selesai").eq("activity_id", activityId),
       ]);
+
+    const tugas = (daftarTugas ?? []) as { id: string; selesai: boolean }[];
+    const tugasBelum = tugas.filter((t) => !t.selesai).length;
 
     const kurang: string[] = [];
     if (!jumlahKetuaPanitia) kurang.push("Ketua Panitia");
-    if (!jumlahHadir) kurang.push("daftar hadir peserta");
+    if (!jumlahHadir) kurang.push("daftar hadir peserta yang sudah dikonfirmasi");
     if (!jumlahFoto) kurang.push("foto dokumentasi");
+    if (tugasBelum > 0) kurang.push(`${tugasBelum} tugas panitia yang belum dicentang`);
 
     if (kurang.length > 0) {
       return {

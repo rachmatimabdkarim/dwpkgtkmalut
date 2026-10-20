@@ -51,7 +51,7 @@ export function PanelTindakan({
   judul,
   pengusulSendiri,
   bolehJalankanTahap,
-  kelengkapan = { panitia: 0, presensi: 0, dokumentasi: 0 },
+  kelengkapan = { panitia: 0, presensi: 0, dokumentasi: 0, tugasBelum: 0 },
   judulKegiatan = "",
   tanggalSelesai = null,
 }: {
@@ -78,7 +78,7 @@ export function PanelTindakan({
    * presensi, dan dokumentasi sudah terisi — supaya tidak ada kegiatan
    * yang "selesai" tanpa bukti pelaksanaan.
    */
-  kelengkapan?: { panitia: number; presensi: number; dokumentasi: number };
+  kelengkapan?: { panitia: number; presensi: number; dokumentasi: number; tugasBelum: number };
   /** Judul kegiatan — dipakai pada konfirmasi "tandai selesai". */
   judulKegiatan?: string;
   /**
@@ -185,8 +185,14 @@ export function PanelTindakan({
     const kurang: string[] = [];
     // Aturan pemilik: minimal harus ada Ketua Panitia (bukan sekadar panitia).
     if (kelengkapan.panitia === 0) kurang.push("Ketua Panitia");
-    if (kelengkapan.presensi === 0) kurang.push("daftar hadir peserta");
+    if (kelengkapan.presensi === 0) kurang.push("daftar hadir peserta yang sudah dikonfirmasi");
     if (kelengkapan.dokumentasi === 0) kurang.push("foto dokumentasi");
+    // ATURAN PEMILIK: semua tugas panitia harus sudah dicentang selesai.
+    // Disamakan dengan pemeriksaan di server agar tombol dan penolakan tidak
+    // pernah berbeda.
+    if (kelengkapan.tugasBelum > 0) {
+      kurang.push(`${kelengkapan.tugasBelum} tugas panitia yang belum dicentang`);
+    }
     // ATURAN PEMILIK: kegiatan tidak boleh ditandai selesai sebelum tanggal
     // pelaksanaannya berakhir. Tanpa ini, kegiatan bisa "selesai" padahal
     // jadwalnya belum usai — dan seluruh isinya langsung terkunci.
