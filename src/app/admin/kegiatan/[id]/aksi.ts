@@ -329,8 +329,23 @@ export async function ubahTahap(
     const { error: galatArsip } = await sb.rpc("arsipkan_kegiatan", { p_activity: activityId });
     if (galatArsip) return { galat: galatArsip.message };
   } else {
-    const { error } = await sb.from("activities").update({ status: aturan.ke }).eq("id", activityId);
+    // PENGAMAN: permintaan ubah status WAJIB dibarengi pemeriksaan hasil.
+    // Tanpa ".select()", Supabase TIDAK mengembalikan galat ketika kebijakan
+    // keamanan menolak perubahan — baris tidak tersentuh, galat kosong, dan
+    // aplikasi menganggap berhasil. Itu sebabnya "Tandai Selesai" tidak bereaksi
+    // meski riwayatnya tercatat.
+    const { data: terubah, error } = await sb
+      .from("activities")
+      .update({ status: aturan.ke })
+      .eq("id", activityId)
+      .select("id");
     if (error) return { galat: error.message };
+    if (!terubah || terubah.length === 0) {
+      return {
+        galat:
+          "Status kegiatan tidak berubah. Anda tidak memiliki hak untuk mengubah kegiatan ini, atau statusnya sudah berbeda.",
+      };
+    }
   }
 
   // WAJIB: simpan isian laporan LEBIH DULU, baru ubah status. Tanpa ini,
