@@ -1,4 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { ambilTema } from "@/lib/pengaturan";
 
 /**
  * PENARIK DATA LAPORAN — SATU SUMBER
@@ -70,6 +71,8 @@ export type DataLaporan = {
   };
   dokumentasi: FotoLaporan[];
   penandatangan: { nama: string; jabatan: string };
+  /** Alamat logo aplikasi untuk kop surat. */
+  logoUrl: string | null;
   isian: {
     ringkasan: string;
     hasil: string;
@@ -130,11 +133,16 @@ export async function tarikDataLaporan(
     (p: {
       peran: string;
       nama_luar: string | null;
-      profiles?: { nama?: string }[] | null;
+      profiles?: { nama?: string } | { nama?: string }[] | null;
       tasks?: { judul: string; selesai: boolean }[];
     }) => ({
-      // Relasi Supabase mengembalikan larik; ambil yang pertama.
-      nama: p.profiles?.[0]?.nama ?? p.nama_luar ?? "Panitia",
+      // Relasi Supabase bisa mengembalikan larik ATAU objek tunggal, tergantung
+      // bentuk barisnya. Keduanya ditangani supaya nama panitia tidak pernah
+      // jatuh ke kata umum "Panitia" — itu cacat yang pernah terjadi.
+      nama:
+        (Array.isArray(p.profiles) ? p.profiles[0]?.nama : p.profiles?.nama) ??
+        p.nama_luar ??
+        "Panitia",
       jabatan: LABEL_PANITIA[p.peran] ?? p.peran,
       tugas: p.tasks ?? [],
     }),
@@ -205,6 +213,11 @@ export async function tarikDataLaporan(
   // ---- 7. Penandatangan: Ketua DWP ----
   const penandatangan = await ambilKetuaDwp(sb);
 
+  // Logo kop surat — memakai sumber yang SAMA dengan aplikasi (ambilTema),
+  // supaya logo di laporan selalu sama dengan logo di web publik & panel.
+  const tema = await ambilTema();
+  const logoUrl = tema.logoUrl;
+
   const totalRencana = barisAnggaran.reduce((n, b) => n + b.rencana, 0);
   const totalRealisasi = barisAnggaran.reduce((n, b) => n + b.realisasi, 0);
   const biayaLainJumlah = lap?.biaya_lain_jumlah ?? 0;
@@ -245,6 +258,7 @@ export async function tarikDataLaporan(
       }),
     ),
     penandatangan,
+    logoUrl,
     isian: {
       ringkasan: lap?.ringkasan ?? "",
       hasil: lap?.hasil ?? "",

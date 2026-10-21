@@ -13,24 +13,47 @@ import type { DataLaporan } from "@/lib/laporan-data";
  *   → Penutup → Tanda tangan
  */
 export function LembarLaporan({ data }: { data: DataLaporan }) {
-  const { kegiatan, panitia, presensi, anggaran, dokumentasi, penandatangan, isian } = data;
+  const { kegiatan, panitia, presensi, anggaran, dokumentasi, penandatangan, isian, logoUrl } = data;
 
   const tanggal = rentangTanggal(kegiatan.tanggalMulai, kegiatan.tanggalSelesai);
   const rupiah = (n: number) => "Rp " + Math.round(n).toLocaleString("id-ID");
 
   return (
     <article className="bg-n-0 text-n-900 mx-auto w-full max-w-[820px] p-6 sm:p-10 leading-relaxed">
-      {/* ===== KEPALA ===== */}
-      <header className="text-center border-b-2 border-n-800 pb-4">
-        <p className="text-[13px] tracking-wide uppercase text-n-600">
-          Dharma Wanita Persatuan
-        </p>
-        <p className="text-[15px] font-semibold uppercase">
-          Kantor Guru dan Tenaga Kependidikan Provinsi Maluku Utara
-        </p>
-        <h1 className="mt-4 text-[17px] font-bold uppercase">Laporan Pelaksanaan Kegiatan</h1>
+      {/* ===== KOP SURAT =====
+          Logo DWP di kiri (diambil dari logo aplikasi), nama lembaga di tengah,
+          lalu GARIS GANDA sebagai batas kop — lazim pada surat resmi. */}
+      <header className="pb-3">
+        <div className="flex items-center gap-4">
+          {logoUrl && (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={logoUrl}
+              alt="Logo Dharma Wanita Persatuan"
+              className="w-[86px] h-[86px] object-contain shrink-0"
+            />
+          )}
+          <div className="flex-1 text-center">
+            <p className="text-[13px] tracking-wide uppercase text-n-600">
+              Dharma Wanita Persatuan
+            </p>
+            <p className="text-[15px] font-semibold uppercase leading-snug">
+              Kantor Guru dan Tenaga Kependidikan Provinsi Maluku Utara
+            </p>
+          </div>
+          {/* Penyeimbang agar teks tetap di tengah meski ada logo di kiri. */}
+          {logoUrl && <div className="w-[86px] shrink-0" aria-hidden />}
+        </div>
+
+        {/* Garis kop surat: tebal di atas, tipis di bawah. */}
+        <div className="mt-3 border-t-[3px] border-n-800" />
+        <div className="mt-[2px] border-t border-n-800" />
+
+        <h1 className="mt-4 text-[17px] font-bold uppercase text-center">
+          Laporan Pelaksanaan Kegiatan
+        </h1>
         {kegiatan.nomor && (
-          <p className="text-[13px] text-n-600 mt-1">Nomor: {kegiatan.nomor}</p>
+          <p className="text-[13px] text-n-600 mt-1 text-center">Nomor: {kegiatan.nomor}</p>
         )}
       </header>
 
