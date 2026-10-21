@@ -274,19 +274,32 @@ export function FormLaporan({
         )}
 
         {bisaUbah && (
-          <div className="flex flex-wrap gap-2">
-            <TombolUtama type="button" onClick={simpan} disabled={isPending}>
+          <div className="flex flex-wrap items-center gap-2">
+            {/* Aksi utama di kiri; di layar lebar tombol tersusun sejajar rapi,
+                di HP tetap turun ke bawah selebar wadahnya. */}
+            <TombolUtama
+              type="button"
+              onClick={simpan}
+              disabled={isPending}
+              className="sm:w-auto w-full"
+            >
               {isPending ? "Menyimpan…" : "Simpan draf"}
             </TombolUtama>
             <TombolSekunder
               type="button"
               onClick={() => router.refresh()}
               disabled={isPending}
+              className="sm:w-auto w-full"
             >
               Segarkan pratinjau
             </TombolSekunder>
             {bisaAjukan && (
-              <TombolUtama type="button" onClick={ajukan} disabled={isPending}>
+              <TombolUtama
+                type="button"
+                onClick={ajukan}
+                disabled={isPending}
+                className="sm:w-auto w-full"
+              >
                 {isPending ? "Mengajukan…" : "Simpan & Ajukan Laporan"}
               </TombolUtama>
             )}
