@@ -13,7 +13,7 @@ import type { DataLaporan } from "@/lib/laporan-data";
  *   → Penutup → Tanda tangan
  */
 export function LembarLaporan({ data }: { data: DataLaporan }) {
-  const { kegiatan, panitia, presensi, anggaran, dokumentasi, penandatangan, isian, logoUrl } = data;
+  const { kegiatan, panitia, presensi, anggaran, dokumentasi, penandatangan, isian, logoUrl, kontak } = data;
 
   const tanggal = rentangTanggal(kegiatan.tanggalMulai, kegiatan.tanggalSelesai);
   const rupiah = (n: number) => "Rp " + Math.round(n).toLocaleString("id-ID");
@@ -39,6 +39,16 @@ export function LembarLaporan({ data }: { data: DataLaporan }) {
             </p>
             <p className="text-[15px] font-semibold uppercase leading-snug">
               Kantor Guru dan Tenaga Kependidikan Provinsi Maluku Utara
+            </p>
+            {/* Baris kontak — masih bagian kop surat, huruf lebih kecil & miring. */}
+            <p className="mt-1 text-[10.5px] italic text-n-600 leading-snug">
+              {[
+                kontak.alamat,
+                kontak.telepon ? `Telp. ${kontak.telepon}` : null,
+                kontak.email ? `Email: ${kontak.email}` : null,
+              ]
+                .filter(Boolean)
+                .join(" · ")}
             </p>
           </div>
           {/* Penyeimbang agar teks tetap di tengah meski ada logo di kiri. */}

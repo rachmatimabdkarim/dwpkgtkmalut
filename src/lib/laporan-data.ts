@@ -73,6 +73,8 @@ export type DataLaporan = {
   penandatangan: { nama: string; jabatan: string };
   /** Alamat logo aplikasi untuk kop surat. */
   logoUrl: string | null;
+  /** Kontak kantor untuk baris kecil di bawah nama lembaga pada kop surat. */
+  kontak: { alamat: string | null; telepon: string | null; email: string | null };
   isian: {
     ringkasan: string;
     hasil: string;
@@ -218,6 +220,14 @@ export async function tarikDataLaporan(
   const tema = await ambilTema();
   const logoUrl = tema.logoUrl;
 
+  // Kontak kantor untuk kop surat — diambil dari pengaturan aplikasi, supaya
+  // perubahan alamat/telepon/email langsung ikut di laporan.
+  const { data: kontakKantor } = await sb
+    .from("site_settings")
+    .select("alamat, telepon, email")
+    .limit(1)
+    .maybeSingle<{ alamat: string | null; telepon: string | null; email: string | null }>();
+
   const totalRencana = barisAnggaran.reduce((n, b) => n + b.rencana, 0);
   const totalRealisasi = barisAnggaran.reduce((n, b) => n + b.realisasi, 0);
   const biayaLainJumlah = lap?.biaya_lain_jumlah ?? 0;
@@ -259,6 +269,11 @@ export async function tarikDataLaporan(
     ),
     penandatangan,
     logoUrl,
+    kontak: {
+      alamat: kontakKantor?.alamat ?? null,
+      telepon: kontakKantor?.telepon ?? null,
+      email: kontakKantor?.email ?? null,
+    },
     isian: {
       ringkasan: lap?.ringkasan ?? "",
       hasil: lap?.hasil ?? "",
