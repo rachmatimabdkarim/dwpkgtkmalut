@@ -77,6 +77,8 @@ export type DataLaporan = {
   };
   dokumentasi: FotoLaporan[];
   penandatangan: { nama: string; jabatan: string };
+  /** Validasi Ketua DWP — bila ada, QR keaslian dicetak di area tanda tangan. */
+  validasi: { kode: string; divalidasiPada: string } | null;
   /** Alamat logo aplikasi untuk kop surat. */
   logoUrl: string | null;
   /** Kontak kantor untuk baris kecil di bawah nama lembaga pada kop surat. */
@@ -226,6 +228,13 @@ export async function tarikDataLaporan(
   // ---- 7. Penandatangan: Ketua DWP ----
   const penandatangan = await ambilKetuaDwp(sb);
 
+  // Validasi Ketua DWP — dasar QR keaslian pada area tanda tangan.
+  const { data: validasiData } = await sb
+    .from("laporan_validasi")
+    .select("kode, divalidasi_pada")
+    .eq("activity_id", activityId)
+    .maybeSingle<{ kode: string; divalidasi_pada: string }>();
+
   // Logo kop surat — memakai sumber yang SAMA dengan aplikasi (ambilTema),
   // supaya logo di laporan selalu sama dengan logo di web publik & panel.
   const tema = await ambilTema();
@@ -296,6 +305,9 @@ export async function tarikDataLaporan(
       }),
     ),
     penandatangan,
+    validasi: validasiData
+      ? { kode: validasiData.kode, divalidasiPada: validasiData.divalidasi_pada }
+      : null,
     logoUrl,
     kontak: {
       alamat: kontakKantor?.alamat ?? null,
@@ -319,10 +331,17 @@ async function ambilKetuaDwp(sb: SupabaseClient) {
     .select("peran, profiles(nama)")
     .eq("peran", "ketua")
     .limit(1)
-    .maybeSingle<{ profiles?: { nama?: string } | null }>();
+    .maybeSingle<{
+      // Relasi Supabase bisa larik atau objek tunggal — keduanya ditangani,
+      // supaya nama Ketua tidak pernah jatuh ke titik-titik.
+      profiles?: { nama?: string } | { nama?: string }[] | null;
+    }>();
+
+  const relasi = data?.profiles;
+  const nama = Array.isArray(relasi) ? relasi[0]?.nama : relasi?.nama;
 
   return {
-    nama: data?.profiles?.nama ?? "………………………………",
+    nama: nama ?? "………………………………",
     jabatan: "Ketua Dharma Wanita Persatuan",
   };
 }

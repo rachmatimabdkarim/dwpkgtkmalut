@@ -7,6 +7,7 @@ import { Kartu, JudulSeksi, Lencana, TombolHalus } from "@/components/dasar";
 import { labelStatus, tahapSaatIni, formatTanggal, formatRupiah, type Peran } from "@/lib/kegiatan";
 import { PanelTindakan, LinimasaRiwayat } from "./panel";
 import { FormLaporan } from "./form-laporan";
+import { PanelValidasi } from "./panel-validasi";
 import { LembarLaporan } from "@/components/lembar-laporan";
 import { tarikDataLaporan } from "@/lib/laporan-data";
 import { SembunyikanToggle } from "./sembunyikan";
@@ -689,6 +690,18 @@ export default async function DetailKegiatan({
 
               <div className="mt-4">
                 <LembarLaporan data={dataLaporan} />
+              </div>
+
+              <div className="mt-4">
+                <PanelValidasi
+                  activityId={keg.id}
+                  kode={dataLaporan.validasi?.kode ?? null}
+                  divalidasiPada={dataLaporan.validasi?.divalidasiPada ?? null}
+                  bolehValidasi={
+                    pengguna.peran.includes("ketua") || pengguna.peran.includes("super_admin")
+                  }
+                  statusLaporan={keg.status}
+                />
               </div>
 
 

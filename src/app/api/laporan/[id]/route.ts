@@ -74,6 +74,13 @@ export async function GET(
     return new Response("Data kegiatan tidak ditemukan.", { status: 404 });
   }
 
+  // Validasi Ketua DWP — bila ada, QR keaslian dicetak di bagian bawah PDF.
+  const { data: validasiData } = await sb
+    .from("laporan_validasi")
+    .select("kode, divalidasi_pada, divalidasi_oleh")
+    .eq("activity_id", id)
+    .maybeSingle<{ kode: string; divalidasi_pada: string; divalidasi_oleh: string | null }>();
+
   const { data: settings } = await sb
     .from("site_settings")
     .select("nama_aplikasi, nama_unit, nama_organisasi, alamat, telepon, email, logo_path")
@@ -662,6 +669,65 @@ export async function GET(
       }
     }
     if (kolom === 1) y = yBaris - TINGGI_FOTO - 24;
+  }
+
+  // ===== CAP KEASLIAN (QR VALIDASI) =====
+  // Hanya dicetak bila laporan sudah divalidasi Ketua DWP.
+  if (validasiData?.kode) {
+    pastikanRuang(96);
+    const yCap = y - 8;
+
+    const { data: penanda } = validasiData.divalidasi_oleh
+      ? await sb
+          .from("profiles")
+          .select("nama")
+          .eq("id", validasiData.divalidasi_oleh)
+          .maybeSingle<{ nama: string }>()
+      : { data: null };
+
+    // Kiri: keterangan keaslian
+    page.drawText("LAPORAN TERVALIDASI", {
+      x: MARGIN_LEFT,
+      y: yCap,
+      size: 9,
+      font: fontTebal,
+      color: rgb(0.05, 0.4, 0.15),
+    });
+    page.drawText(
+      `Divalidasi oleh ${penanda?.nama ?? "Ketua Dharma Wanita Persatuan"}`,
+      { x: MARGIN_LEFT, y: yCap - 13, size: 8, font: fontBiasa, color: rgb(0.2, 0.25, 0.3) },
+    );
+    page.drawText(
+      `pada ${new Date(validasiData.divalidasi_pada).toLocaleDateString("id-ID", {
+        day: "numeric", month: "long", year: "numeric",
+      })}`,
+      { x: MARGIN_LEFT, y: yCap - 24, size: 8, font: fontBiasa, color: rgb(0.2, 0.25, 0.3) },
+    );
+    page.drawText(`Kode: ${validasiData.kode}`, {
+      x: MARGIN_LEFT, y: yCap - 35, size: 7.5, font: fontBiasa, color: rgb(0.4, 0.45, 0.5),
+    });
+    page.drawText("Pindai QR untuk memeriksa keaslian laporan ini.", {
+      x: MARGIN_LEFT, y: yCap - 46, size: 7, font: fontBiasa, color: rgb(0.4, 0.45, 0.5),
+    });
+
+    // Kanan: gambar QR
+    try {
+      const QR = (await import("qrcode")).default;
+      const alamat = `${process.env.NEXT_PUBLIC_SITE_URL ?? "https://dwpkgtkmalut.vercel.app"}/validasi/${validasiData.kode}`;
+      const dataUrl = await QR.toDataURL(alamat, { width: 240, margin: 1 });
+      const isi = Buffer.from(dataUrl.split(",")[1], "base64");
+      const qr = await pdfDoc.embedPng(isi);
+      page.drawImage(qr, {
+        x: PAGE_WIDTH - MARGIN_RIGHT - 66,
+        y: yCap - 56,
+        width: 66,
+        height: 66,
+      });
+    } catch {
+      // QR gagal dibuat: keterangan teks di kiri tetap tercetak sebagai bukti.
+    }
+
+    y = yCap - 74;
   }
 
   // ===== NOMOR HALAMAN PADA SEMUA HALAMAN =====

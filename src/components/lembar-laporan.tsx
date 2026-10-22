@@ -1,3 +1,6 @@
+"use client";
+
+import { useEffect, useState } from "react";
 import type { DataLaporan } from "@/lib/laporan-data";
 
 /**
@@ -13,7 +16,7 @@ import type { DataLaporan } from "@/lib/laporan-data";
  *   → Penutup → Tanda tangan
  */
 export function LembarLaporan({ data }: { data: DataLaporan }) {
-  const { kegiatan, panitia, presensi, anggaran, dokumentasi, penandatangan, isian, logoUrl, kontak } = data;
+  const { kegiatan, panitia, presensi, anggaran, dokumentasi, penandatangan, isian, logoUrl, kontak, validasi } = data;
 
   const tanggal = rentangTanggal(kegiatan.tanggalMulai, kegiatan.tanggalSelesai);
   const rupiah = (n: number) => "Rp " + Math.round(n).toLocaleString("id-ID");
@@ -349,16 +352,66 @@ export function LembarLaporan({ data }: { data: DataLaporan }) {
         />
       </Section>
 
-      {/* ===== TANDA TANGAN ===== */}
-      <div className="mt-10 flex justify-end break-inside-avoid">
+      {/* ===== TANDA TANGAN + QR KEASLIAN =====
+          Nama Ketua DWP selalu tercetak. Setelah Ketua memvalidasi, QR muncul
+          di area tanda tangan — dipindai untuk membuktikan keaslian laporan. */}
+      <div className="mt-10 flex justify-between items-end gap-6 break-inside-avoid">
+        <div className="w-[190px] text-[11px] text-n-500">
+          {validasi ? (
+            <>
+              <QrValidasi kode={validasi.kode} />
+              <p className="mt-1.5 italic leading-snug">
+                Pindai untuk memeriksa keaslian laporan ini.
+              </p>
+            </>
+          ) : (
+            <p className="italic leading-snug">
+              Laporan ini belum divalidasi oleh Ketua Dharma Wanita Persatuan.
+            </p>
+          )}
+        </div>
+
         <div className="text-center w-[240px] text-[13px]">
           <p>Ternate, {tanggalTandaTangan()}</p>
           <p className="font-semibold mt-1">{penandatangan.jabatan}</p>
           <div className="h-[64px]" />
           <p className="font-semibold underline">{penandatangan.nama}</p>
+          {validasi && (
+            <p className="text-[10.5px] text-n-500 mt-1">
+              Divalidasi {new Date(validasi.divalidasiPada).toLocaleDateString("id-ID", {
+                day: "numeric",
+                month: "long",
+                year: "numeric",
+              })}
+            </p>
+          )}
         </div>
       </div>
     </article>
+  );
+}
+
+/**
+ * QR KEASLIAN — dibuat di peramban supaya laporan tidak bergantung pada
+ * layanan luar. Isinya menuju halaman pemeriksaan publik /validasi/<kode>.
+ */
+function QrValidasi({ kode }: { kode: string }) {
+  const [gambar, setGambar] = useState<string | null>(null);
+
+  useEffect(() => {
+    const alamat = `${window.location.origin}/validasi/${kode}`;
+    import("qrcode")
+      .then((QR) => QR.toDataURL(alamat, { width: 260, margin: 1 }))
+      .then(setGambar)
+      .catch(() => setGambar(null));
+  }, [kode]);
+
+  if (!gambar) {
+    return <div className="w-[92px] h-[92px] bg-n-100 rounded border border-n-200" />;
+  }
+  return (
+    // eslint-disable-next-line @next/next/no-img-element
+    <img src={gambar} alt={`QR validasi ${kode}`} className="w-[92px] h-[92px]" />
   );
 }
 
