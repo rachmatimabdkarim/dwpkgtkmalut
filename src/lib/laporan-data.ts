@@ -52,6 +52,7 @@ export type DataLaporan = {
     tanggalSelesai: string | null;
     penanggungJawab: string;
     uraian: string | null;
+    sasaran: string | null;
     tujuan: string | null;
   };
   panitia: BarisPanitia[];
@@ -60,6 +61,11 @@ export type DataLaporan = {
     izin: number;
     sakit: number;
     daftar: BarisPresensi[];
+    /** Jumlah sasaran peserta dari perencanaan (null bila tidak diisi). */
+    sasaranTeks: string | null;
+    sasaranAngka: number | null;
+    /** Persentase kehadiran terhadap sasaran. */
+    persentase: number | null;
   };
   anggaran: {
     baris: BarisAnggaran[];
@@ -103,7 +109,7 @@ export async function tarikDataLaporan(
   const { data: keg, error: galatKeg } = await sb
     .from("activities")
     .select(
-      "kode, judul, section_id, tempat, tanggal_mulai, tanggal_selesai, ringkasan, tujuan, penanggung_jawab",
+      "kode, judul, section_id, tempat, tanggal_mulai, tanggal_selesai, ringkasan, tujuan, sasaran, penanggung_jawab",
     )
     .eq("id", activityId)
     .maybeSingle<{
@@ -115,6 +121,7 @@ export async function tarikDataLaporan(
       tanggal_selesai: string | null;
       ringkasan: string | null;
       tujuan: string | null;
+      sasaran: string | null;
       penanggung_jawab: string | null;
     }>();
 
@@ -243,14 +250,31 @@ export async function tarikDataLaporan(
       penanggungJawab: await namaProfil(sb, keg?.penanggung_jawab ?? null),
       uraian: keg?.ringkasan ?? null,
       tujuan: keg?.tujuan ?? null,
+      sasaran: keg?.sasaran ?? null,
     },
     panitia,
-    presensi: {
-      hadir: sah.filter((a) => (a.keterangan || "Hadir") === "Hadir").length,
-      izin: sah.filter((a) => a.keterangan === "Izin").length,
-      sakit: sah.filter((a) => a.keterangan === "Sakit").length,
-      daftar: sah,
-    },
+    presensi: (() => {
+      const hadir = sah.filter((a) => (a.keterangan || "Hadir") === "Hadir").length;
+      // Sasaran ditulis bebas pada perencanaan (mis. "30 orang anggota DWP").
+      // Angka pertama dipakai sebagai pembanding; teks aslinya tetap ditampilkan
+      // supaya keterangannya tidak hilang.
+      const sasaranTeks = keg?.sasaran?.trim() || null;
+      const cocok = sasaranTeks ? sasaranTeks.match(/[0-9]+/) : null;
+      const sasaranAngka = cocok ? Number(cocok[0]) : null;
+      const persentase =
+        sasaranAngka && sasaranAngka > 0
+          ? Math.round((hadir / sasaranAngka) * 1000) / 10
+          : null;
+      return {
+        hadir,
+        izin: sah.filter((a) => a.keterangan === "Izin").length,
+        sakit: sah.filter((a) => a.keterangan === "Sakit").length,
+        daftar: sah,
+        sasaranTeks,
+        sasaranAngka,
+        persentase,
+      };
+    })(),
     anggaran: {
       baris: barisAnggaran,
       totalRencana,

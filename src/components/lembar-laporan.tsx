@@ -133,6 +133,55 @@ export function LembarLaporan({ data }: { data: DataLaporan }) {
 
       {/* ===== C. PRESENSI ===== */}
       <Section judul="C. Kehadiran Peserta">
+        {/* Perbandingan sasaran vs kehadiran — diminta pemilik. */}
+        <table className="w-full text-[13px] border-collapse mb-3">
+          <thead>
+            <tr className="bg-n-100 text-left">
+              <Th>Sasaran Peserta</Th>
+              <Th w="110px" align="right">
+                Hadir
+              </Th>
+              <Th w="120px" align="right">
+                Persentase
+              </Th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr className="border-b border-n-200">
+              <Td>
+                {presensi.sasaranAngka !== null ? (
+                  <>
+                    {presensi.sasaranAngka} orang
+                    {/* Keterangan tambahan hanya ditampilkan bila memang ada
+                        keterangan di luar angkanya, supaya tidak dobel
+                        menjadi "30 orang (30 orang anggota DWP)". */}
+                    {presensi.sasaranTeks &&
+                      presensi.sasaranTeks.replace(/[0-9]+/, "").replace(/orang/i, "").trim() !==
+                        "" && (
+                        <span className="text-n-600">
+                          {" "}
+                          ({presensi.sasaranTeks.replace(/^[0-9]+\s*(orang)?\s*/i, "")})
+                        </span>
+                      )}
+                  </>
+                ) : (
+                  <span className="text-n-500 italic">
+                    Sasaran belum diisi pada perencanaan
+                  </span>
+                )}
+              </Td>
+              <Td align="right">{presensi.hadir} orang</Td>
+              <Td align="right">
+                {presensi.persentase !== null ? (
+                  <strong>{presensi.persentase}%</strong>
+                ) : (
+                  <span className="text-n-400">—</span>
+                )}
+              </Td>
+            </tr>
+          </tbody>
+        </table>
+
         <Tabel labelWidth="140px">
           <Baris label="Hadir" nilai={`${presensi.hadir} orang`} />
           <Baris label="Izin" nilai={`${presensi.izin} orang`} />
