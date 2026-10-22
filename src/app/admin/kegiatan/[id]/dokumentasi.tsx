@@ -211,7 +211,7 @@ export function PanelDokumentasi({
           <div>
             <JudulSeksi>Dokumentasi Kegiatan</JudulSeksi>
             <p className="teks-3 text-n-600">
-              {totalFoto} dari {batasFotoMaks} foto · {fotoPublik} dari {batasPublikMaks} boleh publik
+              {totalFoto} dari {batasFotoMaks} foto · {fotoPublik} dari {batasPublikMaks} dipilih untuk laporan &amp; web publik
             </p>
           </div>
           <div className="flex items-center gap-2">
@@ -296,7 +296,7 @@ export function PanelDokumentasi({
                     />
                     <div className="absolute top-2 right-2">
                       <Lencana nada={isPublik ? "ok" : "netral"}>
-                        {isPublik ? "Publik" : "Internal"}
+                        {isPublik ? "Dipilih" : "Belum dipilih"}
                       </Lencana>
                     </div>
                   </div>
@@ -313,7 +313,7 @@ export function PanelDokumentasi({
                           className="accent-brand-600 h-5 w-5 rounded-token shrink-0"
                         />
                         <span className="text-[13px] text-n-800 font-medium">
-                          Tayangkan di web publik
+                          Tampilkan di laporan &amp; web publik
                         </span>
                       </label>
                     ) : (
@@ -328,7 +328,7 @@ export function PanelDokumentasi({
                         <span>
                           Visibilitas:{" "}
                           <strong className="text-n-700">
-                            {isPublik ? "Web Publik" : "Hanya Internal"}
+                            {isPublik ? "Laporan & web publik" : "Belum dipilih"}
                           </strong>
                           {!isPublik && " — belum tayang."}
                         </span>

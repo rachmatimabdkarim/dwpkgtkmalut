@@ -211,12 +211,16 @@ export async function tarikDataLaporan(
     }>();
 
   // ---- 6. Dokumentasi (foto resmi yang ditayangkan) ----
+  // HANYA foto yang DIPILIH petugas (visibilitas publik). Pilihan ini sekaligus
+  // menentukan publikasi di web publik — satu pilihan, dua tujuan, supaya tidak
+  // ada foto yang tayang di laporan tapi tidak di web, atau sebaliknya.
   const { data: foto } = await sb
     .from("attachments")
     .select("bucket, path, keterangan")
     .eq("entitas_id", activityId)
     .eq("kategori", "foto_kegiatan")
     .eq("status", "resmi")
+    .eq("visibilitas", "publik")
     .order("diunggah_pada", { ascending: true });
 
   // ---- 7. Penandatangan: Ketua DWP ----

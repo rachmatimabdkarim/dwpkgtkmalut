@@ -319,7 +319,7 @@ export function LembarLaporan({ data }: { data: DataLaporan }) {
       {/* ===== F. DOKUMENTASI ===== */}
       <Section judul="F. Dokumentasi">
         {dokumentasi.length === 0 ? (
-          <Kosong teks="Belum ada foto dokumentasi yang ditayangkan." />
+          <Kosong teks="Belum ada foto yang dipilih untuk laporan. Pilih foto pada tab Dokumentasi." />
         ) : (
           <div className="grid grid-cols-2 gap-3">
             {dokumentasi.map((f, i) => (
