@@ -138,8 +138,14 @@ export function LembarLaporan({ data }: { data: DataLaporan }) {
           <thead>
             <tr className="bg-n-100 text-left">
               <Th>Sasaran Peserta</Th>
-              <Th w="110px" align="right">
+              <Th w="90px" align="right">
                 Hadir
+              </Th>
+              <Th w="80px" align="right">
+                Izin
+              </Th>
+              <Th w="80px" align="right">
+                Sakit
               </Th>
               <Th w="120px" align="right">
                 Persentase
@@ -171,6 +177,8 @@ export function LembarLaporan({ data }: { data: DataLaporan }) {
                 )}
               </Td>
               <Td align="right">{presensi.hadir} orang</Td>
+              <Td align="right">{presensi.izin} orang</Td>
+              <Td align="right">{presensi.sakit} orang</Td>
               <Td align="right">
                 {presensi.persentase !== null ? (
                   <strong>{presensi.persentase}%</strong>
@@ -182,15 +190,11 @@ export function LembarLaporan({ data }: { data: DataLaporan }) {
           </tbody>
         </table>
 
-        <Tabel labelWidth="140px">
-          <Baris label="Hadir" nilai={`${presensi.hadir} orang`} />
-          <Baris label="Izin" nilai={`${presensi.izin} orang`} />
-          <Baris label="Sakit" nilai={`${presensi.sakit} orang`} />
-          <Baris
-            label="Jumlah"
-            nilai={`${presensi.hadir + presensi.izin + presensi.sakit} orang`}
-          />
-        </Tabel>
+        {/* Rincian "Hadir / Izin / Sakit / Jumlah" DIHAPUS: isinya sudah
+            tercakup tabel di atas. Dulu muncul dobel di sini. */}
+        <p className="text-[12px] text-n-600 mb-1.5">
+          Persentase = jumlah hadir dibanding sasaran peserta.
+        </p>
 
         {presensi.daftar.length > 0 && (
           <div className="mt-3">
