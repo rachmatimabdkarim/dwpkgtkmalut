@@ -656,12 +656,12 @@ export default async function DetailKegiatan({
                   Laporan pertanggungjawaban kegiatan resmi DWP.
                 </span>
                 <a
-                  href={`/api/laporan/${keg.id}`}
+                  href={`/admin/kegiatan/${keg.id}/cetak`}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="inline-flex h-9 items-center gap-1.5 rounded-token border border-n-300 bg-n-0 px-3.5 text-[13px] font-medium text-n-700 hover:bg-n-50 transition-colors shadow-xs shrink-0"
                 >
-                  Unduh PDF
+                  Cetak / Simpan PDF
                 </a>
               </div>
               {/* FORM ISIAN + PRATINJAU LAPORAN
