@@ -135,13 +135,18 @@ export default async function DetailKegiatan({
   ]);
   const presensiStatus = statusPresensi as { terbuka?: boolean; sebab?: string } | null;
 
-  // Data laporan resmi — ditarik dari data yang sudah ada, satu sumber.
-  const dataLaporan = await tarikDataLaporan(sb, id);
+  // KECEPATAN: data laporan (7 query) HANYA ditarik bila tab Laporan dibuka.
+  // Sebelumnya selalu ditarik, sehingga setiap pindah tab ikut menanggungnya —
+  // itulah sebab tab Laporan paling lambat dan tab lain ikut berat.
+  const tabDiminta = tab ?? "ringkasan";
+  const dataLaporan =
+    tabDiminta === "laporan" ? await tarikDataLaporan(sb, id) : null;
 
   // SYARAT UNDUH PDF (aturan pemilik): laporan sudah disetujui penuh DAN sudah
   // ditandatangani/divalidasi Ketua DWP. Dihitung di server agar tidak bisa
   // diakali dari peramban.
-  const laporanSah = keg.status === "laporan_disetujui" && !!dataLaporan.validasi;
+  const laporanSah =
+    keg.status === "laporan_disetujui" && !!dataLaporan?.validasi;
 
   const { data: foto } = await sb
     .from("attachments")
@@ -222,15 +227,22 @@ export default async function DetailKegiatan({
 
   // Alasan tiap tahap yang dilewati, supaya linimasa dapat menjelaskan
   // SEBABNYA — bukan sekadar menulis "dilewati" tanpa keterangan.
+  // KECEPATAN: dijalankan BERSAMAAN. Sebelumnya satu perjalanan per tahap
+  // secara berurutan, sehingga halaman menunggu berkali-kali.
   const alasanDilewati: Record<number, string> = {};
-  for (const l of langkah) {
-    if (!urutanDilewati.has(l.urutan)) continue;
-    const { data: alasan } = await sb.rpc("alasan_tahap_dilewati", {
-      p_activity: id,
-      p_peran: l.peran,
-    });
-    if (typeof alasan === "string" && alasan.length > 0) {
-      alasanDilewati[l.urutan] = alasan;
+  const langkahDilewati = langkah.filter((l) => urutanDilewati.has(l.urutan));
+  if (langkahDilewati.length > 0) {
+    const hasilAlasan = await Promise.all(
+      langkahDilewati.map((l) =>
+        sb
+          .rpc("alasan_tahap_dilewati", { p_activity: id, p_peran: l.peran })
+          .then((r) => ({ urutan: l.urutan, alasan: r.data })),
+      ),
+    );
+    for (const h of hasilAlasan) {
+      if (typeof h.alasan === "string" && h.alasan.length > 0) {
+        alasanDilewati[h.urutan] = h.alasan;
+      }
     }
   }
 
@@ -687,7 +699,7 @@ export default async function DetailKegiatan({
                   Yang diisi hanya realisasi anggaran, biaya lain, dan uraian. */}
               <FormLaporan
                 activityId={keg.id}
-                data={dataLaporan}
+                data={dataLaporan!}
                 bisaAjukan={
                   keg.status === "selesai" &&
                   pengguna.peran.some((p) =>
@@ -706,14 +718,14 @@ export default async function DetailKegiatan({
               />
 
               <div className="mt-4">
-                <LembarLaporan data={dataLaporan} />
+                {dataLaporan && <LembarLaporan data={dataLaporan} />}
               </div>
 
               <div className="mt-4">
                 <PanelValidasi
                   activityId={keg.id}
-                  kode={dataLaporan.validasi?.kode ?? null}
-                  divalidasiPada={dataLaporan.validasi?.divalidasiPada ?? null}
+                  kode={dataLaporan?.validasi?.kode ?? null}
+                  divalidasiPada={dataLaporan?.validasi?.divalidasiPada ?? null}
                   bolehValidasi={
                     pengguna.peran.includes("ketua") || pengguna.peran.includes("super_admin")
                   }
