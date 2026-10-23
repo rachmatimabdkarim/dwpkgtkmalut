@@ -83,6 +83,15 @@ export function PanelDokumentasi({
     setPesanGalat("");
     if (berkasList.length === 0) return;
 
+    // PENGAMAN: laporan yang sudah diajukan tidak boleh ditambah dokumentasi.
+    // Tanpa ini, unggahan tetap bisa masuk meski tampilannya sudah dikunci.
+    if (terkunci) {
+      setPesanGalat(
+        "Laporan sudah diajukan, jadi dokumentasi tidak dapat diubah lagi. Minta penyetuju mengembalikan laporan bila perlu diperbaiki.",
+      );
+      return;
+    }
+
     // Periksa batas total foto
     if (totalFoto + berkasList.length > batasFotoMaks) {
       setPesanGalat(
@@ -227,12 +236,21 @@ export function PanelDokumentasi({
           </div>
         )}
 
-        {/* Kotak Unggah Foto — disembunyikan bila laporan sudah diajukan */}
+        {/* Kotak Unggah Foto — disembunyikan bila laporan sudah diajukan.
+            Syarat "terkunci" WAJIB ikut diperiksa: sebelumnya hanya bolehKelola,
+            sehingga saat laporan sudah diajukan kotak unggah tetap muncul. */}
         {!bolehKelola ? (
           <div className="mt-4 rounded-token border border-n-200 bg-n-50 p-3">
             <p className="teks-3 text-n-600">
               Hanya pengelola dokumentasi yang ditugaskan penanggung jawab yang dapat
               mengunggah atau mengubah foto. Anda tetap dapat melihat dokumentasi di bawah.
+            </p>
+          </div>
+        ) : terkunci ? (
+          <div className="mt-4 rounded-token border border-n-200 bg-n-50 p-3">
+            <p className="teks-3 text-n-600">
+              Laporan sudah diajukan, jadi dokumentasi tidak dapat diubah lagi.
+              Bila perlu diperbaiki, minta penyetuju mengembalikan laporan.
             </p>
           </div>
         ) : totalFoto < batasFotoMaks ? (
