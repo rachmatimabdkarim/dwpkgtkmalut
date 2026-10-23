@@ -131,51 +131,86 @@ export async function tarikDataLaporan(
     console.error("[laporan] gagal mengambil data kegiatan:", galatKeg.message);
   }
 
-  // ---- 2. Panitia + tugas ----
-  const { data: panitiaData } = await sb
-    .from("committees")
-    .select(
-      "peran, profile_id, nama_luar, profiles(nama), tasks(judul, selesai)",
-    )
-    .eq("activity_id", activityId)
-    .order("dibuat_pada", { ascending: true });
+  // KECEPATAN: seluruh data laporan diambil BERSAMAAN. Sebelumnya tujuh query
+  // berjalan berurutan, sehingga setiap kali tab Laporan dibuka pengguna
+  // menunggu tujuh kali perjalanan ke basis data.
+  const [
+    { data: panitiaData },
+    { data: hadirData },
+    { data: rab },
+    { data: lap },
+    { data: foto },
+    { data: validasiData },
+    tema,
+    { data: kontakKantor },
+    { data: penandaData },
+  ] = await Promise.all([
+    sb
+      .from("committees")
+      .select("peran, profile_id, nama_luar, profiles(nama), tasks(judul, selesai)")
+      .eq("activity_id", activityId)
+      .order("dibuat_pada", { ascending: true }),
+    sb
+      .from("attendances")
+      .select("nama, instansi, keterangan")
+      .eq("activity_id", activityId)
+      .order("dibuat_pada", { ascending: true }),
+    sb
+      .from("budget_items")
+      .select("id, uraian, satuan, jumlah, harga_satuan, realisasi, urutan")
+      .eq("activity_id", activityId)
+      .order("urutan", { ascending: true }),
+    sb
+      .from("activity_reports")
+      .select(
+        "ringkasan, hasil, kendala, rekomendasi, catatan_penutup, biaya_lain_keterangan, biaya_lain_jumlah",
+      )
+      .eq("activity_id", activityId)
+      .maybeSingle(),
+    sb
+      .from("attachments")
+      .select("bucket, path, keterangan")
+      .eq("entitas_id", activityId)
+      .eq("kategori", "foto_kegiatan")
+      .eq("status", "resmi")
+      .eq("visibilitas", "publik")
+      .order("diunggah_pada", { ascending: true }),
+    sb
+      .from("laporan_validasi")
+      .select("kode, divalidasi_pada")
+      .eq("activity_id", activityId)
+      .maybeSingle(),
+    ambilTema(),
+    sb.from("site_settings").select("alamat, telepon, email").limit(1).maybeSingle(),
+    // Nama Ketua DWP — untuk penandatangan.
+    sb.from("user_roles").select("peran, profiles(nama)").eq("peran", "ketua").limit(1).maybeSingle(),
+  ]);
 
+  // ---- Panitia + tugas ----
   const panitia: BarisPanitia[] = (panitiaData ?? []).map(
     (p: {
       peran: string;
       nama_luar: string | null;
       profiles?: { nama?: string } | { nama?: string }[] | null;
       tasks?: { judul: string; selesai: boolean }[];
-    }) => ({
-      // Relasi Supabase bisa mengembalikan larik ATAU objek tunggal, tergantung
-      // bentuk barisnya. Keduanya ditangani supaya nama panitia tidak pernah
-      // jatuh ke kata umum "Panitia" — itu cacat yang pernah terjadi.
-      nama:
-        (Array.isArray(p.profiles) ? p.profiles[0]?.nama : p.profiles?.nama) ??
-        p.nama_luar ??
-        "Panitia",
-      jabatan: LABEL_PANITIA[p.peran] ?? p.peran,
-      tugas: p.tasks ?? [],
-    }),
+    }) => {
+      const relasi = p.profiles;
+      return {
+        nama:
+          (Array.isArray(relasi) ? relasi[0]?.nama : relasi?.nama) ??
+          p.nama_luar ??
+          "Panitia",
+        jabatan: LABEL_PANITIA[p.peran] ?? p.peran,
+        tugas: p.tasks ?? [],
+      };
+    },
   );
 
-  // ---- 3. Presensi (hanya yang sudah dikonfirmasi) ----
-  const { data: hadirData } = await sb
-    .from("attendances")
-    .select("nama, instansi, keterangan")
-    .eq("activity_id", activityId)
-    .order("dibuat_pada", { ascending: true });
-
+  // ---- Presensi (hanya yang sudah dikonfirmasi) ----
   const semua = (hadirData ?? []) as BarisPresensi[];
   const sah = semua.filter((a) => a.keterangan !== "Menunggu");
 
-  // ---- 4. Anggaran ----
-  const { data: rab } = await sb
-    .from("budget_items")
-    .select("id, uraian, satuan, jumlah, harga_satuan, realisasi, urutan")
-    .eq("activity_id", activityId)
-    .order("urutan", { ascending: true });
-
+  // ---- Anggaran ----
   const barisAnggaran: BarisAnggaran[] = (rab ?? []).map(
     (b: {
       id: string;
@@ -195,58 +230,20 @@ export async function tarikDataLaporan(
     }),
   );
 
-  // ---- 5. Laporan yang sudah tersimpan ----
-  const { data: lap } = await sb
-    .from("activity_reports")
-    .select(
-      "ringkasan, hasil, kendala, rekomendasi, catatan_penutup, biaya_lain_keterangan, biaya_lain_jumlah",
-    )
-    .eq("activity_id", activityId)
-    .maybeSingle<{
-      ringkasan: string | null;
-      hasil: string | null;
-      kendala: string | null;
-      rekomendasi: string | null;
-      catatan_penutup: string | null;
-      biaya_lain_keterangan: string | null;
-      biaya_lain_jumlah: number | null;
-    }>();
-
-  // ---- 6. Dokumentasi (foto resmi yang ditayangkan) ----
-  // HANYA foto yang DIPILIH petugas (visibilitas publik). Pilihan ini sekaligus
-  // menentukan publikasi di web publik — satu pilihan, dua tujuan, supaya tidak
-  // ada foto yang tayang di laporan tapi tidak di web, atau sebaliknya.
-  const { data: foto } = await sb
-    .from("attachments")
-    .select("bucket, path, keterangan")
-    .eq("entitas_id", activityId)
-    .eq("kategori", "foto_kegiatan")
-    .eq("status", "resmi")
-    .eq("visibilitas", "publik")
-    .order("diunggah_pada", { ascending: true });
-
-  // ---- 7. Penandatangan: Ketua DWP ----
-  const penandatangan = await ambilKetuaDwp(sb);
-
-  // Validasi Ketua DWP — dasar QR keaslian pada area tanda tangan.
-  const { data: validasiData } = await sb
-    .from("laporan_validasi")
-    .select("kode, divalidasi_pada")
-    .eq("activity_id", activityId)
-    .maybeSingle<{ kode: string; divalidasi_pada: string }>();
-
-  // Logo kop surat — memakai sumber yang SAMA dengan aplikasi (ambilTema),
-  // supaya logo di laporan selalu sama dengan logo di web publik & panel.
-  const tema = await ambilTema();
   const logoUrl = tema.logoUrl;
 
-  // Kontak kantor untuk kop surat — diambil dari pengaturan aplikasi, supaya
-  // perubahan alamat/telepon/email langsung ikut di laporan.
-  const { data: kontakKantor } = await sb
-    .from("site_settings")
-    .select("alamat, telepon, email")
-    .limit(1)
-    .maybeSingle<{ alamat: string | null; telepon: string | null; email: string | null }>();
+  // ---- Penandatangan: Ketua DWP ----
+  const relasiPenanda = penandaData?.profiles as
+    | { nama?: string }
+    | { nama?: string }[]
+    | null
+    | undefined;
+  const penandatangan = {
+    nama:
+      (Array.isArray(relasiPenanda) ? relasiPenanda[0]?.nama : relasiPenanda?.nama) ??
+      "………………………………",
+    jabatan: "Ketua Dharma Wanita Persatuan",
+  };
 
   const totalRencana = barisAnggaran.reduce((n, b) => n + b.rencana, 0);
   const totalRealisasi = barisAnggaran.reduce((n, b) => n + b.realisasi, 0);

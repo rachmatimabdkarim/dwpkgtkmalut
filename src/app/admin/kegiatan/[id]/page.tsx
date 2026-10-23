@@ -68,67 +68,71 @@ export default async function DetailKegiatan({
   const tahap = tahapSaatIni(keg.status);
   const st = labelStatus(keg.status);
 
-  const { data: rab } = await sb
-    .from("budget_items")
-    .select("id, uraian, satuan, jumlah, harga_satuan, realisasi")
-    .eq("activity_id", id)
-    .order("urutan");
-
-  const { data: laporan } = await sb
-    .from("activity_reports")
-    .select("ringkasan, hasil, kendala, rekomendasi, jumlah_hadir, total_anggaran, total_realisasi")
-    .eq("activity_id", id)
-    .maybeSingle();
-
-  const { data: riwayat } = await sb
-    .from("activity_logs")
-    .select("id, aksi, keterangan, pelaku_nama, waktu")
-    .eq("activity_id", id)
-    .order("waktu", { ascending: false })
-    .limit(20);
+  // KECEPATAN: query yang tidak saling bergantung dijalankan BERSAMAAN.
+  // Sebelumnya semuanya berurutan (21 query), sehingga tiap pindah tab menunggu
+  // puluhan kali perjalanan ke basis data — itulah sebab delay 2–4 detik.
+  const [
+    { data: rab },
+    { data: laporan },
+    { data: riwayat },
+    { data: daftarPengurus },
+    { data: panitia },
+    { data: presensi },
+  ] = await Promise.all([
+    sb
+      .from("budget_items")
+      .select("id, uraian, satuan, jumlah, harga_satuan, realisasi")
+      .eq("activity_id", id)
+      .order("urutan"),
+    sb
+      .from("activity_reports")
+      .select("ringkasan, hasil, kendala, rekomendasi, jumlah_hadir, total_anggaran, total_realisasi")
+      .eq("activity_id", id)
+      .maybeSingle(),
+    sb
+      .from("activity_logs")
+      .select("id, aksi, keterangan, pelaku_nama, waktu")
+      .eq("activity_id", id)
+      .order("waktu", { ascending: false })
+      .limit(20),
+    sb.from("profiles").select("id, nama, jabatan").eq("aktif", true).order("nama"),
+    sb
+      .from("committees")
+      .select(`
+      id, profile_id, nama_luar, peran, dibuat_pada,
+      profiles(id, nama, jabatan),
+      tasks(id, judul, selesai, batas, committee_id)
+    `)
+      .eq("activity_id", id)
+      .order("dibuat_pada", { ascending: true }),
+    sb
+      .from("attendances")
+      .select("id, profile_id, nama, instansi, keterangan, dibuat_pada")
+      .eq("activity_id", id)
+      .order("dibuat_pada", { ascending: true }),
+  ]);
 
   const { data: bagian } = keg.section_id
     ? await sb.from("sections").select("nama").eq("id", keg.section_id).maybeSingle()
     : { data: null };
 
-  const { data: daftarPengurus } = await sb
-    .from("profiles")
-    .select("id, nama, jabatan")
-    .eq("aktif", true)
-    .order("nama");
-
-  const { data: panitia } = await sb
-    .from("committees")
-    .select(`
-      id, profile_id, nama_luar, peran, dibuat_pada,
-      profiles(id, nama, jabatan),
-      tasks(id, judul, selesai, batas, committee_id)
-    `)
-    .eq("activity_id", id)
-    .order("dibuat_pada", { ascending: true });
-
-  const { data: presensi } = await sb
-    .from("attendances")
-    .select("id, profile_id, nama, instansi, keterangan, dibuat_pada")
-    .eq("activity_id", id)
-    .order("dibuat_pada", { ascending: true });
-
   // Jendela presensi (QR): jam buka/tutup diatur petugas, tanggalnya mengikuti
   // tanggal kegiatan. Status terbuka/tertutup dihitung server agar tampilan
   // tidak berbeda dengan kenyataan.
-  const { data: jendelaPresensi } = await sb
-    .from("presensi_jendela")
-    .select("kode_qr, jam_mulai, jam_selesai, dibuka_paksa, alasan_buka_paksa")
-    .eq("activity_id", id)
-    .maybeSingle<{
-      kode_qr: string | null;
-      jam_mulai: string;
-      jam_selesai: string;
-      dibuka_paksa: boolean;
-      alasan_buka_paksa: string | null;
-    }>();
-
-  const { data: statusPresensi } = await sb.rpc("status_presensi", { p_activity: id });
+  const [{ data: jendelaPresensi }, { data: statusPresensi }] = await Promise.all([
+    sb
+      .from("presensi_jendela")
+      .select("kode_qr, jam_mulai, jam_selesai, dibuka_paksa, alasan_buka_paksa")
+      .eq("activity_id", id)
+      .maybeSingle<{
+        kode_qr: string | null;
+        jam_mulai: string;
+        jam_selesai: string;
+        dibuka_paksa: boolean;
+        alasan_buka_paksa: string | null;
+      }>(),
+    sb.rpc("status_presensi", { p_activity: id }),
+  ]);
   const presensiStatus = statusPresensi as { terbuka?: boolean; sebab?: string } | null;
 
   // Data laporan resmi — ditarik dari data yang sudah ada, satu sumber.
@@ -151,11 +155,21 @@ export default async function DetailKegiatan({
 
   // jenjang persetujuan untuk tahap yang sedang berjalan
   const namaAlur = tahap === "pelaporan" ? "pelaporan" : "perencanaan";
-  const { data: alur } = await sb
-    .from("approval_flows")
-    .select("id, approval_steps(urutan, peran)")
-    .eq("nama", namaAlur)
-    .maybeSingle();
+  // KECEPATAN: dikelompokkan lagi — alur persetujuan, keputusan, penugasan,
+  // dan status presensi tidak saling bergantung, jadi dijalankan bersamaan.
+  const [
+    { data: alur },
+    { data: dataPenugasan2 },
+    { data: panitiaSaya },
+  ] = await Promise.all([
+    sb
+      .from("approval_flows")
+      .select("id, approval_steps(urutan, peran)")
+      .eq("nama", namaAlur)
+      .maybeSingle(),
+    sb.from("penugasan_pengelola").select("bagian, committee_id").eq("activity_id", id),
+    sb.from("committees").select("id, profile_id").eq("activity_id", id),
+  ]);
 
   // `catatan` WAJIB ikut diambil: di sinilah penyetuju menuliskan ALASAN revisi
   // atau penolakan. Tanpa kolom ini, pengusul hanya melihat lencana "Perlu revisi"
@@ -340,18 +354,9 @@ export default async function DetailKegiatan({
   // ATURAN PEMILIK: tab Presensi dan Dokumentasi hanya terbuka bagi panitia
   // yang DITUGASKAN oleh penanggung jawab. Penanggung jawab dan Super Admin
   // tetap bisa sebagai cadangan bila pengelola berhalangan.
-  const { data: dataPenugasan } = await sb
-    .from("penugasan_pengelola")
-    .select("bagian, committee_id")
-    .eq("activity_id", id);
+  const penugasan = (dataPenugasan2 ?? []) as { bagian: string; committee_id: string }[];
 
-  const penugasan = (dataPenugasan ?? []) as { bagian: string; committee_id: string }[];
-
-  // Daftar panitia dibutuhkan untuk mencocokkan akun dengan penugasan.
-  const { data: panitiaSaya } = await sb
-    .from("committees")
-    .select("id, profile_id")
-    .eq("activity_id", id);
+  // Daftar panitia (sudah diambil bersamaan di atas) untuk mencocokkan penugasan.
   const committeeSaya = new Set(
     ((panitiaSaya ?? []) as { id: string; profile_id: string | null }[])
       .filter((c) => c.profile_id === pengguna.id)
