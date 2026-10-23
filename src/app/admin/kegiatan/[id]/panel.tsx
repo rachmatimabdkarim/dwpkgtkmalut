@@ -8,6 +8,7 @@ import {
 } from "@/components/dasar";
 import { ajukanKegiatan, batalkanAjuan, hapusKegiatan } from "../aksi";
 import { beriKeputusan, ubahTahap, simpanLaporan } from "./aksi";
+import { BukaArsip } from "./tombol-arsip";
 
 type BarisRab = {
   id: string;
@@ -51,6 +52,7 @@ export function PanelTindakan({
   judul,
   pengusulSendiri,
   bolehJalankanTahap,
+  bolehBukaArsip = false,
   kelengkapan = { panitia: 0, presensi: 0, dokumentasi: 0, tugasBelum: 0 },
   judulKegiatan = "",
   tanggalSelesai = null,
@@ -72,6 +74,8 @@ export function PanelTindakan({
   pengusulSendiri: boolean;
   /** Boleh menjalankan tahap pelaksanaan (mulai/selesai/arsip). */
   bolehJalankanTahap: boolean;
+  /** Boleh membuka arsip? Hanya pengusul kegiatan atau Super Admin. */
+  bolehBukaArsip?: boolean;
   /**
    * Kelengkapan pelaksanaan sebelum kegiatan boleh ditandai selesai.
    * ATURAN PEMILIK: tombol "Tandai Selesai" baru aktif bila panitia,
@@ -240,6 +244,17 @@ export function PanelTindakan({
         Kunci & Arsipkan
       </TombolUtama>
     ) : null;
+  } else if (status === "arsip") {
+    // ATURAN PEMILIK: arsip bisa dibuka kembali. Wajib menulis alasan, dan
+    // alasannya tercatat di riwayat kegiatan.
+    aksiUtama = bolehBukaArsip ? (
+      <BukaArsip activityId={activityId} disabled={sedang} />
+    ) : (
+      <p className="teks-3 text-n-600">
+        Kegiatan ini sudah dikunci dan diarsipkan. Hanya pengusul atau Super Admin
+        yang dapat membukanya kembali.
+      </p>
+    );
   }
 
   return (

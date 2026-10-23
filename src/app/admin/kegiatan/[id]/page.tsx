@@ -767,6 +767,10 @@ export default async function DetailKegiatan({
           alasanDilewati={alasanDilewati}
           judul={keg.judul}
           pengusulSendiri={pengusulSendiri}
+          bolehBukaArsip={
+            // Hanya pengusul kegiatan atau Super Admin yang boleh membuka arsip.
+            pengguna.peran.includes("super_admin") || keg.dibuat_oleh === pengguna.id
+          }
           bolehJalankanTahap={
             // ATURAN PEMILIK: tombol pelaksanaan (Mulai Kegiatan, Tandai Selesai,
             // Kunci & Arsipkan) untuk PENANGGUNG JAWAB kegiatan, KETUA PANITIA
