@@ -701,7 +701,9 @@ export default async function DetailKegiatan({
                 activityId={keg.id}
                 data={dataLaporan!}
                 bisaAjukan={
-                  keg.status === "selesai" &&
+                  // Bisa diisi bila laporan belum diajukan, ATAU perlu diperbaiki
+                  // setelah dikembalikan / ditolak penyetuju.
+                  ["selesai", "revisi", "laporan_ditolak"].includes(keg.status) &&
                   pengguna.peran.some((p) =>
                     ["super_admin", "ketua", "wakil_ketua", "sekretaris", "bendahara", "ketua_seksi"].includes(p),
                   )
@@ -710,7 +712,9 @@ export default async function DetailKegiatan({
                   // HANYA saat kegiatan berstatus `selesai` — yaitu sebelum laporan
                   // diajukan. Sesudah diajukan, isi laporan terkunci supaya yang
                   // dinilai penyetuju sama dengan yang dilihat pengusul.
-                  keg.status === "selesai" &&
+                  // Bisa diisi bila laporan belum diajukan, ATAU perlu diperbaiki
+                  // setelah dikembalikan / ditolak penyetuju.
+                  ["selesai", "revisi", "laporan_ditolak"].includes(keg.status) &&
                   pengguna.peran.some((p) =>
                     ["super_admin", "ketua", "wakil_ketua", "sekretaris", "bendahara", "ketua_seksi"].includes(p),
                   )

@@ -104,10 +104,20 @@ export async function beriKeputusan(
   }
 
   // tentukan status kegiatan berikutnya
+  //
+  // ATURAN PEMILIK:
+  //  - Revisi PADA PELAPORAN  -> laporan dikembalikan ke pengusul supaya bisa
+  //    diperbaiki. Statusnya kembali ke "selesai" (tahap sebelum diajukan),
+  //    sehingga form laporan terbuka lagi.
+  //  - Tolak PADA PELAPORAN   -> laporan ditolak; status "laporan_ditolak".
+  //    Pengusul boleh memperbaiki lalu mengajukan ulang.
+  //  - Revisi/tolak PADA PERENCANAAN -> seperti sebelumnya ("revisi"/"ditolak").
   let statusBaru = keg.status;
-  if (keputusan === "revisi") statusBaru = tahap === "perencanaan" ? "revisi" : "selesai";
-  else if (keputusan === "tolak") statusBaru = "ditolak";
-  else {
+  if (keputusan === "revisi") {
+    statusBaru = tahap === "perencanaan" ? "revisi" : "selesai";
+  } else if (keputusan === "tolak") {
+    statusBaru = tahap === "perencanaan" ? "ditolak" : "laporan_ditolak";
+  } else {
     // CACAT YANG DIPERBAIKI:
     // `sudahSetuju` hanya memuat keputusan yang tersimpan SEBELUM klik ini.
     // Keputusan yang baru saja diberikan belum ikut dihitung, sehingga jenjang
@@ -131,8 +141,26 @@ export async function beriKeputusan(
     }
   }
 
-  const perubahan: Record<string, unknown> = { status: statusBaru };
-  await sb.from("activities").update(perubahan).eq("id", activityId);
+  // PENGAMAN: tanpa ".select()", Supabase TIDAK memberi galat ketika kebijakan
+  // keamanan menolak perubahan. Itu sebabnya "minta revisi" pada pelaporan
+  // tercatat di riwayat tetapi status TIDAK berubah — laporan tetap terkunci dan
+  // pengusul tidak bisa memperbaikinya.
+  if (statusBaru !== keg.status) {
+    const { data: terubah, error: galatStatus } = await sb
+      .from("activities")
+      .update({ status: statusBaru })
+      .eq("id", activityId)
+      .select("id");
+    if (galatStatus) {
+      return { galat: "Gagal mengubah status kegiatan: " + galatStatus.message };
+    }
+    if (!terubah || terubah.length === 0) {
+      return {
+        galat:
+          "Status kegiatan tidak berubah. Periksa hak akses pengguna atas kegiatan ini.",
+      };
+    }
+  }
 
   await sb.from("activity_logs").insert({
     activity_id: activityId,
@@ -200,7 +228,10 @@ export async function ubahTahap(
     mulai: { dari: ["disetujui"], ke: "berjalan", label: "Kegiatan mulai dilaksanakan" },
     selesai: { dari: ["berjalan"], ke: "selesai", label: "Kegiatan selesai dilaksanakan" },
     ajukan_laporan: {
-      dari: ["selesai"],
+      // Boleh diajukan dari keadaan "selesai" (baru pertama kali) ATAU sesudah
+      // laporan dikembalikan/ditolak penyetuju — pengusul memperbaiki lalu
+      // mengajukan ulang.
+      dari: ["selesai", "laporan_ditolak", "revisi"],
       ke: "laporan_diajukan",
       label: "Laporan diajukan untuk persetujuan",
     },
@@ -424,7 +455,10 @@ export async function simpanLaporan(
     .eq("id", activityId)
     .maybeSingle<{ status: string }>();
   if (!kegStatus) return { galat: "Kegiatan tidak ditemukan." };
-  if (kegStatus.status !== "selesai") {
+  // Isi laporan boleh disimpan bila laporan BELUM diajukan, ATAU sesudah
+  // dikembalikan/ditolak penyetuju (pengusul memperbaiki lalu mengajukan ulang).
+  const bolehSimpan = ["selesai", "revisi", "laporan_ditolak"].includes(kegStatus.status);
+  if (!bolehSimpan) {
     return {
       galat:
         "Laporan sudah diajukan, jadi isinya tidak dapat diubah lagi. " +

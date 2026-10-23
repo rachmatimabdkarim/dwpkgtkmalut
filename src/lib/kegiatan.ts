@@ -13,6 +13,8 @@ export const STATUS_KEGIATAN: Record<string, { label: string; nada: NadaStatus }
   laporan_diajukan: { label: "Laporan diajukan", nada: "warn" },
   laporan_dalam_review: { label: "Laporan dalam review", nada: "warn" },
   laporan_disetujui: { label: "Laporan disetujui", nada: "ok" },
+  // Laporan ditolak: pengusul boleh memperbaiki lalu mengajukan ulang.
+  laporan_ditolak: { label: "Laporan ditolak", nada: "bad" },
   arsip: { label: "Arsip", nada: "netral" },
 };
 
@@ -36,9 +38,14 @@ export type TahapKegiatan = "perencanaan" | "pelaksanaan" | "pelaporan";
 export function tahapSaatIni(status: string): TahapKegiatan {
   // Sesudah kegiatan selesai, tugasnya beralih ke penyusunan laporan.
   if (
-    ["selesai", "laporan_diajukan", "laporan_dalam_review", "laporan_disetujui", "arsip"].includes(
-      status,
-    )
+    [
+      "selesai",
+      "laporan_diajukan",
+      "laporan_dalam_review",
+      "laporan_disetujui",
+      "laporan_ditolak",
+      "arsip",
+    ].includes(status)
   ) {
     return "pelaporan";
   }
@@ -58,6 +65,7 @@ export const RANTAI_STATUS = [
   "laporan_diajukan",
   "laporan_dalam_review",
   "laporan_disetujui",
+  "laporan_ditolak",
   "arsip",
 ];
 
