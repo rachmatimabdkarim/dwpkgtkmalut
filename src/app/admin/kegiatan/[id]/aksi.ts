@@ -162,6 +162,25 @@ export async function beriKeputusan(
     }
   }
 
+  // CELAH YANG DITUTUP:
+  // Keputusan "revisi"/"tolak" tetap tersimpan di antrean. Akibatnya pengusul
+  // melihat laporan "diperiksa penyetuju" terus — form terkunci dan tidak bisa
+  // mengajukan ulang. Pembersihan dilakukan lewat fungsi basis data, karena
+  // penyetuju (mis. Wakil Ketua) tidak punya izin menghapus langsung.
+  if (keputusan === "revisi" || keputusan === "tolak") {
+    const { error: galatHapus } = await sb.rpc("bersihkan_antrean_setelah_keputusan", {
+      p_activity: activityId,
+      p_tahap: tahap,
+    });
+    if (galatHapus) {
+      return {
+        galat:
+          "Keputusan tersimpan, tetapi antrean persetujuan gagal dibersihkan: " +
+          galatHapus.message,
+      };
+    }
+  }
+
   await sb.from("activity_logs").insert({
     activity_id: activityId,
     aksi: `keputusan_${keputusan}`,
