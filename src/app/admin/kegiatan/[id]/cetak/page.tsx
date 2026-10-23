@@ -27,6 +27,41 @@ export default async function CetakLaporan({
   const sb = await klienServer();
   const data = await tarikDataLaporan(sb, id);
 
+  // SYARAT UNDUH (aturan pemilik): hanya setelah laporan disetujui penuh DAN
+  // ditandatangani/divalidasi Ketua DWP. Diperiksa di server supaya menyembunyikan
+  // tombol saja tidak cukup — alamat halaman ini pun tidak bisa dibuka paksa.
+  const { data: keg } = await sb
+    .from("activities")
+    .select("status, judul")
+    .eq("id", id)
+    .maybeSingle<{ status: string; judul: string }>();
+
+  const sah = keg?.status === "laporan_disetujui" && !!data.validasi;
+
+  if (!sah) {
+    return (
+      <main className="min-h-dvh bg-n-50 px-4 py-10">
+        <div className="mx-auto w-full max-w-[460px]">
+          <div className="rounded-token-lg border border-warn-line bg-warn-bg p-6 text-center">
+            <p className="text-[16px] font-semibold text-warn-fg">
+              Laporan belum dapat diunduh
+            </p>
+            <p className="mt-2 text-[14px] text-n-700">
+              Unduhan PDF tersedia setelah laporan disetujui penuh dan divalidasi
+              (ditandatangani) oleh Ketua Dharma Wanita Persatuan.
+            </p>
+            <a
+              href={`/admin/kegiatan/${id}?tab=laporan`}
+              className="mt-4 inline-flex h-10 items-center rounded-token border border-n-300 bg-n-0 px-4 text-[13.5px] font-medium text-n-700"
+            >
+              Kembali ke laporan
+            </a>
+          </div>
+        </div>
+      </main>
+    );
+  }
+
   return (
     <>
       {/* Pengaturan cetak: ukuran A4, margin rapi, warna latar ikut tercetak. */}

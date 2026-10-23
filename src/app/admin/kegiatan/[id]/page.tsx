@@ -134,6 +134,11 @@ export default async function DetailKegiatan({
   // Data laporan resmi — ditarik dari data yang sudah ada, satu sumber.
   const dataLaporan = await tarikDataLaporan(sb, id);
 
+  // SYARAT UNDUH PDF (aturan pemilik): laporan sudah disetujui penuh DAN sudah
+  // ditandatangani/divalidasi Ketua DWP. Dihitung di server agar tidak bisa
+  // diakali dari peramban.
+  const laporanSah = keg.status === "laporan_disetujui" && !!dataLaporan.validasi;
+
   const { data: foto } = await sb
     .from("attachments")
     .select("id, bucket, path, nama_asli, visibilitas, status, keterangan, ukuran_byte")
@@ -651,18 +656,25 @@ export default async function DetailKegiatan({
 
           {tabAktif === "laporan" && (
             <div className="flex flex-col gap-5">
-              <div className="flex items-center justify-between gap-3">
+              <div className="flex flex-wrap items-center justify-between gap-3">
                 <span className="teks-3 text-n-500">
-                  Laporan pertanggungjawaban kegiatan resmi DWP.
+                  {laporanSah
+                    ? "Laporan pertanggungjawaban kegiatan resmi DWP."
+                    : "Unduhan PDF tersedia setelah laporan disetujui dan divalidasi Ketua DWP."}
                 </span>
-                <a
-                  href={`/admin/kegiatan/${keg.id}/cetak`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex h-9 items-center gap-1.5 rounded-token border border-n-300 bg-n-0 px-3.5 text-[13px] font-medium text-n-700 hover:bg-n-50 transition-colors shadow-xs shrink-0"
-                >
-                  Cetak / Simpan PDF
-                </a>
+                {/* ATURAN PEMILIK: PDF baru boleh diunduh setelah laporan
+                    DISETUJUI penuh dan DITANDATANGANI (divalidasi) Ketua DWP.
+                    Sebelum itu tombol tidak ditampilkan sama sekali. */}
+                {laporanSah && (
+                  <a
+                    href={`/admin/kegiatan/${keg.id}/cetak`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex h-9 items-center gap-1.5 rounded-token border border-n-300 bg-n-0 px-3.5 text-[13px] font-medium text-n-700 hover:bg-n-50 transition-colors shadow-xs shrink-0"
+                  >
+                    Cetak / Simpan PDF
+                  </a>
+                )}
               </div>
               {/* FORM ISIAN + PRATINJAU LAPORAN
                   Bagian yang bisa ditarik otomatis (kepanitiaan, presensi, RAB,
