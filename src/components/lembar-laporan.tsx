@@ -353,29 +353,26 @@ export function LembarLaporan({ data }: { data: DataLaporan }) {
       </Section>
 
       {/* ===== TANDA TANGAN + QR KEASLIAN =====
-          Nama Ketua DWP selalu tercetak. Setelah Ketua memvalidasi, QR muncul
-          di area tanda tangan — dipindai untuk membuktikan keaslian laporan. */}
-      <div className="mt-10 flex justify-between items-end gap-6 break-inside-avoid">
-        <div className="w-[190px] text-[11px] text-n-500">
-          {validasi ? (
-            <>
-              <QrValidasi kode={validasi.kode} />
-              <p className="mt-1.5 italic leading-snug">
-                Pindai untuk memeriksa keaslian laporan ini.
-              </p>
-            </>
-          ) : (
-            <p className="italic leading-snug">
-              Laporan ini belum divalidasi oleh Ketua Dharma Wanita Persatuan.
-            </p>
-          )}
-        </div>
-
+          Susunan sesuai permintaan pemilik: di sisi KANAN —
+          "Ternate, tanggal" → "Ketua Dharma Wanita Persatuan" → QR → nama Ketua.
+          QR berada di bawah jabatan, nama berada di bawah QR. */}
+      <div className="mt-10 flex justify-end break-inside-avoid">
         <div className="text-center w-[240px] text-[13px]">
           <p>Ternate, {tanggalTandaTangan()}</p>
           <p className="font-semibold mt-1">{penandatangan.jabatan}</p>
-          <div className="h-[64px]" />
-          <p className="font-semibold underline">{penandatangan.nama}</p>
+
+          {validasi ? (
+            <div className="mt-2 flex flex-col items-center">
+              <QrValidasi kode={validasi.kode} />
+              <p className="text-[10.5px] text-n-500 italic mt-1 leading-snug">
+                Pindai untuk memeriksa keaslian laporan
+              </p>
+            </div>
+          ) : (
+            <div className="h-[64px]" />
+          )}
+
+          <p className="font-semibold underline mt-1">{penandatangan.nama}</p>
           {validasi && (
             <p className="text-[10.5px] text-n-500 mt-1">
               Divalidasi {new Date(validasi.divalidasiPada).toLocaleDateString("id-ID", {
@@ -383,6 +380,11 @@ export function LembarLaporan({ data }: { data: DataLaporan }) {
                 month: "long",
                 year: "numeric",
               })}
+            </p>
+          )}
+          {!validasi && (
+            <p className="text-[10.5px] text-n-500 mt-1 italic">
+              Belum divalidasi Ketua DWP
             </p>
           )}
         </div>
