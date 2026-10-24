@@ -357,7 +357,7 @@ export function LembarLaporan({ data }: { data: DataLaporan }) {
           "Ternate, tanggal" → "Ketua Dharma Wanita Persatuan" → QR → nama Ketua.
           QR berada di bawah jabatan, nama berada di bawah QR. */}
       <div className="mt-10 flex justify-end break-inside-avoid">
-        <div className="text-center w-[240px] text-[13px]">
+        <div className="text-center w-[320px] text-[13px]">
           <p>Ternate, {tanggalTandaTangan()}</p>
           <p className="font-semibold mt-1">{penandatangan.jabatan}</p>
 
@@ -372,7 +372,11 @@ export function LembarLaporan({ data }: { data: DataLaporan }) {
             <div className="h-[64px]" />
           )}
 
-          <p className="font-semibold underline mt-1">{penandatangan.nama}</p>
+          {/* Nama Ketua: satu baris utuh, tidak dipenggal. Lebar wadah sudah
+              diperhitungkan supaya nama panjang tetap terbaca. */}
+          <p className="font-semibold underline mt-2 text-[13px] whitespace-nowrap">
+            {penandatangan.nama}
+          </p>
           {validasi && (
             <p className="text-[10.5px] text-n-500 mt-1">
               Divalidasi {new Date(validasi.divalidasiPada).toLocaleDateString("id-ID", {

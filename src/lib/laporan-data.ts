@@ -183,7 +183,14 @@ export async function tarikDataLaporan(
     ambilTema(),
     sb.from("site_settings").select("alamat, telepon, email").limit(1).maybeSingle(),
     // Nama Ketua DWP — untuk penandatangan.
-    sb.from("user_roles").select("peran, profiles(nama)").eq("peran", "ketua").limit(1).maybeSingle(),
+    // Relasi WAJIB disebut tegas: user_roles punya dua kaitan ke profiles,
+    // sehingga "profiles(nama)" ambigu dan permintaannya gagal.
+    sb
+      .from("user_roles")
+      .select("peran, profiles!user_roles_user_id_fkey(nama)")
+      .eq("peran", "ketua")
+      .limit(1)
+      .maybeSingle(),
   ]);
 
   // ---- Panitia + tugas ----
@@ -323,16 +330,22 @@ export async function tarikDataLaporan(
 
 /** Nama Ketua DWP — otomatis dari daftar pengurus (keputusan pemilik). */
 async function ambilKetuaDwp(sb: SupabaseClient) {
-  const { data } = await sb
+  // PENTING: user_roles punya DUA kaitan ke profiles (user_id dan diberikan_oleh).
+  // Tanpa menyebut relasinya, permintaan ambigu dan GAGAL — itu sebabnya nama
+  // Ketua tampil sebagai titik-titik. Di sini relasinya disebut tegas:
+  // profiles!user_roles_user_id_fkey.
+  const { data, error } = await sb
     .from("user_roles")
-    .select("peran, profiles(nama)")
+    .select("peran, profiles!user_roles_user_id_fkey(nama)")
     .eq("peran", "ketua")
     .limit(1)
     .maybeSingle<{
-      // Relasi Supabase bisa larik atau objek tunggal — keduanya ditangani,
-      // supaya nama Ketua tidak pernah jatuh ke titik-titik.
       profiles?: { nama?: string } | { nama?: string }[] | null;
     }>();
+
+  if (error) {
+    console.error("[laporan] gagal mengambil nama Ketua DWP:", error.message);
+  }
 
   const relasi = data?.profiles;
   const nama = Array.isArray(relasi) ? relasi[0]?.nama : relasi?.nama;
