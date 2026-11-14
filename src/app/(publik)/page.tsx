@@ -155,7 +155,7 @@ export default async function BerandaPublik() {
               Sambutan Ketua
             </p>
             <h2 className="text-[26px] sm:text-[32px] font-extrabold leading-[1.22] tracking-tight" style={{ color: "var(--dasar-700)" }}>
-              Membangun Kebersamaan, Menghadirkan Karya Nyata
+              {tema.sambutanJudul || "Membangun Kebersamaan, Menghadirkan Karya Nyata"}
             </h2>
             <div className="mt-5 h-1 w-16 rounded-full" style={{ backgroundColor: "var(--aksen-600)" }} />
           </div>

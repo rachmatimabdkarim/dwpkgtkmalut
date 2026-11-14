@@ -73,6 +73,7 @@ export async function simpanIdentitas(input: {
   telepon?: string;
   email?: string;
   sambutan?: string;
+  sambutanJudul?: string;
   profilSingkat?: string;
   subJudulAgenda?: string;
   subJudulBerita?: string;
@@ -137,6 +138,9 @@ export async function simpanIdentitas(input: {
       ...(input.telepon !== undefined ? { telepon: teks(input.telepon, true) } : {}),
       ...(input.email !== undefined ? { email: teks(input.email, true) } : {}),
       ...(input.sambutan !== undefined ? { sambutan: teks(input.sambutan, true) } : {}),
+      ...(input.sambutanJudul !== undefined
+        ? { sambutan_judul: teks(input.sambutanJudul, true) }
+        : {}),
       ...(input.profilSingkat !== undefined
         ? { profil_singkat: teks(input.profilSingkat, true) }
         : {}),

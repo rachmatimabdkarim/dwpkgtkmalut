@@ -43,6 +43,7 @@ export function FormPengaturanTampilan({ temaAwal }: { temaAwal: TemaSitus }) {
     telepon: temaAwal.telepon ?? TEMA_BAWAAN.telepon ?? "",
     email: temaAwal.email ?? TEMA_BAWAAN.email ?? "",
     sambutan: temaAwal.sambutan ?? TEMA_BAWAAN.sambutan ?? "",
+    sambutanJudul: temaAwal.sambutanJudul ?? TEMA_BAWAAN.sambutanJudul ?? "",
     profilSingkat: temaAwal.profilSingkat ?? TEMA_BAWAAN.profilSingkat ?? "",
     subJudulAgenda: temaAwal.subJudulAgenda ?? TEMA_BAWAAN.subJudulAgenda ?? "",
     subJudulBerita: temaAwal.subJudulBerita ?? TEMA_BAWAAN.subJudulBerita ?? "",
@@ -549,8 +550,20 @@ export function FormPengaturanTampilan({ temaAwal }: { temaAwal: TemaSitus }) {
             </div>
 
             <Kolom
-              label="Kalimat sambutan (tampil di beranda & footer)"
-              bantuan="Ditulis singkat, satu sampai dua kalimat."
+              label="Judul besar bagian sambutan Ketua"
+              bantuan="Tampil besar di beranda, di atas kalimat sambutan."
+            >
+              <AreaTeks
+                rows={2}
+                value={identitas.sambutanJudul}
+                onChange={(e) => setIdentitas({ ...identitas, sambutanJudul: e.target.value })}
+                placeholder="Contoh: Membangun Kebersamaan, Menghadirkan Karya Nyata"
+              />
+            </Kolom>
+
+            <Kolom
+              label="Kalimat sambutan (tampil di beranda)"
+              bantuan="Ditulis beberapa kalimat yang enak dibaca."
             >
               <AreaTeks
                 rows={2}
