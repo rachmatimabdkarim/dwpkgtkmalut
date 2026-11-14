@@ -55,12 +55,12 @@ export default async function HalamanProfil() {
               <img
                 src={ketua.foto_url}
                 alt={`Foto ${ketua.nama}`}
-                className="h-28 w-28 sm:h-32 sm:w-32 rounded-full object-cover object-top mx-auto mb-4"
+                className="h-32 w-32 sm:h-36 sm:w-36 rounded-full object-cover object-top mx-auto mb-4"
                 style={{ border: "3px solid var(--dasar-700)" }}
               />
             ) : (
               <div
-                className="h-28 w-28 sm:h-32 sm:w-32 rounded-full mx-auto flex items-center justify-center font-extrabold text-[30px] mb-4"
+                className="h-32 w-32 sm:h-36 sm:w-36 rounded-full mx-auto flex items-center justify-center font-extrabold text-[34px] mb-4"
                 style={{ backgroundColor: "var(--dasar-700)", color: "var(--dasar-teks)" }}
               >
                 {ketua.nama.replace(/^Ny\.\s*/i, "").slice(0, 2).toUpperCase()}

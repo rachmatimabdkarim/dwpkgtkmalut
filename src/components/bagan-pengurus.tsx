@@ -46,7 +46,7 @@ function KartuOrang({
   orang: Orang;
   besar?: boolean;
 }) {
-  const ukuran = besar ? "h-24 w-24 sm:h-28 sm:w-28 text-[28px]" : "h-16 w-16 text-[17px]";
+  const ukuran = besar ? "h-28 w-28 sm:h-32 sm:w-32 text-[30px]" : "h-16 w-16 text-[17px]";
   return (
     <div
       className={`flex flex-col items-center text-center bg-n-0 rounded-[14px] ${
