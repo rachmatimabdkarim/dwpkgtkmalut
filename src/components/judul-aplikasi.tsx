@@ -16,7 +16,7 @@ export function JudulAplikasi({
   terang?: boolean;
 }) {
   return (
-    <span className="flex flex-col leading-tight min-w-0">
+    <span className="flex flex-col leading-tight min-w-0 overflow-hidden">
       <span
         className={`text-[14px] font-semibold truncate ${terang ? "text-brand-contrast" : "text-n-800"}`}
       >

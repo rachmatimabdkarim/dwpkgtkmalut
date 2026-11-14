@@ -27,9 +27,12 @@ export function KerangkaPublik({
         <div className="max-w-[1180px] mx-auto px-4 sm:px-6">
           <div className="flex items-center justify-between h-16 gap-3">
             {/* Logo & Judul Organisasi */}
+            {/* min-w-0 penting: tanpa itu anak yang panjang (nama instansi)
+                mendorong seluruh baris melebihi lebar layar HP sehingga halaman
+                bisa digeser ke samping. Nama instansi dipotong dengan elipsis. */}
             <Link
               href="/"
-              className="flex items-center gap-3 min-h-[44px] py-1 select-none focus:outline-none"
+              className="flex items-center gap-3 min-h-[44px] py-1 select-none focus:outline-none min-w-0 max-w-[calc(100%-8px)] sm:max-w-none"
               aria-label="Kembali ke Beranda"
             >
               {tema.logoUrl ? (
