@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { daftarPengurus, pengaturanSitus } from "@/lib/publik";
+import { BaganPengurus } from "@/components/bagan-pengurus";
 
 export async function generateMetadata(): Promise<Metadata> {
   const tema = await pengaturanSitus();
@@ -11,19 +12,6 @@ export async function generateMetadata(): Promise<Metadata> {
 
 export default async function HalamanProfil() {
   const [pengurusList, tema] = await Promise.all([daftarPengurus(), pengaturanSitus()]);
-
-  const kelompokBidang: { bidang: string; anggota: typeof pengurusList }[] = [];
-  const bidangDitemukan = new Set<string>();
-
-  for (const orang of pengurusList) {
-    if (!bidangDitemukan.has(orang.bidang)) {
-      bidangDitemukan.add(orang.bidang);
-      kelompokBidang.push({
-        bidang: orang.bidang,
-        anggota: pengurusList.filter((p) => p.bidang === orang.bidang),
-      });
-    }
-  }
 
   const misi = (tema.misi ?? "").split("\n").map((m) => m.trim()).filter(Boolean);
   const ketua = pengurusList.find((p) => /ketua/i.test(p.jabatan) && !/wakil/i.test(p.jabatan));
@@ -142,79 +130,7 @@ export default async function HalamanProfil() {
           </p>
         </div>
 
-        {kelompokBidang.length === 0 ? (
-          <div className="rounded-[18px] border border-dashed border-n-300 bg-n-0 p-8 text-center">
-            <p className="text-n-600">Data susunan pengurus belum tersedia.</p>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
-            {kelompokBidang.map(({ bidang, anggota }) => (
-              <div
-                key={bidang}
-                className="rounded-[18px] bg-n-0 overflow-hidden shadow-xs border-t-4"
-                style={{ borderTopColor: "var(--aksen-600)", border: "1px solid var(--n-200)" }}
-              >
-                <div
-                  className="px-6 py-3.5"
-                  style={{ backgroundColor: "var(--halaman)", borderBottom: "1px solid var(--dasar-100)" }}
-                >
-                  <h3 className="font-extrabold text-[15.5px]" style={{ color: "var(--dasar-700)" }}>
-                    {bidang}
-                  </h3>
-                </div>
-
-                <div className="divide-y divide-n-100">
-                  {anggota.map((orang) => {
-                    const inisial = orang.nama.replace(/^Ny\.\s*/i, "").slice(0, 1).toUpperCase();
-                    return (
-                      <div
-                        key={`${orang.bidang}-${orang.nama}`}
-                        className="px-6 py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-2"
-                      >
-                        <div className="flex items-center gap-3.5 min-w-0">
-                          {orang.foto_url ? (
-                            // eslint-disable-next-line @next/next/no-img-element
-                            <img
-                              src={orang.foto_url}
-                              alt={`Foto ${orang.nama}`}
-                              className="h-16 w-16 sm:h-[68px] sm:w-[68px] rounded-full object-cover object-top shrink-0"
-                              style={{ border: "2px solid var(--dasar-100)" }}
-                            />
-                          ) : (
-                            <div
-                              className="h-16 w-16 sm:h-[68px] sm:w-[68px] rounded-full font-extrabold text-[19px] flex items-center justify-center shrink-0"
-                              style={{ backgroundColor: "var(--dasar-50)", color: "var(--dasar-700)" }}
-                            >
-                              {inisial}
-                            </div>
-                          )}
-                          <div className="min-w-0">
-                            <p className="font-bold text-[15px] truncate" style={{ color: "var(--dasar-700)" }}>
-                              {orang.nama}
-                            </p>
-                            <p className="text-[13px] text-n-500 truncate">{orang.jabatan}</p>
-                          </div>
-                        </div>
-
-                        {orang.email && (
-                          <a
-                            href={`mailto:${orang.email}`}
-                            className="inline-flex items-center gap-1.5 min-h-[44px] text-[13px] font-medium hover:underline transition-colors truncate"
-                            style={{ color: "var(--aksen-700)" }}
-                            title={`Kirim email ke ${orang.nama}`}
-                          >
-                            <span aria-hidden="true">✉</span>
-                            <span className="truncate">{orang.email}</span>
-                          </a>
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
+        <BaganPengurus daftar={pengurusList} />
       </section>
     </div>
   );
