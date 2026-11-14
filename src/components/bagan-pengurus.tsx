@@ -38,7 +38,14 @@ function urutJabatan(a: Orang, b: Orang, pola: RegExp) {
   return ka - kb || a.urutan - b.urutan;
 }
 
-/** Kartu orang — dipakai di semua tingkat bagan. */
+/** Kartu orang — dipakai di semua tingkat bagan.
+ *
+ * ATURAN PEMILIK: foto SEMUA pengurus berukuran SAMA dengan foto Ketua
+ * (128 px di HP, 150 px di layar lebar), termasuk pengurus harian dan anggota
+ * bidang. Jangan membuat ukuran kedua yang lebih kecil — pemilik meminta
+ * seragam dan rapi. Lebar kartu dijaga sama di semua kartu supaya barisan
+ * tetap lurus, termasuk untuk nama panjang.
+ */
 function KartuOrang({
   orang,
   besar = false,
@@ -46,15 +53,12 @@ function KartuOrang({
   orang: Orang;
   besar?: boolean;
 }) {
-  const ukuran = besar ? "h-32 w-32 sm:h-[150px] sm:w-[150px] text-[34px]" : "h-16 w-16 text-[17px]";
   return (
     <div
-      className={`flex flex-col items-center text-center bg-n-0 rounded-[14px] ${
-        besar ? "px-5 py-6 w-[236px]" : "px-3 py-3.5 w-[152px]"
-      }`}
+      className="flex flex-col items-center text-center bg-n-0 rounded-[14px] px-5 py-6 w-[196px] sm:w-[226px]"
       style={{
         border: besar ? "2px solid var(--dasar-700)" : "1px solid var(--n-200)",
-        boxShadow: besar ? "0 6px 18px rgba(0,0,0,0.08)" : undefined,
+        boxShadow: besar ? "0 6px 18px rgba(0,0,0,0.08)" : "0 2px 8px rgba(0,0,0,0.04)",
       }}
     >
       {orang.foto_url ? (
@@ -62,32 +66,30 @@ function KartuOrang({
         <img
           src={orang.foto_url}
           alt={`Foto ${orang.nama}`}
-          className={`${ukuran} rounded-full object-cover object-top shrink-0`}
+          className="h-32 w-32 sm:h-[150px] sm:w-[150px] text-[34px] rounded-full object-cover object-top shrink-0"
           style={{
-            border: besar ? "3px solid var(--aksen-500)" : "2px solid var(--dasar-100)",
+            border: besar ? "3px solid var(--aksen-500)" : "3px solid var(--dasar-200)",
           }}
         />
       ) : (
         <div
-          className={`${ukuran} rounded-full flex items-center justify-center font-extrabold shrink-0`}
+          className="h-32 w-32 sm:h-[150px] sm:w-[150px] text-[34px] rounded-full flex items-center justify-center font-extrabold shrink-0"
           style={{
             backgroundColor: besar ? "var(--dasar-700)" : "var(--dasar-50)",
             color: besar ? "var(--dasar-teks)" : "var(--dasar-700)",
-            border: besar ? "3px solid var(--aksen-500)" : "2px solid var(--dasar-100)",
+            border: besar ? "3px solid var(--aksen-500)" : "3px solid var(--dasar-200)",
           }}
         >
           {inisial(orang.nama)}
         </div>
       )}
       <p
-        className={`mt-3 font-bold leading-snug ${besar ? "text-[15.5px]" : "text-[13.5px]"}`}
+        className="mt-3.5 font-bold leading-snug text-[14.5px]"
         style={{ color: "var(--dasar-700)" }}
       >
         {orang.nama}
       </p>
-      <p className={`mt-1 ${besar ? "text-[12.5px]" : "text-[11.5px]"} text-n-500 leading-snug`}>
-        {orang.jabatan}
-      </p>
+      <p className="mt-1 text-[12.5px] text-n-500 leading-snug">{orang.jabatan}</p>
     </div>
   );
 }
