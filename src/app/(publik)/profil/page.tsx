@@ -67,12 +67,12 @@ export default async function HalamanProfil() {
               <img
                 src={ketua.foto_url}
                 alt={`Foto ${ketua.nama}`}
-                className="h-20 w-20 rounded-full object-cover mx-auto mb-4"
+                className="h-28 w-28 sm:h-32 sm:w-32 rounded-full object-cover object-top mx-auto mb-4"
                 style={{ border: "3px solid var(--dasar-700)" }}
               />
             ) : (
               <div
-                className="h-20 w-20 rounded-full mx-auto flex items-center justify-center font-extrabold text-[24px] mb-4"
+                className="h-28 w-28 sm:h-32 sm:w-32 rounded-full mx-auto flex items-center justify-center font-extrabold text-[30px] mb-4"
                 style={{ backgroundColor: "var(--dasar-700)", color: "var(--dasar-teks)" }}
               >
                 {ketua.nama.replace(/^Ny\.\s*/i, "").slice(0, 2).toUpperCase()}
@@ -177,12 +177,12 @@ export default async function HalamanProfil() {
                             <img
                               src={orang.foto_url}
                               alt={`Foto ${orang.nama}`}
-                              className="h-11 w-11 rounded-full object-cover shrink-0"
+                              className="h-16 w-16 sm:h-[68px] sm:w-[68px] rounded-full object-cover object-top shrink-0"
                               style={{ border: "2px solid var(--dasar-100)" }}
                             />
                           ) : (
                             <div
-                              className="h-11 w-11 rounded-full font-extrabold text-[15px] flex items-center justify-center shrink-0"
+                              className="h-16 w-16 sm:h-[68px] sm:w-[68px] rounded-full font-extrabold text-[19px] flex items-center justify-center shrink-0"
                               style={{ backgroundColor: "var(--dasar-50)", color: "var(--dasar-700)" }}
                             >
                               {inisial}

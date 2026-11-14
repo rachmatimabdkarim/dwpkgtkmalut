@@ -580,7 +580,7 @@ export function KelolaPengurus({
                       <img
                         src={o.foto_url}
                         alt={`Foto ${o.nama}`}
-                        className="h-9 w-9 rounded-full object-cover shrink-0 border border-n-200"
+                        className="h-14 w-14 rounded-full object-cover object-top shrink-0 border border-n-200"
                       />
                     ) : (
                       <div className="h-9 w-9 rounded-full bg-brand-50 text-brand-700 flex items-center justify-center text-[13px] font-semibold shrink-0">
