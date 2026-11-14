@@ -64,9 +64,11 @@ async function bersihkanBerkasLama(
 
 /** Menyimpan bagian Identitas */
 export async function simpanIdentitas(input: {
-  namaAplikasi: string;
-  namaUnit: string;
-  namaOrganisasi: string;
+  // Kolom di bawah ini SEMUA opsional dengan sengaja: yang tidak dikirim berarti
+  // "jangan diubah". Hanya kirim kolom yang benar-benar diurus tombol pemanggil.
+  namaAplikasi?: string;
+  namaUnit?: string;
+  namaOrganisasi?: string;
   alamat?: string;
   telepon?: string;
   email?: string;
@@ -98,52 +100,90 @@ export async function simpanIdentitas(input: {
     const pengguna = await periksaSuperAdmin();
     const sb = await klienServer();
 
-    if (!input.namaAplikasi?.trim()) {
+    // Kolom wajib hanya diperiksa bila memang DIKIRIM oleh tombol yang menekan.
+    // Tombol simpan foto tidak mengirim nama sistem, jadi tidak boleh ditolak
+    // dengan pesan "Nama sistem tidak boleh kosong".
+    if (input.namaAplikasi !== undefined && !input.namaAplikasi.trim()) {
       return { sukses: false, pesan: "Nama sistem tidak boleh kosong." };
     }
-    if (!input.namaUnit?.trim()) {
+    if (input.namaUnit !== undefined && !input.namaUnit.trim()) {
       return { sukses: false, pesan: "Nama unit tidak boleh kosong." };
     }
-    if (!input.namaOrganisasi?.trim()) {
+    if (input.namaOrganisasi !== undefined && !input.namaOrganisasi.trim()) {
       return { sukses: false, pesan: "Nama organisasi tidak boleh kosong." };
     }
 
     const { data: lama } = await sb.from("site_settings").select("*").eq("id", 1).maybeSingle();
 
+    // PENTING: kolom yang TIDAK dikirim dari layar berarti "jangan diubah".
+    // Dulu kolom teks seperti `sambutan` selalu ditulis dari nilai layar, sehingga
+    // mengunggah foto beranda (yang hanya niat mengubah foto) ikut menimpa
+    // sambutan dengan teks lama yang masih terbuka di formulir. Sekarang hanya
+    // kolom yang benar-benar dikirim (undefined = kirim undefined) yang ditulis.
+    const teks = (nilai: string | undefined, bersihkan = false) => {
+      if (nilai === undefined) return undefined;
+      const rapi = nilai.trim();
+      return rapi ? rapi : bersihkan ? null : undefined;
+    };
+
     const nilaiBaru = {
       id: 1,
-      nama_aplikasi: input.namaAplikasi.trim(),
-      nama_unit: input.namaUnit.trim(),
-      nama_organisasi: input.namaOrganisasi.trim(),
-      alamat: input.alamat?.trim() ?? null,
-      telepon: input.telepon?.trim() ?? null,
-      email: input.email?.trim() ?? null,
-      sambutan: input.sambutan?.trim() || null,
-      profil_singkat: input.profilSingkat?.trim() || null,
-      sub_judul_agenda: input.subJudulAgenda?.trim() || null,
-      sub_judul_berita: input.subJudulBerita?.trim() || null,
-      sub_judul_galeri: input.subJudulGaleri?.trim() || null,
-      sub_judul_unduhan: input.subJudulUnduhan?.trim() || null,
-      hero_takbir: input.heroTakbir?.trim() || null,
-      hero_judul: input.heroJudul?.trim() || null,
-      hero_ringkasan: input.heroRingkasan?.trim() || null,
-      hero_tombol1: input.heroTombol1?.trim() || null,
-      hero_tombol2: input.heroTombol2?.trim() || null,
-      visi: input.visi?.trim() || null,
-      misi: input.misi?.trim() || null,
-      bidang_1_nama: input.bidang1Nama?.trim() || null,
-      bidang_1_isi: input.bidang1Isi?.trim() || null,
-      bidang_2_nama: input.bidang2Nama?.trim() || null,
-      bidang_2_isi: input.bidang2Isi?.trim() || null,
-      bidang_3_nama: input.bidang3Nama?.trim() || null,
-      bidang_3_isi: input.bidang3Isi?.trim() || null,
-      hero_foto_path: input.heroFotoPath ?? null,
-      peta_lintang: input.lat && !Number.isNaN(Number(input.lat.replace(",", ".")))
-        ? Number(input.lat.replace(",", "."))
-        : null,
-      peta_bujur: input.bujur && !Number.isNaN(Number(input.bujur.replace(",", ".")))
-        ? Number(input.bujur.replace(",", "."))
-        : null,
+      ...(input.namaAplikasi !== undefined ? { nama_aplikasi: input.namaAplikasi.trim() } : {}),
+      ...(input.namaUnit !== undefined ? { nama_unit: input.namaUnit.trim() } : {}),
+      ...(input.namaOrganisasi !== undefined
+        ? { nama_organisasi: input.namaOrganisasi.trim() }
+        : {}),
+      ...(input.alamat !== undefined ? { alamat: teks(input.alamat, true) } : {}),
+      ...(input.telepon !== undefined ? { telepon: teks(input.telepon, true) } : {}),
+      ...(input.email !== undefined ? { email: teks(input.email, true) } : {}),
+      ...(input.sambutan !== undefined ? { sambutan: teks(input.sambutan, true) } : {}),
+      ...(input.profilSingkat !== undefined
+        ? { profil_singkat: teks(input.profilSingkat, true) }
+        : {}),
+      ...(input.subJudulAgenda !== undefined
+        ? { sub_judul_agenda: teks(input.subJudulAgenda, true) }
+        : {}),
+      ...(input.subJudulBerita !== undefined
+        ? { sub_judul_berita: teks(input.subJudulBerita, true) }
+        : {}),
+      ...(input.subJudulGaleri !== undefined
+        ? { sub_judul_galeri: teks(input.subJudulGaleri, true) }
+        : {}),
+      ...(input.subJudulUnduhan !== undefined
+        ? { sub_judul_unduhan: teks(input.subJudulUnduhan, true) }
+        : {}),
+      ...(input.heroTakbir !== undefined ? { hero_takbir: teks(input.heroTakbir, true) } : {}),
+      ...(input.heroJudul !== undefined ? { hero_judul: teks(input.heroJudul, true) } : {}),
+      ...(input.heroRingkasan !== undefined
+        ? { hero_ringkasan: teks(input.heroRingkasan, true) }
+        : {}),
+      ...(input.heroTombol1 !== undefined ? { hero_tombol1: teks(input.heroTombol1, true) } : {}),
+      ...(input.heroTombol2 !== undefined ? { hero_tombol2: teks(input.heroTombol2, true) } : {}),
+      ...(input.visi !== undefined ? { visi: teks(input.visi, true) } : {}),
+      ...(input.misi !== undefined ? { misi: teks(input.misi, true) } : {}),
+      ...(input.bidang1Nama !== undefined ? { bidang_1_nama: teks(input.bidang1Nama, true) } : {}),
+      ...(input.bidang1Isi !== undefined ? { bidang_1_isi: teks(input.bidang1Isi, true) } : {}),
+      ...(input.bidang2Nama !== undefined ? { bidang_2_nama: teks(input.bidang2Nama, true) } : {}),
+      ...(input.bidang2Isi !== undefined ? { bidang_2_isi: teks(input.bidang2Isi, true) } : {}),
+      ...(input.bidang3Nama !== undefined ? { bidang_3_nama: teks(input.bidang3Nama, true) } : {}),
+      ...(input.bidang3Isi !== undefined ? { bidang_3_isi: teks(input.bidang3Isi, true) } : {}),
+      ...(input.heroFotoPath !== undefined ? { hero_foto_path: input.heroFotoPath } : {}),
+      ...(input.lat !== undefined
+        ? {
+            peta_lintang:
+              input.lat && !Number.isNaN(Number(input.lat.replace(",", ".")))
+                ? Number(input.lat.replace(",", "."))
+                : null,
+          }
+        : {}),
+      ...(input.bujur !== undefined
+        ? {
+            peta_bujur:
+              input.bujur && !Number.isNaN(Number(input.bujur.replace(",", ".")))
+                ? Number(input.bujur.replace(",", "."))
+                : null,
+          }
+        : {}),
       diperbarui_pada: new Date().toISOString(),
       diperbarui_oleh: pengguna.id,
     };

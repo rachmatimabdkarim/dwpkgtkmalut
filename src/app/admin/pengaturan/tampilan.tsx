@@ -76,7 +76,8 @@ export function FormPengaturanTampilan({ temaAwal }: { temaAwal: TemaSitus }) {
       ...identitas,
       lat: identitas.lat,
       bujur: identitas.bujur,
-      heroFotoPath: fotoBerandaPath,
+      // Foto sengaja TIDAK dikirim di sini: foto punya tombol simpannya sendiri.
+      // Mengirimnya dari sini membuat menyunting teks bisa mengosongkan foto.
     });
     setSedangIdentitas(false);
     setPesanIdentitas({
@@ -85,6 +86,32 @@ export function FormPengaturanTampilan({ temaAwal }: { temaAwal: TemaSitus }) {
     });
     if (hasil.sukses) {
       router.refresh();
+    }
+  }
+
+  /**
+   * Menyimpan foto beranda SAJA.
+   *
+   * ATURAN: tombol simpan hanya boleh mengirim kolom yang ia urus. Dulu tombol
+   * "Simpan Foto Beranda" duduk di dalam formulir identitas yang sama, sehingga
+   * menekannya ikut mengirim seluruh teks yang masih terbuka di layar — dan teks
+   * yang belum tersimpan (atau sudah disunting orang lain) ikut menimpa isi
+   * website. Jangan gabungkan lagi kedua tombol ini dalam satu kiriman.
+   */
+  async function handleSimpanFotoBeranda() {
+    setSedangIdentitas(true);
+    setPesanBranding(null);
+    try {
+      const hasil = await simpanIdentitas({ heroFotoPath: fotoBerandaPath });
+      setPesanBranding({
+        jenis: hasil.sukses ? "ok" : "bad",
+        teks: hasil.sukses
+          ? "Foto beranda tersimpan dan sudah tampil di website."
+          : hasil.pesan,
+      });
+      if (hasil.sukses) router.refresh();
+    } finally {
+      setSedangIdentitas(false);
     }
   }
 
@@ -617,15 +644,30 @@ export function FormPengaturanTampilan({ temaAwal }: { temaAwal: TemaSitus }) {
                       alt="Pratinjau foto beranda"
                       className="mt-2 w-full h-[150px] object-cover rounded-token border border-n-200"
                     />
-                    {/* Tombol simpan langsung di sini supaya tidak perlu menggulir jauh */}
+                    {/* Tombol simpan foto berdiri SENDIRI: hanya mengirim foto.
+                        Jangan dijadikan type="submit" formulir identitas — itu
+                        yang dulu membuat teks sambutan ikut tertimpa. */}
                     <div className="mt-3 flex flex-wrap items-center gap-3">
-                      <TombolUtama type="submit" disabled={sedangIdentitas}>
+                      <TombolUtama
+                        type="button"
+                        onClick={handleSimpanFotoBeranda}
+                        disabled={sedangIdentitas}
+                      >
                         {sedangIdentitas ? "Menyimpan…" : "Simpan Foto Beranda"}
                       </TombolUtama>
                       <span className="teks-3 text-n-600">
-                        Wajib ditekan supaya foto tampil di website.
+                        Menyimpan foto saja — tulisan lain tidak ikut berubah.
                       </span>
                     </div>
+                    {pesanBranding && (
+                      <p
+                        className={`mt-2 text-[13px] ${
+                          pesanBranding.jenis === "ok" ? "text-ok-fg" : "text-bad-fg"
+                        }`}
+                      >
+                        {pesanBranding.teks}
+                      </p>
+                    )}
                   </div>
                 )}
               </div>
