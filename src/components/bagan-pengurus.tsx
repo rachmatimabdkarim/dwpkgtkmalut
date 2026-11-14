@@ -46,11 +46,11 @@ function KartuOrang({
   orang: Orang;
   besar?: boolean;
 }) {
-  const ukuran = besar ? "h-28 w-28 sm:h-32 sm:w-32 text-[30px]" : "h-16 w-16 text-[17px]";
+  const ukuran = besar ? "h-32 w-32 sm:h-[150px] sm:w-[150px] text-[34px]" : "h-16 w-16 text-[17px]";
   return (
     <div
       className={`flex flex-col items-center text-center bg-n-0 rounded-[14px] ${
-        besar ? "px-5 py-5 w-[220px]" : "px-3 py-3.5 w-[152px]"
+        besar ? "px-5 py-6 w-[236px]" : "px-3 py-3.5 w-[152px]"
       }`}
       style={{
         border: besar ? "2px solid var(--dasar-700)" : "1px solid var(--n-200)",

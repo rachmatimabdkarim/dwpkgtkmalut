@@ -176,12 +176,12 @@ export default async function BerandaPublik() {
                 <img
                   src={ketua.foto_url}
                   alt={`Foto ${ketua.nama}`}
-                  className="h-20 w-20 sm:h-[88px] sm:w-[88px] rounded-full object-cover object-top shrink-0"
+                  className="h-24 w-24 sm:h-[104px] sm:w-[104px] rounded-full object-cover object-top shrink-0"
                   style={{ border: "2px solid var(--dasar-600)" }}
                 />
               ) : (
                 <div
-                  className="h-20 w-20 sm:h-[88px] sm:w-[88px] rounded-full flex items-center justify-center font-extrabold text-[23px] shrink-0"
+                  className="h-24 w-24 sm:h-[104px] sm:w-[104px] rounded-full flex items-center justify-center font-extrabold text-[27px] shrink-0"
                   style={{ backgroundColor: "var(--dasar-600)", color: "var(--dasar-teks)" }}
                 >
                   {(ketua?.nama ?? tema.namaOrganisasi).replace(/^Ny\.\s*/i, "").slice(0, 2).toUpperCase()}
