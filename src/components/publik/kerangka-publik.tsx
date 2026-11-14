@@ -86,9 +86,9 @@ export function KerangkaPublik({
                   {tema.namaOrganisasi}
                 </span>
               </div>
-              {tema.sambutan && (
-                <p className="teks-3 text-n-400 leading-relaxed">{tema.sambutan}</p>
-              )}
+              {/* Sambutan sengaja TIDAK ditulis di footer (permintaan pemilik).
+                  Sambutan sudah tampil di beranda; mengulangnya di footer membuat
+                  kaki halaman panjang dan berulang. Jangan dikembalikan. */}
             </div>
 
             {/* Kontak & Alamat */}
