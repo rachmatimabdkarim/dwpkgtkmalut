@@ -152,20 +152,6 @@ export function KerangkaPublik({
                 </li>
               </ul>
 
-              {/* Keterangan sistem pengurus — supaya masyarakat tahu ada
-                  sistem informasi resmi organisasi yang dikelola pengurus */}
-              <div
-                className="rounded-token px-3.5 py-3 mt-1"
-                style={{ backgroundColor: "rgba(255,255,255,0.06)" }}
-              >
-                <p className="text-[13px] font-semibold" style={{ color: "var(--aksen-300)" }}>
-                  {SISTEM_NAME}
-                </p>
-                <p className="text-[12.5px] text-n-400 leading-snug mt-0.5">{SISTEM_SUB}</p>
-                <p className="text-[12px] text-n-500 leading-snug mt-2">
-                  Dipakai pengurus untuk mengelola anggota, kegiatan, dan publikasi organisasi.
-                </p>
-              </div>
             </div>
           </div>
 
@@ -173,7 +159,6 @@ export function KerangkaPublik({
             <p>
               © {tahunIni ?? ""} {tema.namaAplikasi} {tema.namaUnit}. Hak cipta dilindungi.
             </p>
-            <p>Dharma Wanita Persatuan</p>
           </div>
         </div>
       </footer>
