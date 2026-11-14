@@ -18,6 +18,50 @@ import type { DataLaporan } from "@/lib/laporan-data";
 export function LembarLaporan({ data }: { data: DataLaporan }) {
   const { kegiatan, panitia, presensi, anggaran, dokumentasi, penandatangan, isian, logoUrl, kontak, validasi } = data;
 
+  // Nomor foto yang BENTUKNYA tegak (potret). Dipakai untuk mengelompokkan foto
+  // tegak tersendiri supaya tidak menyisakan ruang kosong di sebelah foto lebar.
+  // Diketahui sesudah gambarnya dimuat (ukuran asli, bukan nama berkas).
+  const [tegak, setTegak] = useState<number[]>([]);
+
+  // Bentuk setiap foto dibaca dari UKURAN ASLINYA, tanpa bergantung pada
+  // peristiwa `onLoad` gambar: gambar bisa SUDAH termuat dari singgahan
+  // sebelum pendengar terpasang, sehingga pendengar tidak pernah dipanggil dan
+  // foto tegak tetap dianggap lebar (bug yang pernah terjadi). Lebar/tinggi
+  // diambil langsung dari elemen <img> pada siklus efek — diulang sampai semua
+  // foto terukur. Kegagalan memuat gambar cukup diabaikan (dianggap lebar).
+  useEffect(() => {
+    let batal = false;
+    let percobaan = 0;
+    const periksa = () => {
+      if (batal) return;
+      const hasil: number[] = [];
+      let belumSelesai = false;
+      const elemen = document.querySelectorAll<HTMLImageElement>("img[data-ukur-foto]");
+      elemen.forEach((img) => {
+        const i = Number(img.dataset.ukurFoto);
+        if (!Number.isFinite(i)) return;
+        if (img.naturalWidth === 0) {
+          belumSelesai = true;
+          return;
+        }
+        if (img.naturalHeight > img.naturalWidth * 1.05) hasil.push(i);
+      });
+      setTegak((lama) => {
+        const sama =
+          lama.length === hasil.length && hasil.every((n) => lama.includes(n));
+        return sama ? lama : hasil;
+      });
+      percobaan += 1;
+      if (belumSelesai && percobaan < 20) setTimeout(periksa, 250);
+    };
+    periksa();
+    return () => {
+      batal = true;
+    };
+  }, [dokumentasi.length]);
+
+  // Dua daftar terpisah — urutannya tetap seperti urutan unggahan.
+
   const tanggal = rentangTanggal(kegiatan.tanggalMulai, kegiatan.tanggalSelesai);
   const rupiah = (n: number) => "Rp " + Math.round(n).toLocaleString("id-ID");
 
@@ -324,21 +368,51 @@ export function LembarLaporan({ data }: { data: DataLaporan }) {
         {dokumentasi.length === 0 ? (
           <Kosong teks="Belum ada foto yang dipilih untuk laporan. Pilih foto pada tab Dokumentasi." />
         ) : (
-          <div className="grid grid-cols-2 gap-3">
-            {dokumentasi.map((f, i) => (
-              <figure key={i} className="break-inside-avoid">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={f.path}
-                  alt={f.keterangan ?? `Dokumentasi ${i + 1}`}
-                  className="w-full h-auto rounded border border-n-200"
-                />
-                <figcaption className="text-[11.5px] text-n-600 mt-1">
-                  {f.keterangan || `Foto ${i + 1}`}
-                </figcaption>
-              </figure>
-            ))}
-          </div>
+          <>
+            {/* Foto dokumentasi disusun menurut BENTUKNYA (aturan pemilik):
+                foto lebar dua per baris, foto tegak (potret) tiga per baris di
+                bawahnya. Semua foto ditampilkan UTUH — tidak dipotong demi
+                keseragaman bingkai. Bentuk dibaca dari ukuran ASLI gambar. */}
+            <div className="grid grid-cols-2 gap-3 items-start">
+              {dokumentasi.map((f, i) =>
+                tegak.includes(i) ? null : (
+                  <figure key={`l-${i}`} className="break-inside-avoid">
+                    <BingkaiFoto
+                      path={f.path}
+                      keterangan={f.keterangan}
+                      nomor={i + 1}
+                      tegak={false}
+                      ukur={i}
+                    />
+                  </figure>
+                ),
+              )}
+            </div>
+
+            {dokumentasi.some((_, i) => tegak.includes(i)) && (
+              <>
+                <p className="mt-4 mb-2 text-[12px] font-semibold text-n-700">
+                  Foto tegak
+                </p>
+                <div className="grid grid-cols-3 gap-3 items-start">
+                  {dokumentasi.map((f, i) =>
+                    tegak.includes(i) ? (
+                      <figure key={`p-${i}`} className="break-inside-avoid">
+                        <BingkaiFoto
+                          path={f.path}
+                          keterangan={f.keterangan}
+                          nomor={i + 1}
+                          tegak
+                          ukur={i}
+                        />
+                      </figure>
+                    ) : null,
+                  )}
+                </div>
+              </>
+            )}
+
+          </>
         )}
       </Section>
 
@@ -422,6 +496,52 @@ function QrValidasi({ kode }: { kode: string }) {
 }
 
 /* ============ BAGIAN KECIL ============ */
+
+/**
+ * Satu foto dokumentasi di lembar laporan.
+ *
+ * Bentuk bingkai mengikuti bentuk fotonya: foto lebar 3:2, foto tegak 3:4.
+ * Gambar selalu ditampilkan UTUH (tidak dipotong) — dokumentasi kegiatan tidak
+ * boleh kehilangan bagian penting hanya demi keseragaman bingkai.
+ *
+ * Bentuk dibaca dari ukuran ASLI gambar sesudah dimuat, lalu dilaporkan ke
+ * induk lewat `onUkur` supaya foto tegak bisa dikelompokkan tersendiri.
+ */
+function BingkaiFoto({
+  path,
+  keterangan,
+  nomor,
+  tegak,
+  ukur,
+}: {
+  path: string;
+  keterangan?: string | null;
+  nomor: number;
+  tegak: boolean;
+  /** Nomor urut foto — dipakai pembaca bentuk foto (data-ukur-foto) */
+  ukur: number;
+}) {
+  return (
+    <>
+      <div
+        className="w-full overflow-hidden rounded border border-n-200 bg-[#f7f6ef]"
+        style={{ aspectRatio: tegak ? "3 / 4" : "3 / 2" }}
+      >
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src={path}
+          alt={keterangan ?? `Dokumentasi ${nomor}`}
+          className="w-full h-full"
+          style={{ objectFit: "contain" }}
+          data-ukur-foto={ukur}
+        />
+      </div>
+      <figcaption className="text-[11.5px] text-n-600 mt-1">
+        {keterangan || `Foto ${nomor}`}
+      </figcaption>
+    </>
+  );
+}
 
 function Section({ judul, children }: { judul: string; children: React.ReactNode }) {
   return (

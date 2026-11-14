@@ -574,8 +574,15 @@ export async function GET(
     // Setiap foto diunduh lalu DIGAMBAR ke PDF. Dua foto per baris supaya
     // hemat ruang namun tetap terlihat jelas. Kegagalan satu foto tidak
     // menggagalkan seluruh laporan — hanya dilewati dengan catatan kecil.
+    // Tata letak dokumentasi MENGIKUTI BENTUK FOTO (aturan pemilik):
+    //  • foto lebar (landscape) — dua per baris, memenuhi lebar kolomnya;
+    //  • foto tegak (potret)    — DITAMPILKAN UTUH tanpa dipotong, satu per
+    //    baris, tinggi dibatasi supaya tidak menelan satu halaman.
+    // Bentuk dibaca dari UKURAN gambar yang benar-benar diunduh, bukan dari
+    // nama berkas — nama berkas sering tidak mencerminkan isinya.
     const LEBAR_FOTO = (LEBAR_KONTEN - 20) / 2 - 6;
-    const TINGGI_FOTO = LEBAR_FOTO * 0.66; // sekitar 3:2
+    const TINGGI_FOTO = LEBAR_FOTO * 0.66; // sekitar 3:2 untuk foto lebar
+    const TINGGI_MAKS_TEGAK = 300;
 
     let kolom = 0;
     let yBaris = y;
@@ -613,34 +620,67 @@ export async function GET(
         gambar = null;
       }
 
+      // Bentuk foto: tegak bila tinggi > lebar (toleransi 5%).
+      const tegak = !!gambar && gambar.height > gambar.width * 1.05;
+
+      // TINGGI BARIS harus diperbarui saat foto tegak memulai baris baru —
+      // kalau tetap memakai TINGGI_FOTO (foto lebar), keterangan foto tegak
+      // tercetak MENIMPA gambarnya.
+      const tinggiBaris = tegak ? Math.min(TINGGI_MAKS_TEGAK, LEBAR_FOTO / (gambar!.width / gambar!.height)) : TINGGI_FOTO;
+
+      // Ukuran gambar di halaman
+      let lebarGambar = LEBAR_FOTO;
+      let tinggiGambar = TINGGI_FOTO;
+      if (gambar) {
+        const rasio = gambar.width / gambar.height; // lebar / tinggi
+        if (tegak) {
+          // Utuh: patuhi rasio aslinya, tinggi dibatasi
+          tinggiGambar = Math.min(TINGGI_MAKS_TEGAK, LEBAR_FOTO / rasio);
+          lebarGambar = tinggiGambar * rasio;
+        } else {
+          // Lebar: penuhi lebar kolom, tinggi mengikuti rasio asli supaya
+          // tidak gepeng — tetapi paling tinggi TINGGI_FOTO.
+          tinggiGambar = Math.min(TINGGI_FOTO, LEBAR_FOTO / rasio);
+        }
+      }
+
+      // Foto tegak selalu mulai di baris baru dan memakai satu baris penuh.
+      if (tegak && kolom !== 0) {
+        kolom = 0;
+        y -= tinggiBaris + 24;
+      }
+
       if (kolom === 0) {
-        pastikanRuang(TINGGI_FOTO + 26);
+        pastikanRuang(tinggiGambar + 26);
         yBaris = y;
       }
 
-      const xFoto = MARGIN_LEFT + 6 + kolom * (LEBAR_FOTO + 12);
+      // Foto tegak diletakkan di tengah kolom kiri (terlihat seimbang)
+      const xFoto = tegak
+        ? MARGIN_LEFT + (LEBAR_KONTEN - lebarGambar) / 2
+        : MARGIN_LEFT + 6 + kolom * (LEBAR_FOTO + 12);
 
       if (gambar) {
         page.drawImage(gambar, {
           x: xFoto,
-          y: yBaris - TINGGI_FOTO,
-          width: LEBAR_FOTO,
-          height: TINGGI_FOTO,
+          y: yBaris - tinggiGambar,
+          width: lebarGambar,
+          height: tinggiGambar,
           opacity: 0.98,
         });
       } else {
         // Foto tidak bisa diunduh: beri kotak kosong supaya tata letak tetap rapi.
         page.drawRectangle({
           x: xFoto,
-          y: yBaris - TINGGI_FOTO,
-          width: LEBAR_FOTO,
-          height: TINGGI_FOTO,
+          y: yBaris - tinggiGambar,
+          width: lebarGambar,
+          height: tinggiGambar,
           borderColor: rgb(0.85, 0.85, 0.85),
           borderWidth: 0.5,
         });
         page.drawText("(foto tidak dapat dimuat)", {
           x: xFoto + 6,
-          y: yBaris - TINGGI_FOTO / 2,
+          y: yBaris - tinggiGambar / 2,
           size: 7,
           font: fontMiring,
           color: rgb(0.6, 0.6, 0.6),
@@ -649,8 +689,8 @@ export async function GET(
 
       // Keterangan di bawah foto
       const ket = f.keterangan ? f.keterangan : "Dokumentasi kegiatan";
-      const barisKet = potongTeks(ket, LEBAR_FOTO, fontBiasa, 6.5);
-      let yKet = yBaris - TINGGI_FOTO - 8;
+      const barisKet = potongTeks(ket, lebarGambar, fontBiasa, 6.5);
+      let yKet = yBaris - tinggiGambar - 8;
       for (const bk of barisKet.slice(0, 2)) {
         page.drawText(bk, {
           x: xFoto,
@@ -662,10 +702,17 @@ export async function GET(
         yKet -= 7.5;
       }
 
+      if (tegak) {
+        // Selesai satu foto tegak: baris berikutnya mulai dari bawahnya
+        kolom = 0;
+        y = yBaris - tinggiGambar - 24;
+        continue;
+      }
+
       kolom += 1;
       if (kolom === 2) {
         kolom = 0;
-        y = yBaris - TINGGI_FOTO - 24;
+        y = yBaris - tinggiGambar - 24;
       }
     }
     if (kolom === 1) y = yBaris - TINGGI_FOTO - 24;
