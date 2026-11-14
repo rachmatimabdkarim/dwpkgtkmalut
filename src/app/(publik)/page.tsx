@@ -89,7 +89,7 @@ export default async function BerandaPublik() {
           style={{
             backgroundImage: fotoBeranda ? `url(${fotoBeranda})` : undefined,
             backgroundSize: "cover",
-            backgroundPosition: "center 42%",
+            backgroundPosition: `${tema.heroFotoPosisiX ?? 50}% ${tema.heroFotoPosisiY ?? 42}%`,
             backgroundColor: fotoBeranda ? undefined : "var(--dasar-700)",
           }}
         >
@@ -352,7 +352,7 @@ export default async function BerandaPublik() {
                       <img
                         src={urlPublik(beritaUtama.gambar_path) ?? ""}
                         alt={beritaUtama.judul}
-                        className="w-full h-full object-cover group-hover:scale-[1.03] transition-transform duration-300"
+                        className="w-full h-full object-cover object-center group-hover:scale-[1.03] transition-transform duration-300"
                       />
                     </div>
                   )}
@@ -464,7 +464,7 @@ export default async function BerandaPublik() {
                 <img
                   src={urlPublik(f.path) ?? ""}
                   alt={f.keterangan ?? "Foto kegiatan DWP"}
-                  className="w-full h-full object-cover bg-brand-800"
+                  className="w-full h-full object-cover object-center bg-brand-800"
                   loading="eager"
                   decoding="async"
                 />

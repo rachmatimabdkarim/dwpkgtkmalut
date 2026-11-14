@@ -99,7 +99,7 @@ export function PilihFotoKegiatan({
                   <img
                     src={foto.url}
                     alt={foto.keterangan ?? "Foto dokumentasi kegiatan"}
-                    className="w-full h-full object-cover"
+                    className="w-full h-full object-cover object-center"
                   />
                 ) : (
                   <div className="w-full h-full flex items-center justify-center text-[12px] text-n-500">

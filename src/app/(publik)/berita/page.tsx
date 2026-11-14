@@ -58,7 +58,7 @@ export default async function HalamanBerita() {
                     <img
                       src={urlPublik(utama.gambar_path) ?? ""}
                       alt={utama.judul}
-                      className="w-full h-full object-cover group-hover:scale-[1.03] transition-transform duration-300"
+                      className="w-full h-full object-cover object-center group-hover:scale-[1.03] transition-transform duration-300"
                     />
                   </div>
                 ) : (
@@ -126,7 +126,7 @@ export default async function HalamanBerita() {
                           <img
                             src={gambar}
                             alt={berita.judul}
-                            className="w-full h-full object-cover group-hover:scale-[1.04] transition-transform duration-300"
+                            className="w-full h-full object-cover object-center group-hover:scale-[1.04] transition-transform duration-300"
                           />
                         </div>
                       ) : (

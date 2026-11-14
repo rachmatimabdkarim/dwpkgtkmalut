@@ -451,6 +451,56 @@ export async function simpanOverlay(nilai: {
   }
 }
 
+/** Menyimpan POSISI (titik fokus) foto besar beranda */
+export async function simpanPosisiFoto(x: number, y: number): Promise<HasilAksi> {
+  try {
+    const pengguna = await periksaSuperAdmin();
+    const sb = await klienServer();
+
+    const posisiX = Math.round(Number(x));
+    const posisiY = Math.round(Number(y));
+    if (!Number.isFinite(posisiX) || posisiX < 0 || posisiX > 100) {
+      return { sukses: false, pesan: "Posisi kiri–kanan harus antara 0 sampai 100." };
+    }
+    if (!Number.isFinite(posisiY) || posisiY < 0 || posisiY > 100) {
+      return { sukses: false, pesan: "Posisi atas–bawah harus antara 0 sampai 100." };
+    }
+
+    const { data: lama } = await sb.from("site_settings").select("*").eq("id", 1).maybeSingle();
+
+    const nilaiBaru = {
+      id: 1,
+      hero_foto_posisi_x: posisiX,
+      hero_foto_posisi_y: posisiY,
+      diperbarui_pada: new Date().toISOString(),
+      diperbarui_oleh: pengguna.id,
+    };
+
+    const { error } = await sb.from("site_settings").upsert(nilaiBaru);
+    if (error) return { sukses: false, pesan: "Gagal menyimpan posisi foto: " + error.message };
+
+    await catatAudit(sb, {
+      jenis: "tampilan",
+      aksi: "simpan_posisi_foto_beranda",
+      keterangan: `Mengubah posisi foto beranda: kiri-kanan ${posisiX}%, atas-bawah ${posisiY}%`,
+      nilaiLama: lama ?? null,
+      nilaiBaru,
+      pelakuId: pengguna.id,
+      pelakuNama: pengguna.nama,
+    });
+
+    bersihkanCacheTema();
+    revalidatePath("/", "layout");
+
+    return { sukses: true, pesan: "Posisi foto beranda berhasil disimpan dan langsung berlaku." };
+  } catch (err) {
+    return {
+      sukses: false,
+      pesan: err instanceof Error ? err.message : "Terjadi kesalahan sistem.",
+    };
+  }
+}
+
 /** Menyimpan atau menghapus logo dan favicon */
 export async function simpanBranding(opsi: {
   logoPath?: string | null;

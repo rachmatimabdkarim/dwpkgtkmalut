@@ -26,6 +26,9 @@ export type TemaSitus = {
   heroFotoPath?: string | null;
   /** URL foto beranda yang sedang dipakai (untuk pratinjau panel) */
   heroFotoUrl?: string | null;
+  /** Titik fokus foto beranda: 0 = kiri/atas, 100 = kanan/bawah */
+  heroFotoPosisiX?: number | null;
+  heroFotoPosisiY?: number | null;
   visi?: string | null;
   /** Satu misi per baris */
   misi?: string | null;
@@ -99,6 +102,8 @@ export const TEMA_BAWAAN: TemaSitus = {
   heroTombol1: "Lihat Agenda Kegiatan",
   heroTombol2: "Kenali Kami",
   heroFotoPath: null,
+  heroFotoPosisiX: 50,
+  heroFotoPosisiY: 42,
   heroOverlayWarna: "#1b4a22",
   heroOverlayPekat: 88,
   heroOverlayArah: "kiri-ke-kanan",

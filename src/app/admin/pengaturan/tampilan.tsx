@@ -21,6 +21,7 @@ import { kompresGambar, buatPersegi, ukuranTerbaca } from "@/lib/berkas-kompres"
 import { klienPeramban } from "@/lib/supabase-peramban";
 import { PengaturWarna } from "./warna-panel";
 import { PengaturOverlay } from "./overlay-panel";
+import { PengaturPosisiFoto } from "./posisi-foto-panel";
 import {
   simpanIdentitas,
   simpanWarna,
@@ -672,8 +673,20 @@ export function FormPengaturanTampilan({ temaAwal }: { temaAwal: TemaSitus }) {
                 )}
               </div>
 
+              {/* Posisi (titik fokus) foto beranda */}
+              <div className="mb-6 mt-5 pt-5 border-t border-n-200">
+                <PengaturPosisiFoto
+                  fotoUrl={fotoBerandaUrl ?? temaAwal.heroFotoUrl ?? null}
+                  nilaiAwal={{
+                    x: temaAwal.heroFotoPosisiX ?? 50,
+                    y: temaAwal.heroFotoPosisiY ?? 42,
+                  }}
+                  judulContoh={identitas.heroJudul || "Bersama Membangun Keluarga Sejahtera"}
+                />
+              </div>
+
               {/* Lapisan & gradasi foto */}
-              <div className="mb-6 mt-5">
+              <div className="mb-6 mt-5 pt-5 border-t border-n-200">
                 <PengaturOverlay
                   fotoUrl={fotoBerandaUrl ?? temaAwal.heroFotoUrl ?? null}
                   nilaiAwal={{

@@ -104,7 +104,7 @@ async function IsiBerita({
           <img
             src={gambar}
             alt={berita.judul}
-            className="w-full max-h-[450px] object-cover"
+            className="w-full max-h-[450px] object-cover object-center"
           />
         </div>
       )}

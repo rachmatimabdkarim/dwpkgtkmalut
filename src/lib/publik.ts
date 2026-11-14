@@ -238,7 +238,7 @@ async function pengaturanSitusAsli(): Promise<TemaSitus> {
       // kosong dan tampilan jatuh ke nilai bawaan.
       .from("public_site_settings")
       .select(
-        "nama_aplikasi, nama_unit, nama_organisasi, warna_utama, warna_dasar, warna_aksen, warna_tombol, warna_halaman, warna_teks, logo_path, favicon_path, alamat, telepon, email, sambutan, profil_singkat, sub_judul_agenda, sub_judul_berita, sub_judul_galeri, sub_judul_unduhan, peta_lintang, peta_bujur, peta_zoom, hero_judul, hero_takbir, hero_ringkasan, hero_tombol1, hero_tombol2, hero_foto_path, hero_overlay_warna, hero_overlay_pekat, hero_overlay_arah, hero_overlay_bentuk, visi, misi, bidang_1_nama, bidang_1_isi, bidang_2_nama, bidang_2_isi, bidang_3_nama, bidang_3_isi",
+        "nama_aplikasi, nama_unit, nama_organisasi, warna_utama, warna_dasar, warna_aksen, warna_tombol, warna_halaman, warna_teks, logo_path, favicon_path, alamat, telepon, email, sambutan, profil_singkat, sub_judul_agenda, sub_judul_berita, sub_judul_galeri, sub_judul_unduhan, peta_lintang, peta_bujur, peta_zoom, hero_judul, hero_takbir, hero_ringkasan, hero_tombol1, hero_tombol2, hero_foto_path, hero_foto_posisi_x, hero_foto_posisi_y, hero_overlay_warna, hero_overlay_pekat, hero_overlay_arah, hero_overlay_bentuk, visi, misi, bidang_1_nama, bidang_1_isi, bidang_2_nama, bidang_2_isi, bidang_3_nama, bidang_3_isi",
       )
       .limit(1)
       .maybeSingle();
@@ -276,6 +276,8 @@ async function pengaturanSitusAsli(): Promise<TemaSitus> {
       heroTombol1: data.hero_tombol1 || TEMA_BAWAAN.heroTombol1,
       heroTombol2: data.hero_tombol2 || TEMA_BAWAAN.heroTombol2,
       heroFotoPath: data.hero_foto_path ?? null,
+      heroFotoPosisiX: data.hero_foto_posisi_x ?? TEMA_BAWAAN.heroFotoPosisiX,
+      heroFotoPosisiY: data.hero_foto_posisi_y ?? TEMA_BAWAAN.heroFotoPosisiY,
       heroOverlayWarna: data.hero_overlay_warna || TEMA_BAWAAN.heroOverlayWarna,
       heroOverlayPekat: data.hero_overlay_pekat ?? TEMA_BAWAAN.heroOverlayPekat,
       heroOverlayArah: data.hero_overlay_arah || TEMA_BAWAAN.heroOverlayArah,
