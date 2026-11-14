@@ -4,6 +4,7 @@ import { sesiWajibPeran } from "@/lib/sesi-server";
 import { Lencana } from "@/components/dasar";
 import { KelolaPengurus } from "./kelola";
 import { klienServer } from "@/lib/supabase-server";
+import { urlPublik } from "@/lib/publik";
 
 export const metadata = { title: "Pengurus · SI-ANGGUN" };
 export const instant = false;
@@ -16,6 +17,8 @@ type BarisPengurus = {
   urutan: number;
   email: string | null;
   profile_id: string | null;
+  /** Path foto profil; kosong = tanpa foto */
+  foto_path?: string | null;
   /** Kosong = belum pernah mengganti sandi sendiri */
   sandi_diganti_pada?: string | null;
   sandi_diatur_ulang_pada?: string | null;
@@ -33,7 +36,7 @@ export default async function HalamanPengurus() {
 
   const { data } = await sb
     .from("officers")
-    .select("id, nama, bidang, jabatan, urutan, email, profile_id")
+    .select("id, nama, bidang, jabatan, urutan, email, profile_id, foto_path")
     .order("urutan");
   const daftar: BarisPengurus[] = data ?? [];
 
@@ -51,6 +54,7 @@ export default async function HalamanPengurus() {
   }
   const daftarLengkap: BarisPengurus[] = daftar.map((d) => ({
     ...d,
+    foto_url: urlPublik(d.foto_path),
     sandi_diganti_pada: d.profile_id ? (peta[d.profile_id]?.ganti ?? null) : null,
     sandi_diatur_ulang_pada: d.profile_id ? (peta[d.profile_id]?.atur ?? null) : null,
   }));

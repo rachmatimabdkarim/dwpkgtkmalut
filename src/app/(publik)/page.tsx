@@ -171,12 +171,22 @@ export default async function BerandaPublik() {
               {tema.sambutan}
             </p>
             <div className="flex items-center gap-3.5">
-              <div
-                className="h-12 w-12 rounded-full flex items-center justify-center font-extrabold text-[16px] shrink-0"
-                style={{ backgroundColor: "var(--dasar-600)", color: "var(--dasar-teks)" }}
-              >
-                {(ketua?.nama ?? tema.namaOrganisasi).replace(/^Ny\.\s*/i, "").slice(0, 2).toUpperCase()}
-              </div>
+              {ketua?.foto_url ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={ketua.foto_url}
+                  alt={`Foto ${ketua.nama}`}
+                  className="h-12 w-12 rounded-full object-cover shrink-0"
+                  style={{ border: "2px solid var(--dasar-600)" }}
+                />
+              ) : (
+                <div
+                  className="h-12 w-12 rounded-full flex items-center justify-center font-extrabold text-[16px] shrink-0"
+                  style={{ backgroundColor: "var(--dasar-600)", color: "var(--dasar-teks)" }}
+                >
+                  {(ketua?.nama ?? tema.namaOrganisasi).replace(/^Ny\.\s*/i, "").slice(0, 2).toUpperCase()}
+                </div>
+              )}
               <div>
                 <p className="font-bold text-[15.5px]" style={{ color: "var(--dasar-700)" }}>
                   {ketua?.nama ?? "Ketua DWP Kantor GTK Malut"}

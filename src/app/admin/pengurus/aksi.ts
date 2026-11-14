@@ -166,6 +166,96 @@ export async function ubahPengurus(masukan: {
   }
 }
 
+/** Menyimpan atau menghapus foto profil pengurus.
+ *
+ * Foto dipakai di dua tempat sekaligus: beranda web publik dan struktur
+ * organisasi di halaman Profil. Karena keduanya membaca view public_officers,
+ * menyimpan path di sini langsung memperbarui keduanya.
+ *
+ * Yang disimpan HANYA path berkas (bukan alamat penuh) supaya alamat
+ * penyimpanan bisa berubah tanpa menyentuh data pengurus.
+ * Pembersihan berkas lama selalu mencoba dulu, dan kegagalannya tidak
+ * membatalkan penyimpanan — foto baru yang tampil jauh lebih penting
+ * daripada satu berkas lama yang tertinggal.
+ */
+export async function simpanFotoPengurus(masukan: {
+  id: string;
+  /** Path berkas baru. Kirim null/undefined bila foto tidak diubah. */
+  fotoPath?: string | null;
+  /** true = hapus foto yang ada. */
+  hapus?: boolean;
+}): Promise<HasilAksi> {
+  const izin = await pastikanBerhak();
+  if ("galat" in izin) return { galat: izin.galat };
+  const sb = await klienServer();
+
+  try {
+    const { data: lama, error: gagalBaca } = await sb
+      .from("officers")
+      .select("nama, foto_path")
+      .eq("id", masukan.id)
+      .maybeSingle<{ nama: string; foto_path: string | null }>();
+    if (gagalBaca) return { galat: "Gagal membaca data pengurus: " + gagalBaca.message };
+    if (!lama) return { galat: "Pengurus tidak ditemukan." };
+
+    let target: string | null = lama.foto_path;
+
+    if (masukan.hapus) {
+      target = null;
+    } else if (masukan.fotoPath) {
+      // Hanya izinkan path di folder pengurus/ pada bucket publik.
+      const path = masukan.fotoPath.trim();
+      if (!path.startsWith("pengurus/") || path.includes("..")) {
+        return { galat: "Berkas foto tidak dikenali. Unggah ulang fotonya." };
+      }
+      target = path;
+    } else {
+      return { galat: "Tidak ada foto yang dikirim." };
+    }
+
+    const { error } = await sb
+      .from("officers")
+      .update({ foto_path: target })
+      .eq("id", masukan.id);
+    if (error) return { galat: "Gagal menyimpan foto: " + error.message };
+
+    // Bukti tersimpan: baca ulang. Pesan berhasil tanpa baca ulang pernah
+    // menipu di proyek ini, jadi hasilnya dipastikan dari data.
+    const { data: cek } = await sb
+      .from("officers")
+      .select("foto_path")
+      .eq("id", masukan.id)
+      .maybeSingle<{ foto_path: string | null }>();
+    if ((cek?.foto_path ?? null) !== target) {
+      return { galat: "Foto belum tersimpan. Coba sekali lagi." };
+    }
+
+    // Bersihkan berkas lama setelah data tersimpan.
+    if (lama.foto_path && lama.foto_path !== target) {
+      try {
+        await sb.storage.from("publik").remove([lama.foto_path]);
+        await sb.from("attachments").delete().eq("path", lama.foto_path);
+      } catch (e) {
+        console.error("Gagal menghapus foto lama pengurus:", e);
+      }
+    }
+
+    await catatAudit(
+      sb,
+      izin.pengguna,
+      masukan.hapus ? "hapus_foto_pengurus" : "unggah_foto_pengurus",
+      `${masukan.hapus ? "Menghapus" : "Mengunggah"} foto profil: ${lama.nama}`,
+    );
+
+    revalidatePath("/admin/pengurus");
+    revalidatePath("/profil");
+    revalidatePath("/");
+    return { ok: true };
+  } catch (e) {
+    return { galat: e instanceof Error ? e.message : "Terjadi kesalahan." };
+  }
+}
+
 /** Menghapus pengurus dari daftar. */
 export async function hapusPengurus(id: string): Promise<HasilAksi> {
   const izin = await pastikanBerhak();

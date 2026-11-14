@@ -18,7 +18,17 @@ import {
   Lencana,
   JudulSeksi,
 } from "@/components/dasar";
-import { tambahPengurus, ubahPengurus, hapusPengurus, buatkanAkun, aturUlangSandi } from "./aksi";
+import { KotakUnggah, RingkasanKompresi, type BerkasTerpilih } from "@/components/kotak-unggah";
+import { kompresGambar, ukuranTerbaca } from "@/lib/berkas-kompres";
+import { klienPeramban } from "@/lib/supabase-peramban";
+import {
+  tambahPengurus,
+  ubahPengurus,
+  hapusPengurus,
+  buatkanAkun,
+  aturUlangSandi,
+  simpanFotoPengurus,
+} from "./aksi";
 
 export type BarisPengurus = {
   id: string;
@@ -28,6 +38,10 @@ export type BarisPengurus = {
   urutan: number;
   email: string | null;
   profile_id: string | null;
+  /** Path foto profil; kosong = tanpa foto, tampil inisial */
+  foto_path?: string | null;
+  /** Alamat foto yang siap ditampilkan */
+  foto_url?: string | null;
   sandi_diganti_pada?: string | null;
   sandi_diatur_ulang_pada?: string | null;
 };
@@ -65,6 +79,7 @@ type Mode =
   | { jenis: "ubah"; data: BarisPengurus }
   | { jenis: "akun"; data: BarisPengurus }
   | { jenis: "sandi"; data: BarisPengurus }
+  | { jenis: "foto"; data: BarisPengurus }
   | { jenis: "sandiHasil"; data: BarisPengurus; sandi: string };
 
 export function KelolaPengurus({
@@ -82,6 +97,11 @@ export function KelolaPengurus({
   const [menu, setMenu] = useState<string | null>(null);
   const [sedang, mulai] = useTransition();
   const router = useRouter();
+
+  // Keadaan unggah foto profil
+  const [sedangFoto, setSedangFoto] = useState(false);
+  const [ringkasanFoto, setRingkasanFoto] = useState<BerkasTerpilih[]>([]);
+  const [pesanFoto, setPesanFoto] = useState<{ jenis: "ok" | "bad"; teks: string } | null>(null);
 
   function tutup() {
     setMode({ jenis: "tutup" });
@@ -156,6 +176,98 @@ export function KelolaPengurus({
         return;
       }
       setMode({ jenis: "sandiHasil", data: o, sandi: hasil.sandi ?? "" });
+      router.refresh();
+    });
+  }
+
+  /** Mengunggah foto profil pengurus. Foto dipotong persegi, dikecilkan,
+   *  lalu langsung tersambung ke beranda & struktur organisasi publik. */
+  async function handlePilihFoto(daftar: File[]) {
+    if (mode.jenis !== "foto") return;
+    const berkas = daftar[0];
+    if (!berkas) return;
+
+    setSedangFoto(true);
+    setPesanFoto(null);
+
+    try {
+      const hasil = await kompresGambar(berkas, "foto_profil");
+
+      const sb = klienPeramban();
+      const ekstensi = hasil.berkas.name.split(".").pop() || "jpg";
+      const pathTujuan = `pengurus/${mode.data.id}-${Date.now()}.${ekstensi}`;
+
+      const { error: gagalUnggah } = await sb.storage.from("publik").upload(pathTujuan, hasil.berkas, {
+        upsert: true,
+        contentType: hasil.berkas.type,
+      });
+      if (gagalUnggah) {
+        throw new Error("Gagal mengunggah foto: " + gagalUnggah.message);
+      }
+
+      // Daftarkan ke tabel attachments (aturan aplikasi: setiap unggahan tercatat).
+      await sb.from("attachments").insert({
+        bucket: "publik",
+        path: pathTujuan,
+        nama_asli: berkas.name,
+        tipe_mime: hasil.berkas.type,
+        ukuran_byte: hasil.ukuranHasil,
+        hash_sha256: hasil.hash,
+        visibilitas: "publik",
+        status: "resmi",
+        entitas: "pengurus",
+        entitas_id: mode.data.id,
+        keterangan: `Foto profil pengurus: ${mode.data.nama}`,
+      });
+
+      const simpan = await simpanFotoPengurus({ id: mode.data.id, fotoPath: pathTujuan });
+      if (simpan.galat) throw new Error(simpan.galat);
+
+      const urlBaru = sb.storage.from("publik").getPublicUrl(pathTujuan).data.publicUrl;
+      setRingkasanFoto([
+        {
+          id: pathTujuan,
+          nama: berkas.name,
+          ukuranAsli: berkas.size,
+          ukuranHasil: hasil.ukuranHasil,
+          url: urlBaru,
+          bolehPublik: true,
+        },
+      ]);
+      setPesanFoto({
+        jenis: "ok",
+        teks: `Foto ${mode.data.nama} tersimpan (${ukuranTerbaca(hasil.ukuranAsli)} → ${ukuranTerbaca(
+          hasil.ukuranHasil,
+        )}). Foto ini langsung tampil di beranda dan struktur organisasi.`,
+      });
+      router.refresh();
+    } catch (e) {
+      setPesanFoto({
+        jenis: "bad",
+        teks: e instanceof Error ? e.message : "Foto gagal diunggah.",
+      });
+    } finally {
+      setSedangFoto(false);
+    }
+  }
+
+  function konfirmasiHapusFoto(o: BarisPengurus) {
+    const lanjut = window.confirm(
+      `Hapus foto ${o.nama}?\n\nFoto akan hilang dari beranda dan struktur organisasi, ` +
+        `lalu diganti inisial nama.`,
+    );
+    if (!lanjut) return;
+    setSedangFoto(true);
+    setPesanFoto(null);
+    mulai(async () => {
+      const hasil = await simpanFotoPengurus({ id: o.id, hapus: true });
+      setSedangFoto(false);
+      if (hasil.galat) {
+        setPesanFoto({ jenis: "bad", teks: hasil.galat });
+        return;
+      }
+      setRingkasanFoto([]);
+      setPesanFoto({ jenis: "ok", teks: `Foto ${o.nama} sudah dihapus.` });
       router.refresh();
     });
   }
@@ -321,6 +433,65 @@ export function KelolaPengurus({
         </Kartu>
       )}
 
+      {/* Form foto profil */}
+      {bolehUbah && mode.jenis === "foto" && (
+        <Kartu className="p-5 mb-5">
+          <h3 className="judul-3 text-n-900 mb-1">Foto Profil</h3>
+          <p className="teks-3 text-n-500 mb-4">
+            Untuk {mode.data.nama} — {mode.data.jabatan}
+          </p>
+
+          <div className="flex flex-wrap items-center gap-5 mb-4">
+            {(ringkasanFoto[0]?.url ?? mode.data.foto_url) ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={(ringkasanFoto[0]?.url ?? mode.data.foto_url) as string}
+                alt={`Foto ${mode.data.nama}`}
+                className="h-24 w-24 rounded-full object-cover border border-n-200"
+              />
+            ) : (
+              <div className="h-24 w-24 rounded-full bg-brand-50 text-brand-700 flex items-center justify-center text-[28px] font-semibold">
+                {mode.data.nama.replace(/^Ny\.\s*/i, "").slice(0, 1).toUpperCase()}
+              </div>
+            )}
+            <div className="flex-1 min-w-[240px]">
+              <KotakUnggah
+                label={mode.data.foto_path ? "Ganti foto" : "Pilih foto"}
+                keterangan="Foto persegi paling rapi. Berkas dikecilkan otomatis sebelum diunggah."
+                terima="image/*"
+                onPilih={handlePilihFoto}
+                sedang={sedangFoto}
+              />
+            </div>
+          </div>
+
+          <RingkasanKompresi daftar={ringkasanFoto} />
+
+          {pesanFoto && (
+            <p
+              className={`mt-3 text-[14px] px-3 py-2 rounded-token border ${
+                pesanFoto.jenis === "ok"
+                  ? "text-ok-700 bg-ok-50 border-ok-200"
+                  : "text-bahaya-700 bg-bahaya-50 border-bahaya-200"
+              }`}
+            >
+              {pesanFoto.teks}
+            </p>
+          )}
+
+          <div className="flex flex-wrap gap-3 mt-4">
+            {mode.data.foto_path && (
+              <TombolSekunder type="button" disabled={sedangFoto} onClick={() => konfirmasiHapusFoto(mode.data)}>
+                Hapus foto
+              </TombolSekunder>
+            )}
+            <TombolSekunder type="button" onClick={tutup}>
+              Tutup
+            </TombolSekunder>
+          </div>
+        </Kartu>
+      )}
+
       {/* Hasil pengaturan ulang sandi — ditampilkan SEKALI */}
       {mode.jenis === "sandiHasil" && (
         <Kartu className="p-5 mb-5 border-brand-300">
@@ -404,9 +575,18 @@ export function KelolaPengurus({
                       i > 0 ? "border-t border-n-100" : ""
                     }`}
                   >
-                    <div className="h-9 w-9 rounded-full bg-brand-50 text-brand-700 flex items-center justify-center text-[13px] font-semibold shrink-0">
-                      {o.nama.replace(/^Ny\.\s*/i, "").slice(0, 1).toUpperCase()}
-                    </div>
+                    {o.foto_url ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={o.foto_url}
+                        alt={`Foto ${o.nama}`}
+                        className="h-9 w-9 rounded-full object-cover shrink-0 border border-n-200"
+                      />
+                    ) : (
+                      <div className="h-9 w-9 rounded-full bg-brand-50 text-brand-700 flex items-center justify-center text-[13px] font-semibold shrink-0">
+                        {o.nama.replace(/^Ny\.\s*/i, "").slice(0, 1).toUpperCase()}
+                      </div>
+                    )}
 
                     <div className="flex-1 min-w-0">
                       <p className="text-n-800 font-medium truncate">{o.nama}</p>
@@ -454,6 +634,21 @@ export function KelolaPengurus({
                                 className="w-full text-left px-4 min-h-[44px] text-[14px] text-n-700 hover:bg-n-50"
                               >
                                 Ubah data
+                              </button>
+
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setPesan(null);
+                                  setSukses(null);
+                                  setPesanFoto(null);
+                                  setRingkasanFoto([]);
+                                  setMenu(null);
+                                  setMode({ jenis: "foto", data: o });
+                                }}
+                                className="w-full text-left px-4 min-h-[44px] text-[14px] text-n-700 hover:bg-n-50"
+                              >
+                                {o.foto_path ? "Ubah foto" : "Unggah foto"}
                               </button>
 
                               {!o.profile_id && (

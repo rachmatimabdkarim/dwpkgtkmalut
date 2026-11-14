@@ -73,6 +73,8 @@ export type PengurusPublik = {
   jabatan: string;
   email: string | null;
   urutan: number;
+  /** Alamat foto profil (sudah siap tampil); null = tanpa foto */
+  foto_url?: string | null;
 };
 
 
@@ -299,13 +301,22 @@ async function daftarPengurusAsli(): Promise<PengurusPublik[]> {
     const sb = klienPublik();
     const { data, error } = await sb
       .from("public_officers")
-      .select("nama, bidang, jabatan, email, urutan")
+      .select("nama, bidang, jabatan, email, urutan, foto_path")
       .order("urutan", { ascending: true });
 
     if (error || !data || data.length === 0) {
       return [];
     }
-    return data as PengurusPublik[];
+    // Path penyimpanan diubah menjadi alamat tampil di sini, sekali saja,
+    // supaya beranda dan halaman Profil memakai bentuk yang sama.
+    return (data as (PengurusPublik & { foto_path?: string | null })[]).map((o) => ({
+      nama: o.nama,
+      bidang: o.bidang,
+      jabatan: o.jabatan,
+      email: o.email,
+      urutan: o.urutan,
+      foto_url: urlPublik(o.foto_path),
+    }));
   } catch {
     return [];
   }

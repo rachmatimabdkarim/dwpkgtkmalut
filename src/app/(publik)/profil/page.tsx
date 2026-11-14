@@ -62,12 +62,22 @@ export default async function HalamanProfil() {
             className="rounded-[18px] p-7 text-center"
             style={{ backgroundColor: "var(--halaman)", border: "1px solid var(--dasar-100)" }}
           >
-            <div
-              className="h-20 w-20 rounded-full mx-auto flex items-center justify-center font-extrabold text-[24px] mb-4"
-              style={{ backgroundColor: "var(--dasar-700)", color: "var(--dasar-teks)" }}
-            >
-              {ketua.nama.replace(/^Ny\.\s*/i, "").slice(0, 2).toUpperCase()}
-            </div>
+            {ketua.foto_url ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={ketua.foto_url}
+                alt={`Foto ${ketua.nama}`}
+                className="h-20 w-20 rounded-full object-cover mx-auto mb-4"
+                style={{ border: "3px solid var(--dasar-700)" }}
+              />
+            ) : (
+              <div
+                className="h-20 w-20 rounded-full mx-auto flex items-center justify-center font-extrabold text-[24px] mb-4"
+                style={{ backgroundColor: "var(--dasar-700)", color: "var(--dasar-teks)" }}
+              >
+                {ketua.nama.replace(/^Ny\.\s*/i, "").slice(0, 2).toUpperCase()}
+              </div>
+            )}
             <p className="text-[12.5px] font-bold tracking-[0.12em] uppercase mb-2" style={{ color: "var(--aksen-700)" }}>
               Ketua
             </p>
@@ -162,12 +172,22 @@ export default async function HalamanProfil() {
                         className="px-6 py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-2"
                       >
                         <div className="flex items-center gap-3.5 min-w-0">
-                          <div
-                            className="h-11 w-11 rounded-full font-extrabold text-[15px] flex items-center justify-center shrink-0"
-                            style={{ backgroundColor: "var(--dasar-50)", color: "var(--dasar-700)" }}
-                          >
-                            {inisial}
-                          </div>
+                          {orang.foto_url ? (
+                            // eslint-disable-next-line @next/next/no-img-element
+                            <img
+                              src={orang.foto_url}
+                              alt={`Foto ${orang.nama}`}
+                              className="h-11 w-11 rounded-full object-cover shrink-0"
+                              style={{ border: "2px solid var(--dasar-100)" }}
+                            />
+                          ) : (
+                            <div
+                              className="h-11 w-11 rounded-full font-extrabold text-[15px] flex items-center justify-center shrink-0"
+                              style={{ backgroundColor: "var(--dasar-50)", color: "var(--dasar-700)" }}
+                            >
+                              {inisial}
+                            </div>
+                          )}
                           <div className="min-w-0">
                             <p className="font-bold text-[15px] truncate" style={{ color: "var(--dasar-700)" }}>
                               {orang.nama}
