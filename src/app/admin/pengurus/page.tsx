@@ -22,6 +22,9 @@ type BarisPengurus = {
   /** Kosong = belum pernah mengganti sandi sendiri */
   sandi_diganti_pada?: string | null;
   sandi_diatur_ulang_pada?: string | null;
+  /** SEMUA peran akun ini (mis. ['sekretaris','editor']).
+   *  Dipakai untuk menampilkan penanda Editor dan tombol pasang/lepasnya. */
+  peran?: string[];
 };
 
 export default async function HalamanPengurus() {
@@ -52,9 +55,19 @@ export default async function HalamanPengurus() {
   }[]) {
     peta[s.id] = { ganti: s.sandi_diganti_pada, atur: s.sandi_diatur_ulang_pada };
   }
+  // Peran tiap akun — dasar penanda Editor dan tombol pasang/lepas peran.
+  const { data: semuaPeran } = await sb.from("user_roles").select("user_id, peran");
+  const petaPeran: Record<string, string[]> = {};
+  for (const r of (semuaPeran ?? []) as { user_id: string; peran: string }[]) {
+    (petaPeran[r.user_id] ??= []).push(r.peran);
+  }
+  // Hanya Super Admin yang boleh menunjuk/melepas Editor.
+  const bolehAturEditor = pengguna.peran.includes("super_admin");
+
   const daftarLengkap: BarisPengurus[] = daftar.map((d) => ({
     ...d,
     foto_url: urlPublik(d.foto_path),
+    peran: d.profile_id ? [...(petaPeran[d.profile_id] ?? [])].sort() : [],
     sandi_diganti_pada: d.profile_id ? (peta[d.profile_id]?.ganti ?? null) : null,
     sandi_diatur_ulang_pada: d.profile_id ? (peta[d.profile_id]?.atur ?? null) : null,
   }));
@@ -91,6 +104,7 @@ export default async function HalamanPengurus() {
         daftar={daftarLengkap}
         bolehUbah={bolehUbah}
         bolehResetSandi={bolehResetSandi}
+        bolehAturEditor={bolehAturEditor}
       />
 
       {/* Keterangan masa bakti, satu tempat */}

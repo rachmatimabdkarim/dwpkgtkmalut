@@ -256,6 +256,111 @@ export async function simpanFotoPengurus(masukan: {
   }
 }
 
+/** Mengatur peran EDITOR KONTEN untuk pengurus yang sudah punya akun.
+ *
+ * Permintaan pemilik: Super Admin menunjuk siapa saja yang boleh meninjau dan
+ * menerbitkan berita (peran Editor). Aturan yang berlaku:
+ *  • HANYA Super Admin — berbeda dari aksi pengurus lain yang juga boleh
+ *    dijalankan Ketua/Wakil/Sekretaris/Bendahara.
+ *  • Peran editor DITAMBAH atau DILEPAS, tanpa menyentuh peran lain milik
+ *    orang itu. Sekretaris yang ditunjuk menjadi editor tetap Sekretaris —
+ *    jabatannya tidak boleh hilang karena penunjukan ini.
+ *  • Peran editor milik Super Admin sendiri tidak boleh dilepas (kalau tidak,
+ *    tidak ada lagi yang bisa mengatur; super_admin memang memegang semua hak).
+ *  • Setiap penunjukan dan pelepasan dicatat di audit + activity_logs tidak
+ *    berlaku di sini karena ini bukan kegiatan; audit_logs yang dipakai.
+ */
+export async function aturPeranEditor(masukan: {
+  officerId: string;
+  /** true = pasang peran editor, false = lepas */
+  pasang: boolean;
+}): Promise<HasilAksi & { nama?: string; peran?: string[] }> {
+  const pengguna = await penggunaSaatIni();
+  if (!pengguna) return { galat: "Sesi Anda sudah berakhir. Silakan masuk kembali." };
+  if (!pengguna.peran.includes("super_admin")) {
+    return { galat: "Hanya Super Admin yang dapat mengatur peran Editor." };
+  }
+  const sb = await klienServer();
+
+  try {
+    const { data: orang, error: gagalBaca } = await sb
+      .from("officers")
+      .select("id, nama, profile_id")
+      .eq("id", masukan.officerId)
+      .maybeSingle<{ id: string; nama: string; profile_id: string | null }>();
+    if (gagalBaca) return { galat: "Gagal membaca data pengurus: " + gagalBaca.message };
+    if (!orang) return { galat: "Pengurus tidak ditemukan." };
+    if (!orang.profile_id) {
+      return { galat: `${orang.nama} belum punya akun. Buatkan akun lebih dulu.` };
+    }
+
+    const { data: barisPeran, error: gagalPeran } = await sb
+      .from("user_roles")
+      .select("peran")
+      .eq("user_id", orang.profile_id);
+    if (gagalPeran) return { galat: "Gagal membaca peran: " + gagalPeran.message };
+
+    const sekarang = (barisPeran ?? []).map((r) => r.peran as string);
+    const sudahEditor = sekarang.includes("editor");
+    const adalahSuperAdmin = sekarang.includes("super_admin");
+
+    if (masukan.pasang && sudahEditor) {
+      return { galat: `${orang.nama} sudah memegang peran Editor.` };
+    }
+    if (!masukan.pasang && !sudahEditor) {
+      return { galat: `${orang.nama} memang tidak memegang peran Editor.` };
+    }
+    if (!masukan.pasang && adalahSuperAdmin) {
+      return {
+        galat:
+          "Peran Editor milik Super Admin tidak dapat dilepas lewat menu ini. " +
+          "Super Admin selalu memegang semua hak.",
+      };
+    }
+
+    if (masukan.pasang) {
+      const { error } = await sb
+        .from("user_roles")
+        .upsert({ user_id: orang.profile_id, peran: "editor" });
+      if (error) return { galat: "Gagal memasang peran Editor: " + error.message };
+    } else {
+      const { data: terhapus, error } = await sb
+        .from("user_roles")
+        .delete()
+        .eq("user_id", orang.profile_id)
+        .eq("peran", "editor")
+        .select("peran");
+      if (error) return { galat: "Gagal melepas peran Editor: " + error.message };
+      if (!terhapus || terhapus.length === 0) {
+        return { galat: "Peran Editor tidak berubah. Periksa hak akses Anda." };
+      }
+    }
+
+    // Bukti perubahan dibaca ulang dari data, bukan dari pesan berhasil.
+    const { data: cek } = await sb
+      .from("user_roles")
+      .select("peran")
+      .eq("user_id", orang.profile_id);
+    const peranSesudah = (cek ?? []).map((r) => r.peran as string);
+    if (peranSesudah.includes("editor") !== masukan.pasang) {
+      return { galat: "Peran Editor belum berubah. Coba sekali lagi." };
+    }
+
+    await catatAudit(
+      sb,
+      pengguna,
+      masukan.pasang ? "pasang_editor" : "lepas_editor",
+      `${masukan.pasang ? "Menunjuk" : "Melepas"} ${orang.nama} sebagai Editor Konten`,
+    );
+
+    revalidatePath("/admin/pengurus");
+    revalidatePath("/admin");
+    return { ok: true, nama: orang.nama, peran: peranSesudah.sort() };
+  } catch (e) {
+    return { galat: e instanceof Error ? e.message : "Terjadi kesalahan." };
+  }
+}
+
 /** Menghapus pengurus dari daftar. */
 export async function hapusPengurus(id: string): Promise<HasilAksi> {
   const izin = await pastikanBerhak();

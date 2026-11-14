@@ -28,6 +28,7 @@ import {
   buatkanAkun,
   aturUlangSandi,
   simpanFotoPengurus,
+  aturPeranEditor,
 } from "./aksi";
 
 export type BarisPengurus = {
@@ -42,6 +43,8 @@ export type BarisPengurus = {
   foto_path?: string | null;
   /** Alamat foto yang siap ditampilkan */
   foto_url?: string | null;
+  /** Semua peran akun ini, mis. ['sekretaris','editor'] */
+  peran?: string[];
   sandi_diganti_pada?: string | null;
   sandi_diatur_ulang_pada?: string | null;
 };
@@ -86,10 +89,13 @@ export function KelolaPengurus({
   daftar,
   bolehUbah,
   bolehResetSandi,
+  bolehAturEditor,
 }: {
   daftar: BarisPengurus[];
   bolehUbah: boolean;
   bolehResetSandi: boolean;
+  /** Hanya Super Admin yang boleh menunjuk/melepas peran Editor */
+  bolehAturEditor: boolean;
 }) {
   const [mode, setMode] = useState<Mode>({ jenis: "tutup" });
   const [pesan, setPesan] = useState<string | null>(null);
@@ -268,6 +274,37 @@ export function KelolaPengurus({
       }
       setRingkasanFoto([]);
       setPesanFoto({ jenis: "ok", teks: `Foto ${o.nama} sudah dihapus.` });
+      router.refresh();
+    });
+  }
+
+  /** Menunjuk atau melepas peran Editor Konten (khusus Super Admin).
+   *
+   * Peran lain milik orang itu tidak disentuh: Sekretaris yang ditunjuk tetap
+   * Sekretaris, hanya bertambah hak meninjau berita.
+   */
+  function aturEditor(o: BarisPengurus, pasang: boolean) {
+    setMenu(null);
+    setPesan(null);
+    setSukses(null);
+    const akibat = pasang
+      ? `Tunjuk ${o.nama} sebagai Editor Konten?\n\n` +
+        `Ia akan bisa membuka menu Konten, meninjau, dan menerbitkan berita. ` +
+        `Peran lainnya tetap seperti sekarang.`
+      : `Lepas peran Editor Konten dari ${o.nama}?\n\n` +
+        `Ia tidak lagi bisa membuka menu Konten. Peran lainnya tidak berubah.`;
+    if (!window.confirm(akibat)) return;
+    mulai(async () => {
+      const hasil = await aturPeranEditor({ officerId: o.id, pasang });
+      if (hasil.galat) {
+        setPesan(hasil.galat);
+        return;
+      }
+      setSukses(
+        pasang
+          ? `${o.nama} sekarang bisa meninjau dan menerbitkan berita.`
+          : `Peran Editor ${o.nama} sudah dilepas.`,
+      );
       router.refresh();
     });
   }
@@ -602,6 +639,10 @@ export function KelolaPengurus({
                       {o.profile_id ? "Punya akun" : "Belum berakun"}
                     </Lencana>
 
+                    {(o.peran ?? []).includes("editor") && (
+                      <Lencana nada="brand">Editor</Lencana>
+                    )}
+
                     {bolehUbah && (
                       <div className="relative shrink-0">
                         <button
@@ -663,6 +704,20 @@ export function KelolaPengurus({
                                   className="w-full text-left px-4 min-h-[44px] text-[14px] text-n-700 hover:bg-n-50"
                                 >
                                   Buatkan akun
+                                </button>
+                              )}
+
+                              {/* Peran Editor: hanya muncul untuk Super Admin
+                                  dan hanya bila orangnya sudah punya akun. */}
+                              {bolehAturEditor && o.profile_id && (
+                                <button
+                                  type="button"
+                                  onClick={() => aturEditor(o, !(o.peran ?? []).includes("editor"))}
+                                  className="w-full text-left px-4 min-h-[44px] text-[14px] text-n-700 hover:bg-n-50"
+                                >
+                                  {(o.peran ?? []).includes("editor")
+                                    ? "Lepas peran Editor"
+                                    : "Jadikan Editor Konten"}
                                 </button>
                               )}
 
