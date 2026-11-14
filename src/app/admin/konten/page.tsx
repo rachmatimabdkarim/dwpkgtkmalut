@@ -12,6 +12,8 @@ import {
   type ItemFotoGaleri,
 } from "./antrean";
 import { PanelUnduhan, type ItemDokumen } from "./dokumen";
+import type { FotoLaporan } from "@/components/pilih-foto-kegiatan";
+import { urlPublik } from "./antrean";
 
 export const metadata = { title: "Konten · SI-ANGGUN" };
 
@@ -115,6 +117,37 @@ export default async function HalamanKonten({
         : null,
     }),
   );
+
+  // Foto dokumentasi kegiatan — SATU-SATUNYA sumber gambar sampul berita.
+  // Diambil sekali di sini lalu diberikan ke formulir, supaya formulir tidak
+  // mengunggah gambar sendiri (aturan pemilik).
+  const { data: dataFotoLaporan } = await sb
+    .from("attachments")
+    .select("path, keterangan, entitas_id, activities:entitas_id (judul)")
+    .eq("bucket", "publik")
+    .eq("status", "resmi")
+    .eq("visibilitas", "publik")
+    .eq("kategori", "foto_kegiatan")
+    .not("entitas_id", "is", null)
+    .order("diunggah_pada", { ascending: false });
+
+  type RawFotoLaporan = {
+    path: string;
+    keterangan: string | null;
+    entitas_id: string | null;
+    activities: { judul: string } | null;
+  };
+
+  const fotoLaporan: FotoLaporan[] = (
+    (dataFotoLaporan ?? []) as unknown as RawFotoLaporan[]
+  ).map((f) => ({
+    path: f.path,
+    url: urlPublik(f.path),
+    keterangan: f.keterangan,
+    kegiatan: f.activities?.judul ?? "Kegiatan",
+    kegiatanId: f.entitas_id,
+    dariKegiatanIni: false,
+  }));
 
   const jumlahAntrean = daftarAntrean.length;
 
@@ -231,7 +264,11 @@ export default async function HalamanKonten({
 
       {/* Konten sesuai tab aktif */}
       {tabAktif === "berita" && (
-        <DaftarBerita semuaBerita={daftarBerita} bukaFormAwal={tambah === "1"} />
+        <DaftarBerita
+          semuaBerita={daftarBerita}
+          bukaFormAwal={tambah === "1"}
+          fotoLaporan={fotoLaporan}
+        />
       )}
 
       {tabAktif === "antrean" && <AntreanBerita daftar={daftarAntrean} />}

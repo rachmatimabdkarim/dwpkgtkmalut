@@ -14,8 +14,7 @@ import {
   Lencana,
   Kosong,
 } from "@/components/dasar";
-import { KotakUnggah, RingkasanKompresi, type BerkasTerpilih } from "@/components/kotak-unggah";
-import { unggahFoto, jadikanResmi, type BerkasTerunggah } from "@/lib/berkas-unggah";
+import { PilihFotoKegiatan, type FotoLaporan } from "@/components/pilih-foto-kegiatan";
 import { formatTanggal } from "@/lib/kegiatan";
 import { simpanBerita, aksiTerbitkanBerita, aksiTarikBerita, aksiHapusBerita } from "./aksi";
 import { urlPublik } from "./antrean";
@@ -27,14 +26,20 @@ export type DataBeritaAwal = {
   isi?: string | null;
   gambar_path?: string | null;
   status?: string;
+  /** Kegiatan asal berita ini; menentukan foto mana yang boleh dipakai */
+  activity_id?: string | null;
 };
 
 export function FormulirBerita({
   awal,
+  fotoTersedia = [],
   onSelesai,
   onBatal,
 }: {
   awal?: DataBeritaAwal;
+  /** Foto dokumentasi dari laporan kegiatan — SATU-SATUNYA sumber gambar
+   *  sampul berita. Tidak ada unggahan gambar bebas di formulir ini. */
+  fotoTersedia?: FotoLaporan[];
   onSelesai?: () => void;
   onBatal?: () => void;
 }) {
@@ -43,42 +48,13 @@ export function FormulirBerita({
   const [isi, setIsi] = useState(awal?.isi ?? "");
   const [gambarPath, setGambarPath] = useState<string | null>(awal?.gambar_path ?? null);
 
-  const [berkasBaru, setBerkasBaru] = useState<BerkasTerunggah | null>(null);
-  const [infoKompresi, setInfoKompresi] = useState<BerkasTerpilih[]>([]);
-  const [sedangUnggah, setSedangUnggah] = useState(false);
   const [pesanGalat, setPesanGalat] = useState("");
   const [isPending, startTransition] = useTransition();
 
-  async function tanganiUnggah(daftarBerkas: File[]) {
-    if (!daftarBerkas || daftarBerkas.length === 0) return;
-    const berkas = daftarBerkas[0];
-    setPesanGalat("");
-    setSedangUnggah(true);
-
-    try {
-      const terunggah = await unggahFoto(berkas, "banner", "publik", "berita");
-      setBerkasBaru(terunggah);
-      setGambarPath(terunggah.path);
-      setInfoKompresi([
-        {
-          id: terunggah.id,
-          nama: terunggah.namaAsli,
-          ukuranAsli: berkas.size,
-          ukuranHasil: terunggah.ukuran,
-          url: terunggah.url,
-        },
-      ]);
-    } catch (err: unknown) {
-      setPesanGalat(err instanceof Error ? err.message : "Gagal mengunggah gambar.");
-    } finally {
-      setSedangUnggah(false);
-    }
-  }
-
-  function hapusGambar() {
+  /** Mengosongkan pilihan foto sampul. Berkas TIDAK dihapus dari
+   *  penyimpanan — foto itu milik laporan kegiatan dan tetap tercatat di sana. */
+  function kosongkanGambar() {
     setGambarPath(null);
-    setBerkasBaru(null);
-    setInfoKompresi([]);
   }
 
   function kirim(terbitkan: boolean) {
@@ -92,10 +68,17 @@ export function FormulirBerita({
       return;
     }
 
+    // Gambar sampul HANYA boleh berasal dari foto laporan kegiatan.
+    // Tidak ada unggahan gambar bebas di formulir ini, jadi tidak ada lagi
+    // langkah memindahkan berkas ke folder berita.
+    if (gambarPath && !fotoTersedia.some((f) => f.path === gambarPath)) {
+      setPesanGalat("Foto sampul harus dipilih dari dokumentasi kegiatan.");
+      return;
+    }
+
     startTransition(async () => {
       const finalGambarPath = gambarPath;
 
-      // Simpan berita dulu untuk mendapatkan ID
       const hasil = await simpanBerita({
         id: awal?.id,
         judul,
@@ -111,29 +94,9 @@ export function FormulirBerita({
         return;
       }
 
-      // Jika ada berkas baru yang diunggah, resmikan lokasinya
-      if (berkasBaru && hasil.id) {
-        try {
-          const resmi = await jadikanResmi(berkasBaru, "berita", "posts", hasil.id);
-          if (resmi.path !== finalGambarPath) {
-            await simpanBerita({
-              id: hasil.id,
-              judul,
-              ringkasan,
-              isi,
-              gambar_path: resmi.path,
-            });
-          }
-        } catch {
-          // Gagal meresmikan lokasi berkas tetap biarkan berita tersimpan
-        }
-      }
-
       onSelesai?.();
     });
   }
-
-  const urlGambarTampil = berkasBaru?.url || urlPublik(gambarPath);
 
   return (
     <Kartu className="p-4 sm:p-6">
@@ -196,58 +159,31 @@ export function FormulirBerita({
 
         <div>
           <span className="block text-[13px] font-medium text-n-700 mb-1.5">
-            Gambar Unggulan (Pilihan)
+            Gambar Sampul Berita
           </span>
-
-          {urlGambarTampil ? (
-            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 p-3 rounded-token border border-n-200 bg-n-50">
-              <div className="relative w-36 h-24 rounded-token overflow-hidden border border-n-300 bg-n-100 shrink-0">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={urlGambarTampil}
-                  alt="Pratinjau gambar unggulan"
-                  className="w-full h-full object-cover"
-                />
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-[14px] font-medium text-n-800 truncate">
-                  {berkasBaru?.namaAsli || gambarPath?.split("/").pop() || "Gambar Berita"}
-                </p>
-                <p className="teks-3 text-n-500 mt-0.5">
-                  Foto ini akan tampil sebagai gambar sampul berita.
-                </p>
-                <div className="mt-2 flex gap-2">
-                  <TombolBahaya ukuran="kecil" type="button" onClick={hapusGambar} disabled={isPending}>
-                    Hapus Gambar
-                  </TombolBahaya>
-                </div>
-              </div>
-            </div>
-          ) : (
-            <>
-              <KotakUnggah
-                label=""
-                keterangan="Foto sampul berita (JPEG/PNG/WEBP). Gambar akan dikompres otomatis."
-                terima="image/*"
-                banyak={false}
-                sedang={sedangUnggah}
-                onPilih={tanganiUnggah}
-              />
-              <RingkasanKompresi daftar={infoKompresi} />
-            </>
-          )}
+          <p className="teks-3 text-n-500 mb-2.5">
+            Dipilih dari foto dokumentasi laporan kegiatan. Berkas di luar
+            dokumentasi kegiatan tidak dapat dipakai.
+          </p>
+          <PilihFotoKegiatan
+            daftar={fotoTersedia}
+            terpilih={gambarPath}
+            sedang={isPending}
+            onPilih={(path) => setGambarPath(path)}
+            onKosongkan={kosongkanGambar}
+          />
         </div>
 
         <div className="flex flex-wrap items-center justify-end gap-3 pt-4 border-t border-n-200 mt-2">
           {onBatal && (
-            <TombolSekunder type="button" onClick={onBatal} disabled={isPending || sedangUnggah}>
+            <TombolSekunder type="button" onClick={onBatal} disabled={isPending}>
               Batal
             </TombolSekunder>
           )}
 
           <TombolSekunder
             type="button"
-            disabled={isPending || sedangUnggah}
+            disabled={isPending}
             onClick={() => kirim(false)}
           >
             {isPending ? "Menyimpan…" : awal?.id ? "Simpan Perubahan" : "Simpan Draf"}
@@ -255,7 +191,7 @@ export function FormulirBerita({
 
           <TombolUtama
             type="button"
-            disabled={isPending || sedangUnggah}
+            disabled={isPending}
             onClick={() => kirim(true)}
           >
             {isPending ? "Menerbitkan…" : "Terbitkan Sekarang"}
@@ -285,10 +221,14 @@ export function DaftarBerita({
   semuaBerita,
   bukaFormAwal = false,
   onSelesai,
+  fotoLaporan = [],
 }: {
   semuaBerita: ItemBerita[];
   bukaFormAwal?: boolean;
   onSelesai?: () => void;
+  /** Seluruh foto dokumentasi kegiatan; formulir menyaring sendiri menurut
+   *  kegiatan asal berita yang sedang disunting. */
+  fotoLaporan?: FotoLaporan[];
 }) {
   const [bukaForm, setBukaForm] = useState(bukaFormAwal);
   const [dataSunting, setDataSunting] = useState<ItemBerita | null>(null);
