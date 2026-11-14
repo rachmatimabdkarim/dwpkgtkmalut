@@ -13,7 +13,10 @@ import {
 } from "./antrean";
 import { PanelUnduhan, type ItemDokumen } from "./dokumen";
 import type { FotoLaporan } from "@/components/pilih-foto-kegiatan";
-import { urlPublik } from "./antrean";
+// urlPublik WAJIB dari `@/lib/publik`: versi di `./antrean` berada di berkas
+// "use client", dan memanggilnya dari halaman server membuat seluruh halaman
+// gagal dirender ("A server error occurred").
+import { urlPublik } from "@/lib/publik";
 
 export const metadata = { title: "Konten · SI-ANGGUN" };
 
@@ -121,21 +124,34 @@ export default async function HalamanKonten({
   // Foto dokumentasi kegiatan — SATU-SATUNYA sumber gambar sampul berita.
   // Diambil sekali di sini lalu diberikan ke formulir, supaya formulir tidak
   // mengunggah gambar sendiri (aturan pemilik).
-  const { data: dataFotoLaporan } = await sb
-    .from("attachments")
-    .select("path, keterangan, entitas_id, activities:entitas_id (judul)")
-    .eq("bucket", "publik")
-    .eq("status", "resmi")
-    .eq("visibilitas", "publik")
-    .eq("kategori", "foto_kegiatan")
-    .not("entitas_id", "is", null)
-    .order("diunggah_pada", { ascending: false });
+  //
+  // CATATAN: `attachments.entitas_id` TIDAK punya kaitan resmi (foreign key) ke
+  // tabel kegiatan, jadi memakai bentuk `activities:entitas_id (judul)` ditolak
+  // PostgREST dengan galat senyap (data kembali kosong) dan kotak pilihan foto
+  // tampil "Belum ada foto dokumentasi" walau fotonya ada. Judul kegiatan
+  // karena itu diambil terpisah lalu dipasangkan di sini.
+  const [{ data: dataFotoLaporan }, { data: dataJudulKegiatan }] = await Promise.all([
+    sb
+      .from("attachments")
+      .select("path, keterangan, entitas_id")
+      .eq("bucket", "publik")
+      .eq("status", "resmi")
+      .eq("visibilitas", "publik")
+      .eq("kategori", "foto_kegiatan")
+      .eq("entitas", "activities")
+      .not("entitas_id", "is", null)
+      .order("diunggah_pada", { ascending: false }),
+    sb.from("activities").select("id, judul"),
+  ]);
+
+  const judulKegiatan = new Map<string, string>(
+    ((dataJudulKegiatan ?? []) as { id: string; judul: string }[]).map((a) => [a.id, a.judul]),
+  );
 
   type RawFotoLaporan = {
     path: string;
     keterangan: string | null;
     entitas_id: string | null;
-    activities: { judul: string } | null;
   };
 
   const fotoLaporan: FotoLaporan[] = (
@@ -144,22 +160,19 @@ export default async function HalamanKonten({
     path: f.path,
     url: urlPublik(f.path),
     keterangan: f.keterangan,
-    kegiatan: f.activities?.judul ?? "Kegiatan",
+    kegiatan: (f.entitas_id && judulKegiatan.get(f.entitas_id)) || "Kegiatan",
     kegiatanId: f.entitas_id,
     dariKegiatanIni: false,
   }));
 
   const jumlahAntrean = daftarAntrean.length;
 
-  // 3. Ambil data foto galeri publik
+  // 3. Ambil data foto galeri publik.
+  // Sama seperti pemilih gambar sampul: `entitas_id` tidak punya kaitan resmi ke
+  // tabel kegiatan, jadi judul kegiatan dipasangkan dari peta `judulKegiatan`.
   const { data: dataFoto } = await sb
     .from("attachments")
-    .select(
-      `
-      id, bucket, path, nama_asli, keterangan, diunggah_pada, entitas_id,
-      activities:entitas_id (judul)
-    `,
-    )
+    .select("id, bucket, path, nama_asli, keterangan, diunggah_pada, entitas_id")
     .eq("bucket", "publik")
     .eq("status", "resmi")
     .eq("visibilitas", "publik")
@@ -174,7 +187,6 @@ export default async function HalamanKonten({
     keterangan: string | null;
     diunggah_pada: string;
     entitas_id: string | null;
-    activities: { judul: string } | null;
   };
 
   // Kelompokkan foto per kegiatan
@@ -182,7 +194,9 @@ export default async function HalamanKonten({
 
   ((dataFoto ?? []) as unknown as RawFoto[]).forEach((f) => {
     const actId = f.entitas_id || "umum";
-    const judul = f.activities?.judul || (actId === "umum" ? "Foto Umum" : "Dokumentasi Kegiatan");
+    const judul =
+      (f.entitas_id && judulKegiatan.get(f.entitas_id)) ||
+      (actId === "umum" ? "Foto Umum" : "Dokumentasi Kegiatan");
 
     if (!kelompokPeta.has(actId)) {
       kelompokPeta.set(actId, { judul, items: [] });

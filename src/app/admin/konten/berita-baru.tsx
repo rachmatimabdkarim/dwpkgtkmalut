@@ -322,9 +322,16 @@ export function DaftarBerita({
                     isi: dataSunting.isi,
                     gambar_path: dataSunting.gambar_path,
                     status: dataSunting.status,
+                    activity_id: dataSunting.activity_id,
                   }
                 : undefined
             }
+            fotoTersedia={fotoLaporan.map((f) => ({
+              ...f,
+              dariKegiatanIni: Boolean(
+                dataSunting?.activity_id && f.kegiatanId === dataSunting.activity_id,
+              ),
+            }))}
             onSelesai={() => {
               setBukaForm(false);
               setDataSunting(null);
