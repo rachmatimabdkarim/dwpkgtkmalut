@@ -127,6 +127,9 @@ export function PanelPanitia({
   // data lewat indeks unik). Pilihan Ketua Panitia dimatikan bila sudah ada.
   const sudahAdaKetua = daftarPanitia.some((p) => p.peran === "ketua_panitia");
   const [galatPanitia, setGalatPanitia] = useState("");
+  // Pesan penolakan dari server saat menghapus panitia. Ditaruh terpisah dari
+  // galat formulir karena letaknya di bagian Susunan Panitia.
+  const [galatHapus, setGalatHapus] = useState("");
 
   // Dialog konfirmasi hapus panitia
   const [panitiaDihapus, setPanitiaDihapus] = useState<PanitiaItem | null>(null);
@@ -183,8 +186,15 @@ export function PanelPanitia({
   function handleHapusPanitia() {
     if (!panitiaDihapus) return;
     startTransition(async () => {
-      await hapusPanitia(activityId, panitiaDihapus.id);
+      const hasil = await hapusPanitia(activityId, panitiaDihapus.id);
       setPanitiaDihapus(null);
+      if (hasil?.galat) {
+        // Penolakan HARUS terlihat. Sebelumnya hasil aksi diabaikan sehingga
+        // tombol tampak "tidak bereaksi" padahal servernya menolak.
+        setGalatHapus(hasil.galat);
+        return;
+      }
+      setGalatHapus("");
       router.refresh();
     });
   }
@@ -242,6 +252,11 @@ export function PanelPanitia({
             <p className="teks-3 text-n-600">
               {totalPanitia} panitia · {tugasSelesai} tugas selesai dari {totalTugas}
             </p>
+            {galatHapus && (
+              <p className="mt-2 rounded-token border border-bad-line bg-bad-bg px-3 py-2 text-[13px] text-bad-fg">
+                {galatHapus}
+              </p>
+            )}
           </div>
           {bolehUbahPanitia && !terkunci && !bukaFormPanitia && totalPanitia > 0 && (
             <TombolUtama

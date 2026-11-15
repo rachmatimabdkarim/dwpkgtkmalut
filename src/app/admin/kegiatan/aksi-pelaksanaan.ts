@@ -213,8 +213,13 @@ export async function hapusPanitia(activityId: string, committeeId: string) {
   if (bukanPenyusun) return { galat: bukanPenyusun.galat };
 
   // ATURAN PEMILIK: susunan panitia WAJIB memiliki satu Ketua Panitia.
-  // Menghapus Ketua Panitia tanpa pengganti akan meninggalkan kegiatan tanpa
-  // penanggung jawab pelaksanaan — dan tidak ada yang bisa diberi tugas.
+  //
+  // Bila Ketua Panitia dihapus SELAGI ia satu-satunya, perannya DIPINDAHKAN
+  // kepada PENGAJU kegiatan — bukan menolak penghapusan. Aturan pemilik:
+  // "Ketua panitia seharusnya bisa dihapus oleh pengusul kegiatan". Pengusul
+  // selalu ada (dialah yang mengajukan), jadi kegiatan tidak akan pernah
+  // tertinggal tanpa Ketua Panitia.
+  let pindahKetua: { dari: string; ke: string } | null = null;
   const { data: calon } = await sb
     .from("committees")
     .select("peran")
@@ -228,10 +233,22 @@ export async function hapusPanitia(activityId: string, committeeId: string) {
       .eq("activity_id", activityId)
       .eq("peran", "ketua_panitia");
     if ((count ?? 0) <= 1) {
-      return {
-        galat:
-          "Ketua Panitia tidak dapat dihapus karena kegiatan wajib memiliki satu Ketua Panitia. " +
-          "Tunjuk Ketua Panitia pengganti lebih dulu, baru hapus yang lama.",
+      const { data: kegPemilik } = await sb
+        .from("activities")
+        .select("dibuat_oleh")
+        .eq("id", activityId)
+        .maybeSingle<{ dibuat_oleh: string | null }>();
+      const pengusulId = kegPemilik?.dibuat_oleh ?? null;
+      if (!pengusulId) {
+        return {
+          galat:
+            "Ketua Panitia tidak dapat dihapus karena kegiatan belum memiliki pengusul. " +
+            "Tunjuk Ketua Panitia pengganti lebih dulu.",
+        };
+      }
+      pindahKetua = {
+        dari: committeeId,
+        ke: pengusulId,
       };
     }
   }
@@ -258,6 +275,55 @@ export async function hapusPanitia(activityId: string, committeeId: string) {
 
   const { error } = await sb.from("committees").delete().eq("id", committeeId);
   if (error) return { galat: "Gagal menghapus panitia: " + error.message };
+
+  // Ketua Panitia yang dihapus tadi satu-satunya: pindahkan perannya ke pengusul
+  // supaya kegiatan tetap punya Ketua Panitia (aturan wajib satu Ketua Panitia).
+  let namaKetuaBaru: string | null = null;
+  if (pindahKetua) {
+    const { data: sudahPanitia } = await sb
+      .from("committees")
+      .select("id")
+      .eq("activity_id", activityId)
+      .eq("profile_id", pindahKetua.ke)
+      .maybeSingle<{ id: string }>();
+
+    if (sudahPanitia?.id) {
+      const { error: eUbah } = await sb
+        .from("committees")
+        .update({ peran: "ketua_panitia" })
+        .eq("id", sudahPanitia.id);
+      if (eUbah) {
+        return { galat: "Panitia terhapus, tetapi gagal memindahkan peran Ketua Panitia: " + eUbah.message };
+      }
+    } else {
+      const { error: eTambah } = await sb.from("committees").insert({
+        activity_id: activityId,
+        profile_id: pindahKetua.ke,
+        peran: "ketua_panitia",
+      });
+      if (eTambah) {
+        return { galat: "Panitia terhapus, tetapi gagal menunjuk Ketua Panitia baru: " + eTambah.message };
+      }
+    }
+
+    const { data: profilBaru } = await sb
+      .from("profiles")
+      .select("nama")
+      .eq("id", pindahKetua.ke)
+      .maybeSingle<{ nama: string }>();
+    namaKetuaBaru = profilBaru?.nama ?? null;
+
+    await sb.from("activity_logs").insert({
+      activity_id: activityId,
+      aksi: "pindah_ketua_panitia",
+      keterangan:
+        `Ketua Panitia dihapus; peran Ketua Panitia dipindahkan ke pengusul kegiatan` +
+        (namaKetuaBaru ? `: ${namaKetuaBaru}` : "") +
+        " (aturan: kegiatan wajib memiliki satu Ketua Panitia).",
+      pelaku_id: pengguna.id,
+      pelaku_nama: pengguna.nama,
+    });
+  }
 
   await sb.from("activity_logs").insert({
     activity_id: activityId,

@@ -31,7 +31,7 @@ async function catatAudit(
 }
 
 
-export type HasilAksi = { ok?: boolean; galat?: string };
+export type HasilAksi = { ok?: boolean; galat?: string; pesan?: string };
 
 async function pastikanBerhak() {
   const pengguna = await penggunaSaatIni();
@@ -143,24 +143,80 @@ export async function ubahPengurus(masukan: {
     const bidang = bersihkan(masukan.bidang, true);
     if (!jabatan || !bidang) throw new Error("Jabatan dan bidang wajib diisi.");
 
+    const emailBaru = periksaEmail(bersihkan(masukan.email));
+
+    // ATURAN PEMILIK: bila email pengurus diganti, EMAIL AKUN MASUKNYA ikut
+    // diganti — supaya data pengurus dan akun tidak pernah berbeda. Perubahan
+    // dikerjakan pada akun yang memang tertaut ke pengurus ini (officers.profile_id).
+    const { data: lama } = await sb
+      .from("officers")
+      .select("profile_id, email, nama")
+      .eq("id", masukan.id)
+      .maybeSingle<{ profile_id: string | null; email: string | null; nama: string }>();
+
+    const akunTertaut = lama?.profile_id ?? null;
+    let emailAkunLama: string | null = null;
+    let emailAkunDiubah = false;
+
+    if (akunTertaut) {
+      const admin = klienAdmin();
+      const { data: akunLama } = await admin.auth.admin.getUserById(akunTertaut);
+      emailAkunLama = akunLama?.user?.email ?? null;
+
+      if (emailBaru && emailAkunLama && emailBaru.toLowerCase() !== emailAkunLama.toLowerCase()) {
+        // Tolak bila email baru sudah dipakai akun lain.
+        const { data: pemakai } = await sb
+          .from("profiles")
+          .select("id")
+          .eq("email", emailBaru)
+          .maybeSingle<{ id: string }>();
+        if (pemakai && pemakai.id !== akunTertaut) {
+          return { galat: `Email ${emailBaru} sudah dipakai akun lain.` };
+        }
+
+        const { error: gagalEmail } = await admin.auth.admin.updateUserById(akunTertaut, {
+          email: emailBaru,
+          // Ditandai sudah dikonfirmasi: email resmi organisasi diisi oleh
+          // Sekretaris, bukan didaftarkan sendiri oleh pemiliknya.
+          email_confirm: true,
+        });
+        if (gagalEmail) {
+          return { galat: "Gagal mengganti email akun: " + gagalEmail.message };
+        }
+        emailAkunDiubah = true;
+
+        // Profil ikut disamakan supaya daftar akun tidak menampilkan email lama.
+        await sb.from("profiles").update({ email: emailBaru }).eq("id", akunTertaut);
+      } else if (emailBaru && !emailAkunLama) {
+        // Akun belum punya email (kasus jarang): pasang sekarang.
+        await sb.from("profiles").update({ email: emailBaru }).eq("id", akunTertaut);
+      }
+    }
+
     const { error } = await sb
       .from("officers")
       .update({
         nama,
         jabatan,
         bidang,
-        email: periksaEmail(bersihkan(masukan.email)),
+        email: emailBaru,
         catatan: bersihkan(masukan.catatan),
       })
       .eq("id", masukan.id);
     if (error) return { galat: "Gagal menyimpan: " + error.message };
 
     await catatAudit(sb, izin.pengguna, "ubah_pengurus",
-      `Mengubah data pengurus: ${nama} (${jabatan})`);
+      `Mengubah data pengurus: ${nama} (${jabatan})` +
+        (emailAkunDiubah ? ` — email akun masuk diganti dari ${emailAkunLama} menjadi ${emailBaru}` : ""));
 
     revalidatePath("/admin/pengurus");
     revalidatePath("/profil");
-    return { ok: true };
+    return {
+      ok: true,
+      pesan: emailAkunDiubah
+        ? `Tersimpan. Email akun masuk ${nama} kini ${emailBaru} — mulai sekarang ia masuk dengan email itu.`
+        : undefined,
+    };
   } catch (e) {
     return { galat: e instanceof Error ? e.message : "Terjadi kesalahan." };
   }

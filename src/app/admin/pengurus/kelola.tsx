@@ -135,7 +135,10 @@ export function KelolaPengurus({
         setPesan(hasil.galat);
         return;
       }
-      setSukses(mode.jenis === "ubah" ? "Data pengurus tersimpan." : "Pengurus baru ditambahkan.");
+      setSukses(
+        hasil.pesan ??
+          (mode.jenis === "ubah" ? "Data pengurus tersimpan." : "Pengurus baru ditambahkan."),
+      );
       setMode({ jenis: "tutup" });
       router.refresh();
     });
