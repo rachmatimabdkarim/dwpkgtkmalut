@@ -4,7 +4,7 @@ import { sesiWajib } from "@/lib/sesi-server";
 import { klienServer } from "@/lib/supabase-server";
 import { Lencana, Kartu, Kosong } from "@/components/dasar";
 import { labelStatus, formatTanggal } from "@/lib/kegiatan";
-import { PERAN_PENGAJU } from "@/lib/peran";
+import { PERAN_PENGAJU, PERAN_PENCATAT_LANGSUNG } from "@/lib/peran";
 
 export const metadata = { title: "Kegiatan · SI-ANGGUN" };
 
@@ -56,6 +56,10 @@ export default async function HalamanKegiatan({
   const daftar: Baris[] = data ?? [];
 
   const bolehBuat = pengguna.peran.some((p) => PERAN_PENGAJU.includes(p));
+  // ATURAN PEMILIK: laporan kegiatan langsung hanya untuk Sekretaris & Ketua Bidang.
+  const bolehCatatLangsung = pengguna.peran.some((p) =>
+    (PERAN_PENCATAT_LANGSUNG as readonly string[]).includes(p),
+  );
 
   return (
     <KerangkaAdmin
@@ -77,6 +81,15 @@ export default async function HalamanKegiatan({
               className="inline-flex h-11 items-center rounded-token bg-brand-600 px-4 text-[15px] font-medium text-brand-contrast hover:bg-brand-700"
             >
               + Kegiatan Baru
+            </Link>
+          ) : null}
+          {bolehCatatLangsung ? (
+            <Link
+              href="/admin/kegiatan/langsung"
+              className="inline-flex h-11 items-center rounded-token border border-brand-600 bg-n-0 px-4 text-[15px] font-medium text-brand-700 hover:bg-brand-50"
+              title="Untuk kegiatan yang sudah terlaksana: kegiatan pusat/undangan atau kegiatan lama"
+            >
+              Catat Laporan Kegiatan
             </Link>
           ) : null}
         </div>

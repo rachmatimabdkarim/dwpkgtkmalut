@@ -136,6 +136,18 @@ export function labelPeran(peran: RoleKey[]): string {
    (aturan pemilik): kegiatan hanya boleh diusulkan pengurus harian dan
    Ketua Bidang. Kebutuhan anggota disalurkan lewat Ketua Bidangnya.
    ============================================================ */
+/**
+ * PERAN_PENCATAT_LANGSUNG — siapa yang boleh mencatat LAPORAN KEGIATAN LANGSUNG
+ * (kegiatan yang sudah terlaksana tanpa tahapan perencanaan).
+ *
+ * Aturan pemilik: HANYA Sekretaris dan Ketua Bidang.
+ * Super Admin tetap disertakan sebagai cadangan administrasi.
+ *
+ * Diletakkan di sini (bukan di berkas aksi) karena berkas "use server" hanya
+ * boleh mengekspor fungsi async.
+ */
+export const PERAN_PENCATAT_LANGSUNG: RoleKey[] = ["sekretaris", "ketua_seksi", "super_admin"];
+
 export const PERAN_PENGAJU: RoleKey[] = [
   "super_admin",
   "ketua",

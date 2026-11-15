@@ -8,6 +8,7 @@ import { labelStatus, tahapSaatIni, formatTanggal, formatRupiah, type Peran } fr
 import { PanelTindakan, LinimasaRiwayat } from "./panel";
 import { FormLaporan } from "./form-laporan";
 import { PanelValidasi } from "./panel-validasi";
+import { PanelValidasiLangsung } from "./panel-validasi-langsung";
 import { LembarLaporan } from "@/components/lembar-laporan";
 import { tarikDataLaporan } from "@/lib/laporan-data";
 import { SembunyikanToggle } from "./sembunyikan";
@@ -32,6 +33,11 @@ type Kegiatan = {
   is_hidden: boolean;
   dibuat_oleh: string | null;
   penanggung_jawab: string | null;
+  /** 'langsung' = dicatat lewat jalur laporan kegiatan langsung */
+  jenis_catatan?: string | null;
+  asal_kegiatan?: string | null;
+  peserta_luar?: string | null;
+  divalidasi_pada?: string | null;
   section_id: string | null;
 };
 
@@ -59,7 +65,7 @@ export default async function DetailKegiatan({
   const { data: keg } = await sb
     .from("activities")
     .select(
-      "id, kode, judul, tujuan, sasaran, ringkasan, tanggal_mulai, tanggal_selesai, tempat, status, is_hidden, dibuat_oleh, penanggung_jawab, section_id",
+      "id, kode, judul, tujuan, sasaran, ringkasan, tanggal_mulai, tanggal_selesai, tempat, status, is_hidden, dibuat_oleh, penanggung_jawab, section_id, jenis_catatan, asal_kegiatan, peserta_luar, divalidasi_pada",
     )
     .eq("id", id)
     .maybeSingle<Kegiatan>();
@@ -728,6 +734,21 @@ export default async function DetailKegiatan({
               <div className="mt-4">
                 {dataLaporan && <LembarLaporan data={dataLaporan} />}
               </div>
+
+              {/* Kegiatan yang dicatat lewat jalur "Catat Laporan Kegiatan"
+                  divalidasi lewat panel khusus: satu tombol, jelas akibatnya. */}
+              {keg.jenis_catatan === "langsung" && (
+                <div className="mt-4">
+                  <PanelValidasiLangsung
+                    activityId={keg.id}
+                    sudahDivalidasi={!!keg.divalidasi_pada}
+                    bolehValidasi={
+                      pengguna.peran.includes("ketua") || pengguna.peran.includes("super_admin")
+                    }
+                    tanggalKegiatan={keg.tanggal_mulai}
+                  />
+                </div>
+              )}
 
               <div className="mt-4">
                 <PanelValidasi

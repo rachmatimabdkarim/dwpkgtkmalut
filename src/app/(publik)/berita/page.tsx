@@ -80,6 +80,14 @@ export default async function HalamanBerita() {
                   <p className="text-[13px] font-semibold mb-2.5" style={{ color: "var(--aksen-700)" }}>
                     {formatTanggal(utama.terbit_pada)}
                   </p>
+                  {utama.baru_dicatat && (
+                    <span
+                      className="inline-flex items-center rounded-full px-2.5 py-0.5 text-[11px] font-bold mb-2.5"
+                      style={{ backgroundColor: "var(--aksen-100, #f6ecd0)", color: "var(--aksen-800, #6b4d08)" }}
+                    >
+                      Baru dicatat
+                    </span>
+                  )}
                   <h2
                     className="text-[21px] sm:text-[25px] font-extrabold leading-snug"
                     style={{ color: "var(--dasar-700)" }}
@@ -141,6 +149,14 @@ export default async function HalamanBerita() {
                       <div className="p-6 flex-1 flex flex-col">
                         <p className="text-[12.5px] font-bold mb-2" style={{ color: "var(--aksen-700)" }}>
                           {formatTanggal(berita.terbit_pada)}
+                          {berita.baru_dicatat && (
+                            <span
+                              className="ml-2 inline-flex items-center rounded-full px-2 py-0.5 text-[10.5px] font-bold align-middle"
+                              style={{ backgroundColor: "var(--aksen-100, #f6ecd0)", color: "var(--aksen-800, #6b4d08)" }}
+                            >
+                              Baru dicatat
+                            </span>
+                          )}
                         </p>
                         <h3
                           className="font-extrabold text-[16px] leading-snug line-clamp-2"
