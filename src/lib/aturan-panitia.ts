@@ -6,7 +6,8 @@
  *
  * RINGKASAN ATURAN
  * ────────────────
- * 1. Menyusun panitia (tambah/hapus) — HANYA PENANGGUNG JAWAB.
+ * 1. Menyusun panitia (tambah/hapus) — PENANGGUNG JAWAB atau PENGAJU kegiatan.
+ *    (Aturan pemilik: pengusul kegiatan juga berhak menghapus Ketua Panitia.)
  *    Minimal wajib ada satu KETUA PANITIA.
  *
  * 2. Memberi tugas kepada KETUA PANITIA — HANYA PENANGGUNG JAWAB.
@@ -43,6 +44,8 @@ export type KonteksPengguna = {
   penanggungJawabId: string | null;
   /** Peran pengguna bila ia panitia pada kegiatan ini (null = bukan panitia). */
   peranPanitia: PeranPanitiaKode | null;
+  /** Id akun PENGUSUL kegiatan (activities.dibuat_oleh). */
+  pengusulId?: string | null;
 };
 
 /** Apakah pengguna adalah penanggung jawab kegiatan ini? */
@@ -55,12 +58,20 @@ export function apakahKetuaPanitia(k: KonteksPengguna): boolean {
   return k.peranPanitia === "ketua_panitia";
 }
 
+/** Apakah pengguna adalah PENGUSUL kegiatan ini? (yang membuat/mengajukan) */
+export function apakahPengusul(k: KonteksPengguna): boolean {
+  return !!k.pengusulId && k.id === k.pengusulId;
+}
+
 /**
  * Boleh menyusun panitia (tambah/hapus panitia)?
- * HANYA penanggung jawab (dan Super Admin).
+ * PENANGGUNG JAWAB atau PENGAJU kegiatan (dan Super Admin).
+ *
+ * Catatan aturan pemilik: pengusul ikut berhak supaya ia bisa memperbaiki
+ * susunan panitia kegiatan yang ia ajukan — termasuk menghapus Ketua Panitia.
  */
 export function bolehSusunPanitia(k: KonteksPengguna): boolean {
-  return apakahPenanggungJawab(k) || k.superAdmin;
+  return apakahPenanggungJawab(k) || apakahPengusul(k) || k.superAdmin;
 }
 
 /**
@@ -88,7 +99,7 @@ export function bolehCentangTugas(k: KonteksPengguna): boolean {
 
 /** Alasan penolakan yang bisa dibaca pengguna. */
 export function alasanTolakSusunPanitia(): string {
-  return "Hanya penanggung jawab kegiatan yang dapat menyusun panitia.";
+  return "Hanya penanggung jawab atau pengusul kegiatan yang dapat menyusun panitia.";
 }
 
 export function alasanTolakBeriTugas(peranTarget: PeranPanitiaKode): string {

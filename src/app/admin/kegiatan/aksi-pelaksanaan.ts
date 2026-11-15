@@ -96,9 +96,9 @@ async function konteksPanitia(
 ): Promise<KonteksPengguna> {
   const { data: keg } = await sb
     .from("activities")
-    .select("penanggung_jawab")
+    .select("penanggung_jawab, dibuat_oleh")
     .eq("id", activityId)
-    .maybeSingle<{ penanggung_jawab: string | null }>();
+    .maybeSingle<{ penanggung_jawab: string | null; dibuat_oleh: string | null }>();
 
   const { data: panitia } = await sb
     .from("committees")
@@ -112,6 +112,7 @@ async function konteksPanitia(
     superAdmin: pengguna.peran.includes("super_admin"),
     penanggungJawabId: keg?.penanggung_jawab ?? null,
     peranPanitia: (panitia?.peran as PeranPanitiaKode | undefined) ?? null,
+    pengusulId: keg?.dibuat_oleh ?? null,
   };
 }
 

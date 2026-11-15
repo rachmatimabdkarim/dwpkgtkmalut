@@ -608,6 +608,9 @@ export default async function DetailKegiatan({
               // tetap boleh dibaca.
               bolehUbahPanitia={
                 pengguna.id === keg.penanggung_jawab ||
+                // Aturan pemilik: PENGAJU kegiatan juga boleh menyusun dan
+                // menghapus panitia — termasuk menghapus Ketua Panitia.
+                pengguna.id === keg.dibuat_oleh ||
                 pengguna.peran.includes("super_admin")
               }
               konteks={{
@@ -622,6 +625,7 @@ export default async function DetailKegiatan({
                       | "sekretaris_panitia"
                       | "bendahara_panitia"
                       | "anggota_panitia")[0] ?? null,
+                pengusulId: keg.dibuat_oleh,
               }}
               terkunci={pelaksanaanTerkunci}
             />
