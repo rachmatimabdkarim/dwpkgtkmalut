@@ -215,6 +215,8 @@ export type ItemBerita = {
   dibuat_pada: string;
   diperbarui_pada: string;
   activity_id: string | null;
+  /** Penanda internal: berita lama yang baru dimasukkan (≤ 30 hari). */
+  baru_dicatat?: boolean;
 };
 
 export function DaftarBerita({
@@ -460,6 +462,14 @@ export function DaftarBerita({
 
                     <h3 className="font-semibold text-n-900 text-[16px] mb-1 leading-snug">
                       {post.judul}
+                      {/* Penanda internal — HANYA di panel pengurus (Ketua,
+                          Wakil Ketua, Sekretaris). Aturan pemilik: orang luar
+                          tidak boleh tahu berita lama baru dimasukkan. */}
+                      {post.baru_dicatat && (
+                        <span className="ml-2 inline-flex items-center rounded-full bg-warn-bg px-2 py-0.5 text-[11px] font-bold text-warn-fg align-middle">
+                          Baru dicatat
+                        </span>
+                      )}
                     </h3>
 
                     {post.ringkasan && (

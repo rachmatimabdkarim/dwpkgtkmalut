@@ -39,10 +39,27 @@ async function pastikanBelumDiajukan(
 ): Promise<{ galat: string } | null> {
   const { data } = await sb
     .from("activities")
-    .select("status")
+    .select("status, jenis_catatan, divalidasi_pada")
     .eq("id", activityId)
-    .maybeSingle<{ status: string }>();
+    .maybeSingle<{ status: string; jenis_catatan: string | null; divalidasi_pada: string | null }>();
   if (!data) return { galat: "Kegiatan tidak ditemukan." };
+
+  // LAPORAN KEGIATAN LANGSUNG: tidak punya tahap "diajukan".
+  // Kegiatan ini langsung berstatus laporan_disetujui sejak dicatat, sehingga
+  // penguncian di bawah akan menolak SEMUA perubahan — termasuk mengunggah foto
+  // yang justru dibutuhkan untuk PDF. Kuncinya: SESUDAH divalidasi Ketua
+  // (itulah saat laporan dianggap resmi), bukan sejak dicatat.
+  if (data.jenis_catatan === "langsung") {
+    if (data.divalidasi_pada || data.status === "arsip") {
+      return {
+        galat:
+          "Laporan kegiatan ini sudah divalidasi Ketua, jadi dokumentasi tidak dapat diubah lagi. " +
+          "Hubungi Ketua bila perlu diperbaiki.",
+      };
+    }
+    return null;
+  }
+
   if (["laporan_diajukan", "laporan_dalam_review", "laporan_disetujui", "arsip"].includes(data.status)) {
     return {
       galat:
@@ -829,20 +846,45 @@ export async function sahkanFoto(activityId: string, attachmentIds: string[] | s
 
   const sb = await klienServer();
 
-  const bukanPengelola = await pastikanPengelolaBagian(sb, activityId, "dokumentasi");
-  if (bukanPengelola) return { galat: bukanPengelola.galat };
+  // Kegiatan yang dicatat lewat jalur "Catat Laporan Kegiatan" (jenis_catatan
+  // = 'langsung') TIDAK punya penugasan pengelola dokumentasi. Untuk kegiatan
+  // itu, pencatatnya sendiri (Sekretaris / Ketua Bidang) yang mengunggah foto,
+  // jadi pemeriksaan pengelola dilewati — pemeriksaan izin lain tetap berlaku.
+  const { data: kegJenis } = await sb
+    .from("activities")
+    .select("jenis_catatan")
+    .eq("id", activityId)
+    .maybeSingle<{ jenis_catatan: string | null }>();
+
+  if (kegJenis?.jenis_catatan !== "langsung") {
+    const bukanPengelola = await pastikanPengelolaBagian(sb, activityId, "dokumentasi");
+    if (bukanPengelola) return { galat: bukanPengelola.galat };
+  }
 
   const terhalang = await pastikanBelumDiajukan(sb, activityId);
   if (terhalang) return { galat: terhalang.galat };
-  const { error } = await sb
+  const { error, count } = await sb
     .from("attachments")
-    .update({
-      status: "resmi",
-      entitas: "activities",
-      entitas_id: activityId,
-      resmi_pada: new Date().toISOString(),
-    })
+    .update(
+      {
+        status: "resmi",
+        entitas: "activities",
+        entitas_id: activityId,
+        resmi_pada: new Date().toISOString(),
+        // Foto laporan kegiatan langsung langsung TAYANG di galeri publik:
+        // tidak ada tahap "pilih satu per satu" untuk jalur ini.
+        ...(kegJenis?.jenis_catatan === "langsung" ? { visibilitas: "publik" } : {}),
+      },
+      { count: "exact" },
+    )
     .in("id", ids);
+
+  // PENTING: update tanpa hasil diperiksa bisa "sukses" padahal nol baris
+  // tersentuh (kebijakan akses menolak tanpa galat). Foto tidak akan muncul
+  // di PDF maupun galeri, tanpa pesan apa pun.
+  if (!error && (count ?? 0) === 0) {
+    return { galat: "Foto tersimpan, tetapi tidak dapat disahkan (akses ditolak). Hubungi Super Admin." };
+  }
 
   if (error) return { galat: "Gagal mengesahkan foto: " + error.message };
 

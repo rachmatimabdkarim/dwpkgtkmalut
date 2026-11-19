@@ -32,11 +32,20 @@ export default async function CetakLaporan({
   // tombol saja tidak cukup — alamat halaman ini pun tidak bisa dibuka paksa.
   const { data: keg } = await sb
     .from("activities")
-    .select("status, judul")
+    .select("status, judul, jenis_catatan, divalidasi_pada")
     .eq("id", id)
-    .maybeSingle<{ status: string; judul: string }>();
+    .maybeSingle<{
+      status: string;
+      judul: string;
+      jenis_catatan: string | null;
+      divalidasi_pada: string | null;
+    }>();
 
-  const sah = keg?.status === "laporan_disetujui" && !!data.validasi;
+  // ATURAN PEMILIK: laporan kegiatan langsung cukup divalidasi Ketua.
+  const sah =
+    keg?.jenis_catatan === "langsung"
+      ? keg?.status === "laporan_disetujui" && !!keg?.divalidasi_pada
+      : keg?.status === "laporan_disetujui" && !!data.validasi;
 
   if (!sah) {
     return (

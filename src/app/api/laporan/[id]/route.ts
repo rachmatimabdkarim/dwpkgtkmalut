@@ -65,7 +65,7 @@ export async function GET(
   const { data: keg } = await sb
     .from("activities")
     .select(
-      "id, kode, judul, tujuan, sasaran, ringkasan, tanggal_mulai, tanggal_selesai, tempat, status, section_id",
+      "id, kode, judul, tujuan, sasaran, ringkasan, tanggal_mulai, tanggal_selesai, tempat, status, section_id, jenis_catatan, asal_kegiatan, peserta_luar, divalidasi_pada",
     )
     .eq("id", id)
     .maybeSingle();
@@ -720,6 +720,32 @@ export async function GET(
 
   // ===== CAP KEASLIAN (QR VALIDASI) =====
   // Hanya dicetak bila laporan sudah divalidasi Ketua DWP.
+  // Kegiatan catatan langsung tidak memakai QR keaslian (tidak ada validasi
+  // laporan berjenjang). Yang dicetak: keterangan divalidasi Ketua + tanggal.
+  if (!validasiData?.kode && (keg as { jenis_catatan?: string | null }).jenis_catatan === "langsung" && (keg as { divalidasi_pada?: string | null }).divalidasi_pada) {
+    pastikanRuang(40);
+    const tgl = new Date((keg as { divalidasi_pada: string }).divalidasi_pada).toLocaleDateString("id-ID", {
+      day: "numeric",
+      month: "long",
+      year: "numeric",
+    });
+    page.drawText("LAPORAN TERVALIDASI", {
+      x: MARGIN_LEFT,
+      y: y - 8,
+      size: 9,
+      font: fontTebal,
+      color: rgb(0.05, 0.4, 0.15),
+    });
+    page.drawText(`Divalidasi Ketua Dharma Wanita Persatuan pada ${tgl}.`, {
+      x: MARGIN_LEFT,
+      y: y - 21,
+      size: 8,
+      font: fontBiasa,
+      color: rgb(0.2, 0.25, 0.3),
+    });
+    y -= 36;
+  }
+
   if (validasiData?.kode) {
     pastikanRuang(96);
     const yCap = y - 8;

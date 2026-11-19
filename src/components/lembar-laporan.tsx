@@ -451,16 +451,19 @@ export function LembarLaporan({ data }: { data: DataLaporan }) {
           <p className="font-semibold underline mt-2 text-[13px] whitespace-nowrap">
             {penandatangan.nama}
           </p>
-          {validasi && (
+          {(validasi || data.validasiLangsung) && (
             <p className="text-[10.5px] text-n-500 mt-1">
-              Divalidasi {new Date(validasi.divalidasiPada).toLocaleDateString("id-ID", {
+              Divalidasi{" "}
+              {new Date(
+                (validasi ?? data.validasiLangsung)!.divalidasiPada,
+              ).toLocaleDateString("id-ID", {
                 day: "numeric",
                 month: "long",
                 year: "numeric",
               })}
             </p>
           )}
-          {!validasi && (
+          {!validasi && !data.validasiLangsung && (
             <p className="text-[10.5px] text-n-500 mt-1 italic">
               Belum divalidasi Ketua DWP
             </p>

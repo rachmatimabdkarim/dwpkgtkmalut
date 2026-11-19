@@ -79,6 +79,9 @@ export type DataLaporan = {
   penandatangan: { nama: string; jabatan: string };
   /** Validasi Ketua DWP — bila ada, QR keaslian dicetak di area tanda tangan. */
   validasi: { kode: string; divalidasiPada: string } | null;
+  /** Validasi Ketua untuk kegiatan yang dicatat lewat jalur laporan langsung
+      (tidak memakai QR keaslian, cukup keterangan tanggal validasi). */
+  validasiLangsung?: { divalidasiPada: string; oleh: string | null } | null;
   /** Alamat logo aplikasi untuk kop surat. */
   logoUrl: string | null;
   /** Kontak kantor untuk baris kecil di bawah nama lembaga pada kop surat. */
@@ -111,7 +114,7 @@ export async function tarikDataLaporan(
   const { data: keg, error: galatKeg } = await sb
     .from("activities")
     .select(
-      "kode, judul, section_id, tempat, tanggal_mulai, tanggal_selesai, ringkasan, tujuan, sasaran, penanggung_jawab",
+      "kode, judul, section_id, tempat, tanggal_mulai, tanggal_selesai, ringkasan, tujuan, sasaran, penanggung_jawab, jenis_catatan, divalidasi_pada, divalidasi_oleh",
     )
     .eq("id", activityId)
     .maybeSingle<{
@@ -125,6 +128,9 @@ export async function tarikDataLaporan(
       tujuan: string | null;
       sasaran: string | null;
       penanggung_jawab: string | null;
+      jenis_catatan?: string | null;
+      divalidasi_pada?: string | null;
+      divalidasi_oleh?: string | null;
     }>();
 
   if (galatKeg) {
@@ -312,6 +318,10 @@ export async function tarikDataLaporan(
     validasi: validasiData
       ? { kode: validasiData.kode, divalidasiPada: validasiData.divalidasi_pada }
       : null,
+    validasiLangsung:
+      keg?.jenis_catatan === "langsung" && keg?.divalidasi_pada
+        ? { divalidasiPada: keg.divalidasi_pada, oleh: keg.divalidasi_oleh ?? null }
+        : null,
     logoUrl,
     kontak: {
       alamat: kontakKantor?.alamat ?? null,

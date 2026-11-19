@@ -151,8 +151,16 @@ export default async function DetailKegiatan({
   // SYARAT UNDUH PDF (aturan pemilik): laporan sudah disetujui penuh DAN sudah
   // ditandatangani/divalidasi Ketua DWP. Dihitung di server agar tidak bisa
   // diakali dari peramban.
+  // ATURAN PEMILIK (laporan kegiatan langsung): cukup DIVALIDASI Ketua.
+  // Jalur ini tidak memakai alur persetujuan berjenjang, jadi tidak ada
+  // "validasi QR" seperti kegiatan biasa — tetapi PDF tetap lengkap dengan foto.
+  const laporanLangsungSiap =
+    keg.jenis_catatan === "langsung" &&
+    keg.status === "laporan_disetujui" &&
+    !!keg.divalidasi_pada;
+
   const laporanSah =
-    keg.status === "laporan_disetujui" && !!dataLaporan?.validasi;
+    laporanLangsungSiap || (keg.status === "laporan_disetujui" && !!dataLaporan?.validasi);
 
   const { data: foto } = await sb
     .from("attachments")
@@ -302,12 +310,13 @@ export default async function DetailKegiatan({
   // D. Modul pelaksanaan (panitia, presensi, dokumentasi) terkunci begitu
   //    laporan DIAJUKAN. Isinya sedang dinilai penyetuju — kalau bisa diubah di
   //    tengah penilaian, penyetuju menilai data yang sudah berbeda.
-  const pelaksanaanTerkunci = [
-    "laporan_diajukan",
-    "laporan_dalam_review",
-    "laporan_disetujui",
-    "arsip",
-  ].includes(keg.status);
+  // Kegiatan catatan langsung langsung berstatus laporan_disetujui sejak
+  // dicatat — kalau memakai daftar status di bawah, dokumentasinya terkunci
+  // sebelum sempat diisi. Untuk jenis ini kuncinya = SESUDAH divalidasi Ketua.
+  const pelaksanaanTerkunci =
+    keg.jenis_catatan === "langsung"
+      ? !!keg.divalidasi_pada || keg.status === "arsip"
+      : ["laporan_diajukan", "laporan_dalam_review", "laporan_disetujui", "arsip"].includes(keg.status);
 
   // C. Kegiatan yang sudah diarsipkan tidak dapat diubah lagi.
 
@@ -384,6 +393,9 @@ export default async function DetailKegiatan({
   const bolehKelola = (bagian: "presensi" | "dokumentasi") => {
     if (pengguna.id === keg.penanggung_jawab) return true;
     if (pengguna.peran.includes("super_admin")) return true;
+    // Laporan kegiatan langsung tidak punya penugasan pengelola: pencatatnya
+    // (Sekretaris / Ketua Bidang) yang mengunggah foto dokumentasi.
+    if (keg.jenis_catatan === "langsung" && pengguna.id === keg.dibuat_oleh) return true;
     const p = penugasan.find((x) => x.bagian === bagian);
     return !!p && committeeSaya.has(p.committee_id);
   };
@@ -687,7 +699,9 @@ export default async function DetailKegiatan({
                 <span className="teks-3 text-n-500">
                   {laporanSah
                     ? "Laporan pertanggungjawaban kegiatan resmi DWP."
-                    : "Unduhan PDF tersedia setelah laporan disetujui dan divalidasi Ketua DWP."}
+                    : keg.jenis_catatan === "langsung"
+                      ? "Unduhan PDF tersedia setelah Ketua memvalidasi laporan ini."
+                      : "Unduhan PDF tersedia setelah laporan disetujui dan divalidasi Ketua DWP."}
                 </span>
                 {/* ATURAN PEMILIK: PDF baru boleh diunduh setelah laporan
                     DISETUJUI penuh dan DITANDATANGANI (divalidasi) Ketua DWP.

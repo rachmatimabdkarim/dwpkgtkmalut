@@ -22,7 +22,12 @@ export function FormLaporanLangsung({
   const [sedang, mulai] = useTransition();
   const [pesan, setPesan] = useState<{ jenis: "ok" | "bad"; teks: string } | null>(null);
 
-  function kirim(form: FormData) {
+  // CATATAN: `action={kirim}` pada <form> ternyata TIDAK memicu pengiriman
+  // (tombol berteks "Simpan Laporan" tidak menjalankan apa pun). Dipakai
+  // onSubmit + ambil FormData sendiri, yang terbukti bekerja.
+  function onSubmit(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    const form = new FormData(e.currentTarget);
     setPesan(null);
     mulai(async () => {
       const hasil = await catatKegiatanLangsung(form);
@@ -39,7 +44,7 @@ export function FormLaporanLangsung({
   }
 
   return (
-    <form action={kirim} className="space-y-4">
+    <form onSubmit={onSubmit} className="space-y-4">
       <Kartu>
         <p className="text-[15px] font-semibold text-n-800 mb-1">Kegiatan yang dilaporkan</p>
         <p className="teks-3 text-n-500 mb-4">

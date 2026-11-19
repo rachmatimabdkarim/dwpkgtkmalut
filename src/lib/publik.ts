@@ -40,8 +40,9 @@ export type BeritaPublik = {
   gambar_path: string | null;
   terbit_pada: string | null;
   activity_id: string | null;
-  /** true = berita baru dimasukkan (≤ 30 hari) walau tanggal terbitnya lampau */
-  baru_dicatat?: boolean | null;
+  // CATATAN ATURAN PEMILIK: penanda "baru dicatat" SENGAJA tidak dibawa ke
+  // web publik. Orang luar harus melihat berita lama sebagai berita lama.
+  // Penanda itu hanya tampil di panel pengurus (Konten → Berita).
 };
 
 export type GaleriPublik = {
@@ -132,7 +133,7 @@ async function beritaTerbaruAsli(batas = 3): Promise<BeritaPublik[]> {
     const sb = klienPublik();
     const { data, error } = await sb
       .from("public_news")
-      .select("id, judul, slug, ringkasan, isi, gambar_path, terbit_pada, activity_id, baru_dicatat")
+      .select("id, judul, slug, ringkasan, isi, gambar_path, terbit_pada, activity_id")
       .order("terbit_pada", { ascending: false })
       .limit(batas);
 
@@ -149,7 +150,7 @@ async function daftarBeritaAsli(): Promise<BeritaPublik[]> {
     const sb = klienPublik();
     const { data, error } = await sb
       .from("public_news")
-      .select("id, judul, slug, ringkasan, isi, gambar_path, terbit_pada, activity_id, baru_dicatat")
+      .select("id, judul, slug, ringkasan, isi, gambar_path, terbit_pada, activity_id")
       .order("terbit_pada", { ascending: false });
 
     if (error || !data) return [];
@@ -173,7 +174,7 @@ async function beritaSlugAsli(slug: string): Promise<BeritaPublik | null> {
     const sb = klienPublik();
     const { data, error } = await sb
       .from("public_news")
-      .select("id, judul, slug, ringkasan, isi, gambar_path, terbit_pada, activity_id, baru_dicatat")
+      .select("id, judul, slug, ringkasan, isi, gambar_path, terbit_pada, activity_id")
       .eq("slug", slug)
       .maybeSingle();
 

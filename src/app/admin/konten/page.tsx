@@ -47,13 +47,19 @@ export default async function HalamanKonten({
   const { tab, tambah } = await searchParams;
   const tabAktif = TAB_KONTEN.find((t) => t.key === tab)?.key ?? "berita";
 
+  // ATURAN PEMILIK: penanda "baru dicatat" hanya untuk Ketua, Wakil Ketua,
+  // Sekretaris (dan Super Admin). Editor konten tidak termasuk.
+  const bolehLihatPenanda = pengguna.peran.some((p) =>
+    ["ketua", "wakil_ketua", "sekretaris", "super_admin"].includes(p),
+  );
+
   const sb = await klienServer();
 
   // 1. Ambil data semua berita untuk tab Berita
   const { data: dataBerita } = await sb
     .from("posts")
     .select(
-      "id, judul, slug, ringkasan, isi, sumber, gambar_path, status, terbit_pada, dibuat_pada, diperbarui_pada, activity_id",
+      "id, judul, slug, ringkasan, isi, sumber, gambar_path, status, terbit_pada, dibuat_pada, diperbarui_pada, activity_id, dicatat_pada",
     )
     .order("dibuat_pada", { ascending: false });
 
@@ -70,6 +76,11 @@ export default async function HalamanKonten({
     dibuat_pada: b.dibuat_pada,
     diperbarui_pada: b.diperbarui_pada,
     activity_id: b.activity_id,
+    // Penanda hanya untuk pengurus (lihat berkas berita-baru.tsx).
+    baru_dicatat:
+      bolehLihatPenanda && b.dicatat_pada
+        ? Date.now() - new Date(b.dicatat_pada).getTime() < 30 * 24 * 3600 * 1000
+        : false,
   }));
 
   // 2. Ambil data antrean tinjauan (berita otomatis yang perlu tinjauan)
