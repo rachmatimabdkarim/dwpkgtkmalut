@@ -140,13 +140,14 @@ export function labelPeran(peran: RoleKey[]): string {
  * PERAN_PENCATAT_LANGSUNG — siapa yang boleh mencatat LAPORAN KEGIATAN LANGSUNG
  * (kegiatan yang sudah terlaksana tanpa tahapan perencanaan).
  *
- * Aturan pemilik: HANYA Sekretaris dan Ketua Bidang.
+ * Aturan pemilik (berlaku sekarang): HANYA Sekretaris dan Super Admin.
+ * Ketua Bidang TIDAK lagi boleh mencatat lewat jalur ini.
  * Super Admin tetap disertakan sebagai cadangan administrasi.
  *
  * Diletakkan di sini (bukan di berkas aksi) karena berkas "use server" hanya
  * boleh mengekspor fungsi async.
  */
-export const PERAN_PENCATAT_LANGSUNG: RoleKey[] = ["sekretaris", "ketua_seksi", "super_admin"];
+export const PERAN_PENCATAT_LANGSUNG: RoleKey[] = ["sekretaris", "super_admin"];
 
 export const PERAN_PENGAJU: RoleKey[] = [
   "super_admin",

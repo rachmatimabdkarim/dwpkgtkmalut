@@ -21,7 +21,7 @@ export default async function HalamanLaporanLangsung() {
         <div className="rounded-token-lg border border-warn-line bg-warn-bg p-6">
           <p className="text-[16px] font-semibold text-warn-fg">Halaman ini bukan untuk peran Anda</p>
           <p className="mt-2 text-[14px] text-n-700">
-            Laporan kegiatan langsung hanya dapat dicatat oleh Sekretaris dan Ketua Bidang.
+            Laporan kegiatan langsung hanya dapat dicatat oleh Sekretaris.
             Hubungi Sekretaris bila ada kegiatan yang perlu dicatat.
           </p>
           <Link

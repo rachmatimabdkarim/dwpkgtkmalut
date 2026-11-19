@@ -8,7 +8,7 @@
  *   • kegiatan lama sebelum sistem ini ada
  *
  * Aturan pemilik:
- *   1. Yang boleh mencatat: SEKRETARIS dan KETUA BIDANG.
+ *   1. Yang boleh mencatat: SEKRETARIS (dan Super Admin sebagai cadangan).
  *   2. Ketua memvalidasi sebelum tayang di web publik.
  *   3. Berita yang terbit tertanggal sesuai TANGGAL KEGIATAN — bukan tanggal
  *      entri. Karena itu `posts.terbit_pada` diisi tanggal kegiatan, sedangkan
@@ -50,7 +50,7 @@ export async function catatKegiatanLangsung(form: FormData): Promise<HasilCatat>
     if (!izinMencatat(pengguna.peran)) {
       return {
         sukses: false,
-        pesan: "Hanya Sekretaris dan Ketua Bidang yang dapat mencatat laporan kegiatan langsung.",
+        pesan: "Hanya Sekretaris yang dapat mencatat laporan kegiatan langsung.",
       };
     }
 
